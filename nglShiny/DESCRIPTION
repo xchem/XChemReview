@@ -1,0 +1,12 @@
+Package: nglShiny
+Title: nglShiny
+Version: 0.99.08
+Date: 2020-04-21
+Author: Paul Shannon
+Maintainer: Paul Shannon <paul.thurmond.shannon@gmail.com>
+Description: ngl.js as a shiny widget
+Depends: R (>= 3.5.0)
+License: MIT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
