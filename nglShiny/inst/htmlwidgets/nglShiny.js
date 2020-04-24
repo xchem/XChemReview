@@ -17,8 +17,8 @@ HTMLWidgets.widget({
           var stage;
           stage = new NGL.Stage(el);
           window.stage = stage;
-          uri = "rcsb://" + options.pdbID;
-          //uri = options.pdbID;
+          //uri = "rcsb://" + options.pdbID;
+          uri = options.pdbID;
           window.pdbID = options.pdbID;
           stage.loadFile(uri, {defaultRepresentation: false}).then(function(o){
           o.autoView()
@@ -108,8 +108,8 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB", function(messa
     stage.removeAllComponents()
     window.pdbID = message[0];
     console.log("nglShiny setPDB: " + window.pdbID)
-    var url = "rcsb://" + window.pdbID;
-    //var url = window.pdbID;
+    //var url = "rcsb://" + window.pdbID;
+    var url = window.pdbID;
     stage.loadFile(url).then(function(comp){
       comp.addRepresentation("cartoon", {colorScheme: "residueIndex"});
       })

@@ -1,6 +1,7 @@
 # TODO:
-# get ngl viewer to read local files?
-# Download button?
+# Get ngl viewer to read local files?
+# Get Download button to work?
+# Consider modularising bits.
 # Add write-permissions for the app as a whole?
 
 install.packages('/srv/shiny-server/nglShiny', type='source', repos=NULL)
@@ -27,7 +28,7 @@ nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
     elementId = elementId
   )
 } 
-defaultPdbID <- "1crn"
+defaultPdbID <- "rcsb://1crn"
 nglRepresentations = c('angle', 'axes', 'ball+stick', 'backbone', 'base', 'cartoon', 'contact',
                        'dihedral', 'distance', 'helixorient', 'licorice', 'hyperball', 'label',
                        'line', 'surface', 'point', 'ribbon', 'rocket', 'rope', 'spacefill', 'trace', 'unitcell',
@@ -35,7 +36,7 @@ nglRepresentations = c('angle', 'axes', 'ball+stick', 'backbone', 'base', 'carto
 nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
 defaultRepresentation <- "cartoon"
 defaultColorScheme <- "residueIndex"
-
+possRes <- c("",  "False Positive", "Needs Refinement", "Just Wrong", 'I don\'t like it')
 
 # UI Changes
 ui <- navbarPage("Staging XChem",           
@@ -47,14 +48,14 @@ ui <- navbarPage("Staging XChem",
                 div(
                     id = "form",
                     textInput("name", "Name", ""),
-                    selectizeInput('protein', 'Which Protein?', list(), multiple=TRUE),
                     # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
                     selectizeInput('Xtal', 'Which Structure to flag?', list(), multiple = FALSE),
-                    actionButton("download", "Download Data", class = "btn-primary"),
-                    selectInput("reason", "Reason for Rejection",
-                        c("",  "False Positive", "Needs Refinement", "Just Wrong", 'I don\'t like it')),
+                    #actionButton("download", "Download Data", class = "btn-primary"),
+                    selectInput("reason", "Reason for Rejection", possRes),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
+                    hr()
+                    selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
                     selectizeInput('columns', 'Select Columns to View?', list(), multiple = TRUE)
                     #checkboxInput("check1", "This button does nothing", FALSE),
                 ) # div
@@ -80,6 +81,33 @@ ui <- navbarPage("Staging XChem",
 
         sidebarLayout(
             sidebarPanel(
+                div(
+                    actionButton("fitButton", "Fit"),
+                    actionButton("defaultViewButton", "Defaults"),
+                    actionButton("clearRepresentationsButton", "Clear Representations"),
+                    #shinyFilesButton('pdbSelector', label='File select', title='Which Structure to view?', multiple=FALSE),
+                    selectizeInput('pdbSelector', 'Which Structure to view?', list(), multiple = FALSE),
+                    #selectInput("pdbSelector", "", pdbIDs, selected=defaultPdbID),
+                    selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
+                    selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
+                    hr(),
+                    id = "form",
+                    textInput("name", "Name", ""),
+                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
+                    selectizeInput('Xtal', 'Which Structure to flag?', list(), multiple = FALSE),
+                    #actionButton("download", "Download Data", class = "btn-primary"),
+                    selectInput("reason", "Reason for Rejection", possRes),
+                    textOutput('msg'),
+                    actionButton("submit", "Submit", class = "btn-primary"),
+                    hr(),
+                    selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
+                    selectizeInput('columns', 'Select Columns to View?', list(), multiple = TRUE)
+                    #checkboxInput("check1", "This button does nothing", FALSE),
+                ) # div
+
+
+
+
                 actionButton("fitButton", "Fit"),
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
@@ -107,11 +135,11 @@ server <- function(input, output, session) {
 fieldsAll <- c("name", 'Xtal', "reason")
 responsesDir <- file.path("/srv/shiny-server/Responses")
 dataDir <- file.path('/srv/shiny-server/Data/')
-pdbIDs <- c("1crn",  # crambin refined against 0.945-A x-ray diffraction data.
-            "2UWS",  # photosynthetic reaction center from Rb. sphaeroides, pH 6.5, charge-separated state
-            "1IZL",  # Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution
+pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction data.
+            "rcsb://2UWS",  # photosynthetic reaction center from Rb. sphaeroides, pH 6.5, charge-separated state
+            "rcsb://1IZL",  # Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution
             #dir(dataDir, pattern='.pdb', full=T), # My structure (will need to add a mtz...)
-            '6TNU')
+            'rcsb://6TNU')
             #'/foo/Data/refine_16.pdb',
             #'/foo')
 
@@ -120,7 +148,7 @@ pdbIDs <- c("1crn",  # crambin refined against 0.945-A x-ray diffraction data.
     # Stuff people shouldn't see.
     #options <- list(pdbID="1pcr")
     #options <- list(pdbID="3kvk")
-    options <- list(pdbID="1crn")
+    options <- list(pdbID="rcsb://1crn")
     #options <- list(pdbID="1rqk")
     output$nglShiny <- renderNglShiny(
         nglShiny(list(), 300, 300)
