@@ -105,6 +105,94 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB", function(messa
     stage.autoView()
     })
 
+
+// Setup to load data from rawgit
+NGL.DatasourceRegistry.add(
+    "data", new NGL.StaticDatasource( "//cdn.rawgit.com/arose/ngl/v2.0.0-dev.32/data/" )
+);
+
+// Create NGL Stage object
+var stage = new NGL.Stage( "viewport" );
+
+// Handle window resizing
+window.addEventListener( "resize", function( event ){
+    stage.handleResize();
+}, false );
+
+
+// Code for example: test/xray
+
+//stage.setParameters({
+// cameraType: "orthographic",
+//  mousePreset: "coot"
+//})
+
+//stage.loadFile("data://3ek3.cif").then(function (o) {
+//  o.addRepresentation("licorice", {
+//    colorValue: "yellow",
+//    roughness: 1.0
+//  })
+//  o.autoView("FMN")
+//  stage.setFocus(97)
+//})
+
+//stage.loadFile("data://3ek3-2fofc.map.gz").then(function (o) {
+//  o.addRepresentation("surface", {
+//    color: "skyblue",
+//    isolevel: 1.5,
+//    boxSize: 10,
+//   useWorker: false,
+//    contour: true
+//  })
+//})
+
+//stage.loadFile("data://3ek3-fofc.map.gz").then(function (o) {
+//  o.addRepresentation("surface", {
+//    color: "lightgreen",
+//    isolevel: 3,
+//    boxSize: 10,
+//    useWorker: false,
+//    contour: true
+//  })
+//  o.addRepresentation("surface", {
+//    color: "tomato",
+//    isolevel: 3,
+//    negateIsolevel: true,
+//    boxSize: 10,
+//    useWorker: false,
+//    contour: true
+//  })
+//})
+if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(message){
+    stage.removeAllComponents()
+    // Assumption, message is R list of n objects
+    var pdb = message[0] 
+    var stringBlob = new Blob( [ pdb ], { type: 'text/plain'} );
+    console.log("nglShiny setPDB:")
+    stage.loadFile(stringBlob, { ext: "pdb" }).then(function(comp){
+      comp.addRepresentation("licorice", {colorScheme: "element"});
+    })
+})
+
+
+if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("addEvent", function(message){
+    // Add event Map
+    var event = message[0]
+    var binaryBlob = new Blob( [ event ], { type: 'application/octet-binary'} );
+    stage.loadFile( binaryBlob, { ext: "ccp4" } ).then(function(comp){
+      comp.addRespresentation('surface',{
+        colour: 'skyblue', 
+        isolevel: 1.5, 
+        boxSize:10, 
+        useWorker: false, 
+        contour:true
+      })
+    })
+    // redundant?
+    //stage.getComponentsByName(window.pdbID).addRepresentation(window.representation, {colorScheme: window.colorScheme})
+    stage.autoView()
+    })
+
 //------------------------------------------------------------------------------------------------------------------------
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("select", function(message){
 

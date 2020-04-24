@@ -3,8 +3,8 @@
 # Get Download button to work?
 # Consider modularising bits.
 # Add write-permissions for the app as a whole?
-#gpath <- '.'
-gpath <- '/srv/shiny-server/'
+gpath <- '.'
+#gpath <- '/srv/shiny-server/'
 install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
 library(shiny)
@@ -91,7 +91,7 @@ ui <- navbarPage("Staging XChem",
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
 
-                selectizeInput('pdbSelector', 'Which Structure to view?', list(), multiple = FALSE), # Replace with Xtal2?
+                selectizeInput('pdbSelector', 'Which Structure to view?', list("rcsb://1crn"), multiple = FALSE), # Replace with Xtal2?
 
                 selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
                 selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
@@ -115,7 +115,7 @@ dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
 pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction data.
             "rcsb://2UWS",  # photosynthetic reaction center from Rb. sphaeroides, pH 6.5, charge-separated state
             "rcsb://1IZL",  # Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution
-            #dir(dataDir, pattern='.pdb', full=T), # My structure (will need to add a mtz...)
+            dir(dataDir, pattern='.pdb', full=T), # My structure (will need to add a mtz...)
             'rcsb://6TNU')
             #'/foo/Data/refine_16.pdb',
             #'/foo')
@@ -238,13 +238,24 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         #updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=defaultColorScheme)
     })
   
-    #shinyFileChoose(input, 'pdbSelector', root=c(root='.'), filetypes=c('pdb'))
-
     observeEvent(input$pdbSelector, {
         choice = input$pdbSelector
-        #choice = paste0(c('.', unlist(choice)[2:3]), collapse='/')
-        message(sprintf("pdb: %s", choice))
-        session$sendCustomMessage(type="setPDB", message=list(choice))
+        if(grepl('rcsb', choice)){
+            message(sprintf("pdb: %s", choice))
+            session$sendCustomMessage(type="setPDB", message=list(choice))
+        } else {
+            # If pdb is not on pdb... Do things.
+            message(sprintf("pdb: %s", choice))
+            pdbstrings <- system(sprintf('cat %s', choice), intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+
+         #   fname <- './Data/Mpro-x0104-event_1_1-BDC_0.31_map.ccp4'
+         #   event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+
+         #   session$sendCustomMessage(type="setPDB", message=list(choice))
+         #   session$sendCustomMessage(type="addEvent", message=list(event))
+        }
+
         #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
     })
   
