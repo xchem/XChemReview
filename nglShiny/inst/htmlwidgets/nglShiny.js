@@ -177,7 +177,8 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(mess
 
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("addEvent", function(message){
     // Add event Map
-    var event = message[0]
+    var event = new Uint8Array([message])
+    console.log(event)
     var binaryBlob = new Blob( [ event ], { type: 'application/octet-binary'} );
     stage.loadFile( binaryBlob, { ext: "ccp4" } ).then(function(comp){
       comp.addRespresentation('surface',{

@@ -249,11 +249,11 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
             pdbstrings <- system(sprintf('cat %s', choice), intern = TRUE)
             choice <- paste0(pdbstrings, collapse='\n')
 
-         #   fname <- './Data/Mpro-x0104-event_1_1-BDC_0.31_map.ccp4'
-         #   event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+            fname <- './Data/Mpro-x0104-event_1_1-BDC_0.31_map.ccp4'
+            event <-  readBin(fname, what = 'raw', file.info(fname)$size)
 
-         #   session$sendCustomMessage(type="setPDB", message=list(choice))
-         #   session$sendCustomMessage(type="addEvent", message=list(event))
+             session$sendCustomMessage(type="setPDB2", message=list(choice))
+            # session$sendCustomMessage(type="addEvent", message=list(event))
         }
 
         #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
