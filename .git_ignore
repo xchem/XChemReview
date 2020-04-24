@@ -1,7 +1,7 @@
 .DS_Store
-Data/
+Data/*
 __pycache__/
-Responses/
+Responses/*
 .tar
 settings.py
 setup_django.py
