@@ -3,14 +3,14 @@
 # Get Download button to work?
 # Consider modularising bits.
 # Add write-permissions for the app as a whole?
-
-install.packages('/srv/shiny-server/nglShiny', type='source', repos=NULL)
-library(nglShiny)
+#gpath <- '.'
+gpath <- '/srv/shiny-server/'
+install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
+library(devtools)
 library(shiny)
 library(DT)
 library(htmlwidgets)
-library(devtools)
-
+library(nglShiny)
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
 nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
@@ -36,7 +36,7 @@ nglRepresentations = c('angle', 'axes', 'ball+stick', 'backbone', 'base', 'carto
 nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
 defaultRepresentation <- "cartoon"
 defaultColorScheme <- "residueIndex"
-possRes <- c("",  "False Positive", "Needs Refinement", "Just Wrong", 'I don\'t like it')
+possRes <- c("",  "Needs Refinement", "Not Bound", "Too Low Resolution", 'I don\'t like it')
 
 # UI Changes
 ui <- navbarPage("Staging XChem",           
@@ -54,18 +54,17 @@ ui <- navbarPage("Staging XChem",
                     selectInput("reason", "Reason for Rejection", possRes),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
-                    hr()
                     selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
                     selectizeInput('columns', 'Select Columns to View?', list(), multiple = TRUE)
                     #checkboxInput("check1", "This button does nothing", FALSE),
-                ) # div
+                ), width=2 # div
             ), #sidebarPanel
                             
             mainPanel(
                 tabsetPanel(
                     tabPanel("Staged Structures", DT::dataTableOutput("table")),
                     tabPanel("Responses", DT::dataTableOutput("resp")),
-                    tabPanel("Help", includeMarkdown("/srv/shiny-server/Pages/include.md"))
+                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
                 )
             ) # mainPanel
         ) # sidebarLayout
@@ -73,50 +72,29 @@ ui <- navbarPage("Staging XChem",
     # End of Page 1.
     # Page 2
     tabPanel('NGL Viewer',
-      fluidPage(
-      tags$head(
-    tags$style("#nglShiny{height:98vh !important;}"),
-    tags$link(rel="icon", href="data:;base64,iVBORw0KGgo=")
-    ),  
-
+        fluidPage(
+            tags$head(
+            tags$style("#nglShiny{height:98vh !important;}"),
+            tags$link(rel="icon", href="data:;base64,iVBORw0KGgo=")
+        ),  
         sidebarLayout(
             sidebarPanel(
-                div(
-                    actionButton("fitButton", "Fit"),
-                    actionButton("defaultViewButton", "Defaults"),
-                    actionButton("clearRepresentationsButton", "Clear Representations"),
-                    #shinyFilesButton('pdbSelector', label='File select', title='Which Structure to view?', multiple=FALSE),
-                    selectizeInput('pdbSelector', 'Which Structure to view?', list(), multiple = FALSE),
-                    #selectInput("pdbSelector", "", pdbIDs, selected=defaultPdbID),
-                    selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                    selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
-                    hr(),
-                    id = "form",
-                    textInput("name", "Name", ""),
-                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
-                    selectizeInput('Xtal', 'Which Structure to flag?', list(), multiple = FALSE),
-                    #actionButton("download", "Download Data", class = "btn-primary"),
-                    selectInput("reason", "Reason for Rejection", possRes),
-                    textOutput('msg'),
-                    actionButton("submit", "Submit", class = "btn-primary"),
-                    hr(),
-                    selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View?', list(), multiple = TRUE)
-                    #checkboxInput("check1", "This button does nothing", FALSE),
-                ) # div
-
-
-
-
+                textInput("name2", "Name", ""),
+                selectizeInput('Xtal2', 'Which Structure to View/Flag?', list(), multiple = FALSE),
+                selectInput("reason2", "Reason for Rejection", possRes),
+                textOutput('stats'),
+                hr(),
+                textOutput('msg2'),
+                actionButton("submit2", "Submit", class = "btn-primary"),
+                hr(),
                 actionButton("fitButton", "Fit"),
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
-                #shinyFilesButton('pdbSelector', label='File select', title='Which Structure to view?', multiple=FALSE),
-                selectizeInput('pdbSelector', 'Which Structure to view?', list(), multiple = FALSE),
-                #selectInput("pdbSelector", "", pdbIDs, selected=defaultPdbID),
+
+                selectizeInput('pdbSelector', 'Which Structure to view?', list(), multiple = FALSE), # Replace with Xtal2?
+
                 selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
                 selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
-                hr(),
                 width=2
             ), # sidebarPanel
             mainPanel(
@@ -132,9 +110,8 @@ ui <- navbarPage("Staging XChem",
 server <- function(input, output, session) {
 
 # Things in Global Scope
-fieldsAll <- c("name", 'Xtal', "reason")
-responsesDir <- file.path("/srv/shiny-server/Responses")
-dataDir <- file.path('/srv/shiny-server/Data/')
+responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
+dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
 pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction data.
             "rcsb://2UWS",  # photosynthetic reaction center from Rb. sphaeroides, pH 6.5, charge-separated state
             "rcsb://1IZL",  # Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution
@@ -142,9 +119,6 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
             'rcsb://6TNU')
             #'/foo/Data/refine_16.pdb',
             #'/foo')
-
-
-
     # Stuff people shouldn't see.
     #options <- list(pdbID="1pcr")
     #options <- list(pdbID="3kvk")
@@ -153,7 +127,7 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
     output$nglShiny <- renderNglShiny(
         nglShiny(list(), 300, 300)
     )
-  
+
     loadData <- function() {
         files <- list.files(file.path(responsesDir), full.names = TRUE)
         data <- lapply(files, read.csv, stringsAsFactors = FALSE)
@@ -161,8 +135,17 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         data
     }
 
+    fieldsAll <- c("name", 'Xtal', "reason")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) input[[x]])
+        data <- c(data, timestamp = epochTime())
+        data <- t(data)
+        data
+    })
+
+    fieldsAll2 <- c("name2", 'Xtal2', "reason2")
+    formData2 <- reactive({
+        data <- sapply(fieldsAll2, function(x) input[[x]])
         data <- c(data, timestamp = epochTime())
         data <- t(data)
         data
@@ -194,6 +177,18 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
+    r2 <- reactive({
+        dat <- inputData()[input$Xtal2, ]
+        sn <- names(dat)[2:8]
+        val <- dat[2:8]
+        values <- sprintf('%s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n',
+            sn[1], val[1], sn[2], val[2], sn[3], val[3], sn[4], val[4], sn[5], val[5], sn[6], val[6] 
+            )
+        values
+    })
+
+    output$stats <- renderText({r2()})
+
     output$table <- DT::renderDataTable({r1()})
 
     # Response Table
@@ -204,6 +199,7 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
     ) 
   
     output$msg <- renderText({'Please click once, \n refresh page to see response being updated'})  
+    output$msg2 <- renderText({'Please click once, \n refresh page to see response being updated'})  
     output$value <- renderPrint({ input$action})
   
     # Events
@@ -211,14 +207,19 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         print(formData())
         saveData(formData())
     })
-  
+    
+    observeEvent(input$submit2, {
+        print(formData2())
+        saveData(formData2())
+    })
+
     observe({
         updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
     })
-    
 
     observeEvent(input$fitButton, {
         session$sendCustomMessage(type="fit", message=list())

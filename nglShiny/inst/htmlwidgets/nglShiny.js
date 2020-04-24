@@ -22,19 +22,6 @@ HTMLWidgets.widget({
           window.pdbID = options.pdbID;
           stage.loadFile(uri, {defaultRepresentation: false}).then(function(o){
           o.autoView()
-              console.log("adding rep for 'chromaphore'");
-          o.addRepresentation('ball+stick', {
-          sele: 'not helix and not sheet and not turn and not water',
-          name: 'chromaphore'
-                  })
-          o.addRepresentation('cartoon', {
-          name: 'pas',
-          sele: '38-128',
-                  })
-          o.addRepresentation('tube', {
-          name: 'gaf',
-          sele: '129-321',
-                  })
               }) // then 
           },
        resize: function(width, height) {
@@ -111,7 +98,7 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB", function(messa
     //var url = "rcsb://" + window.pdbID;
     var url = window.pdbID;
     stage.loadFile(url).then(function(comp){
-      comp.addRepresentation("cartoon", {colorScheme: "residueIndex"});
+      comp.addRepresentation("licorice", {colorScheme: "residueIndex"});
       })
        // redundant?
     stage.getComponentsByName(window.pdbID).addRepresentation(window.representation, {colorScheme: window.colorScheme})
