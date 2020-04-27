@@ -3,6 +3,7 @@
 docker images -a | grep 'staging' | awk '{print $3}' | xargs docker rmi -f
 docker images -a | grep 'none' | awk '{print $3}' | xargs docker rmi -f
 echo 'Grabbing New Data'
+# Copy Data to where it needs to do?
 ~/anaconda3/envs/staging/bin/python3 getDatafd.py
 echo 'Recontainerising Data'
 docker build --rm -t staging . 

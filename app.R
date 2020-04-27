@@ -34,9 +34,35 @@ nglRepresentations = c('angle', 'axes', 'ball+stick', 'backbone', 'base', 'carto
                        'dihedral', 'distance', 'helixorient', 'licorice', 'hyperball', 'label',
                        'line', 'surface', 'point', 'ribbon', 'rocket', 'rope', 'spacefill', 'trace', 'unitcell',
                        'validation')
-nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
-defaultRepresentation <- "cartoon"
-defaultColorScheme <- "residueIndex"
+
+#nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
+nglColorSchemes <-  c('atomindex',
+    'bfactor',
+    'chainid',
+    'chainindex',
+    'chainname',
+    'densityfit',
+    'electrostatic',
+    'element',
+    'entityindex',
+    'entitytype',
+    'geoquality',
+    'hydrophobicity',
+    'modelindex',
+    'moleculetype',
+    'occupancy',
+    'random',
+    'residueindex',
+    'resname',
+    'sstruc',
+    'uniform',
+    'value',
+    'volume')
+
+
+
+defaultRepresentation <- "ball+stick"
+defaultColorScheme <- "chainIndex"
 possRes <- c("",  "Needs Refinement", "Not Bound", "Too Low Resolution", 'I don\'t like it')
 
 # UI Changes
@@ -81,7 +107,7 @@ ui <- navbarPage("Staging XChem",
         sidebarLayout(
             sidebarPanel(
                 textInput("name2", "Name", ""),
-                selectizeInput('Xtal2', 'Which Structure to View/Flag?', list(), multiple = FALSE),
+                selectizeInput('Xtal2', 'Which Structure to View/Flag?', list('Mpro-x0104'), multiple = FALSE),
                 selectInput("reason2", "Reason for Rejection", possRes),
                 textOutput('stats'),
                 hr(),
@@ -92,7 +118,7 @@ ui <- navbarPage("Staging XChem",
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
 
-                selectizeInput('pdbSelector', 'Which Structure to view?', list("rcsb://1crn"), multiple = FALSE), # Replace with Xtal2?
+                #selectizeInput('pdbSelector', 'Which Structure to view?', list("rcsb://1crn"), multiple = FALSE), # Replace with Xtal2?
 
                 selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
                 selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
@@ -113,13 +139,8 @@ server <- function(input, output, session) {
 # Things in Global Scope
 responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
 dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
-pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction data.
-            "rcsb://2UWS",  # photosynthetic reaction center from Rb. sphaeroides, pH 6.5, charge-separated state
-            "rcsb://1IZL",  # Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution
-            dir(dataDir, pattern='.pdb', full=T), # My structure (will need to add a mtz...)
-            'rcsb://6TNU')
-            #'/foo/Data/refine_16.pdb',
-            #'/foo')
+pdbIDs <- dir(dataDir, pattern='.pdb', full= TRUE) # My structure (will need to add a mtz...)
+mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE)
     # Stuff people shouldn't see.
     #options <- list(pdbID="1pcr")
     #options <- list(pdbID="3kvk")
@@ -219,7 +240,7 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
+        #updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
     })
 
     observeEvent(input$fitButton, {
@@ -239,25 +260,27 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
         #updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=defaultColorScheme)
     })
   
-    observeEvent(input$pdbSelector, {
-        choice = input$pdbSelector
+    observeEvent(input$Xtal2, {
+        fail <- try({
+        choice = input$Xtal2
         if(grepl('rcsb', choice)){
             message(sprintf("pdb: %s", choice))
             session$sendCustomMessage(type="setPDB", message=list(choice))
         } else {
+            # From Xtal2, look in folder for .pdb and then ligand centered Map.
             # If pdb is not on pdb... Do things.
             message(sprintf("pdb: %s", choice))
-            pdbstrings <- system(sprintf('cat %s', choice), intern = TRUE)
+            pdbstrings <- system(sprintf('cat %s', dir(sprintf('Data/%s', choice), pattern = 'pdb', full.names=T)), intern = TRUE)
+            fname <- dir(sprintf('Data/%s', choice), pattern = 'ccp4', full.names=T)
             choice <- paste0(pdbstrings, collapse='\n')
-
-            fname <- './Data/Mpro-x0104_LIG-A-1101_event.ccp4'
             event <-  readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
 
             session$sendCustomMessage(type="setPDB2", message=list(choice))
             session$sendCustomMessage(type="addEvent", message=list(event))
         }
-
+        }, silent=T)
+        if(inherits(fail, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
         #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
     })
   

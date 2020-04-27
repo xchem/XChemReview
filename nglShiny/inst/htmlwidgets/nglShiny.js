@@ -1,6 +1,6 @@
 // shameful use of primitive global variables for now
 window.pdbID = "1crn";
-window.representation = "cartoon";
+window.representation = "ball+stick";
 window.colorScheme = "residueIndex";
 //------------------------------------------------------------------------------------------------------------------------
 HTMLWidgets.widget({
@@ -59,14 +59,20 @@ function setComponentNames(x, namedComponents)
 //------------------------------------------------------------------------------------------------------------------------
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("fit", function(message){
 
-    console.log("nglShiny fit")
-    stage.autoView()
-    })
+    console.log("nglShiny fit");
+    stage.autoView();
+    });
+
+if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("ligfit", function(message){
+
+    console.log("nglShiny fit");
+    stage.autoView('LIG');
+    });
 
 //------------------------------------------------------------------------------------------------------------------------
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("removeAllRepresentations", function(message){
-
     stage.getComponentsByName(window.pdbID).list[0].removeAllRepresentations()
+    stage.getComponentsByName(window.pdbID).list[1].removeAllRepresentations()
     })
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -106,78 +112,19 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB", function(messa
     })
 
 
-// Setup to load data from rawgit
-//NGL.DatasourceRegistry.add(
-//   "data", new NGL.StaticDatasource( "//cdn.rawgit.com/arose/ngl/v2.0.0-dev.32/data/" )
-//);
-
-// Create NGL Stage object
-//var stage = new NGL.Stage( "viewport" );
-
-// Handle window resizing
-//window.addEventListener( "resize", function( event ){
-//    stage.handleResize();
-//}, false );
-
-
-// Code for example: test/xray
-
-//stage.setParameters({
-// cameraType: "orthographic",
-//  mousePreset: "coot"
-//})
-
-//stage.loadFile("data://3ek3.cif").then(function (o) {
-//  o.addRepresentation("licorice", {
-//    colorValue: "yellow",
-//    roughness: 1.0
-//  })
-//  o.autoView("FMN")
-//  stage.setFocus(97)
-//})
-
-//stage.loadFile("data://3ek3-2fofc.map.gz").then(function (o) {
-//  o.addRepresentation("surface", {
-//    color: "skyblue",
-//    isolevel: 1.5,
-//    boxSize: 10,
-//   useWorker: false,
-//    contour: true
-//  })
-//})
-
-//stage.loadFile("data://3ek3-fofc.map.gz").then(function (o) {
-//  o.addRepresentation("surface", {
-//    color: "lightgreen",
-//    isolevel: 3,
-//    boxSize: 10,
-//    useWorker: false,
-//    contour: true
-//  })
-//  o.addRepresentation("surface", {
-//    color: "tomato",
-//    isolevel: 3,
-//    negateIsolevel: true,
-//    boxSize: 10,
-//    useWorker: false,
-//    contour: true
-//  })
-//})
-
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(message){
     stage.removeAllComponents();
     // Assumption, message is R list of n objects
     var pdb = message[0];
     var stringBlob = new Blob( [ pdb ], { type: 'text/plain'} );
     console.log("nglShiny setPDB:");
-    stage.loadFile(stringBlob, { ext: "pdb" }).then(function (comp) {
-      comp.addRepresentation("licorice", {colorScheme: "atomindex"});
+    stage.loadFile(stringBlob, { ext: "pdb" , defaultRepresentation: true}).then(function (comp) {
+      //comp.addRepresentation("ball+stick", {colorScheme: "atomindex"});
+      comp.autoView("LIG")
     });
 });
 
-
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("addEvent", function(message){
-
   var byteCharacters = atob(message);
   var byteNumbers = new Array(byteCharacters.length);
   for (let i = 0; i < byteCharacters.length; i++) {
@@ -186,7 +133,7 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("addEvent", function(mes
   var byteArray = new Uint8Array(byteNumbers);
   var blob = new Blob([byteArray], {type: 'application/octet-binary'});
     stage.loadFile( blob, { ext: "ccp4" } ).then(function (comp) {
-      comp.addRepresentation("surface",{ colour: "skyblue", isolevel: 1.5, boxSize:100, useWorker: false, contour:true
+      comp.addRepresentation("surface", { color: 'skyblue', isolevel: 1.5, boxSize:10, useWorker: false, contour:true
       });
     });
     // redundant?

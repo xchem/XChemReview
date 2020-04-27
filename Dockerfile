@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
 	libssh2-1-dev
 
 # Install R packages
+RUN R -e "install.packages('caTools', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('devtools', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('htmlwidgets', repos='http://cran.rstudio.com/')"
