@@ -107,17 +107,17 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB", function(messa
 
 
 // Setup to load data from rawgit
-NGL.DatasourceRegistry.add(
-    "data", new NGL.StaticDatasource( "//cdn.rawgit.com/arose/ngl/v2.0.0-dev.32/data/" )
-);
+//NGL.DatasourceRegistry.add(
+//   "data", new NGL.StaticDatasource( "//cdn.rawgit.com/arose/ngl/v2.0.0-dev.32/data/" )
+//);
 
 // Create NGL Stage object
-var stage = new NGL.Stage( "viewport" );
+//var stage = new NGL.Stage( "viewport" );
 
 // Handle window resizing
-window.addEventListener( "resize", function( event ){
-    stage.handleResize();
-}, false );
+//window.addEventListener( "resize", function( event ){
+//    stage.handleResize();
+//}, false );
 
 
 // Code for example: test/xray
@@ -163,36 +163,36 @@ window.addEventListener( "resize", function( event ){
 //    contour: true
 //  })
 //})
+
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(message){
-    stage.removeAllComponents()
+    stage.removeAllComponents();
     // Assumption, message is R list of n objects
-    var pdb = message[0] 
+    var pdb = message[0];
     var stringBlob = new Blob( [ pdb ], { type: 'text/plain'} );
-    console.log("nglShiny setPDB:")
-    stage.loadFile(stringBlob, { ext: "pdb" }).then(function(comp){
-      comp.addRepresentation("licorice", {colorScheme: "element"});
-    })
-})
+    console.log("nglShiny setPDB:");
+    stage.loadFile(stringBlob, { ext: "pdb" }).then(function (comp) {
+      comp.addRepresentation("licorice", {colorScheme: "atomindex"});
+    });
+});
 
 
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("addEvent", function(message){
-    // Add event Map
-    var event = new Uint8Array([message])
-    console.log(event)
-    var binaryBlob = new Blob( [ event ], { type: 'application/octet-binary'} );
-    stage.loadFile( binaryBlob, { ext: "ccp4" } ).then(function(comp){
-      comp.addRespresentation('surface',{
-        colour: 'skyblue', 
-        isolevel: 1.5, 
-        boxSize:10, 
-        useWorker: false, 
-        contour:true
-      })
-    })
+
+  var byteCharacters = atob(message);
+  var byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  };
+  var byteArray = new Uint8Array(byteNumbers);
+  var blob = new Blob([byteArray], {type: 'application/octet-binary'});
+    stage.loadFile( blob, { ext: "ccp4" } ).then(function (comp) {
+      comp.addRepresentation("surface",{ colour: "skyblue", isolevel: 1.5, boxSize:100, useWorker: false, contour:true
+      });
+    });
     // redundant?
     //stage.getComponentsByName(window.pdbID).addRepresentation(window.representation, {colorScheme: window.colorScheme})
-    stage.autoView()
-    })
+    //stage.autoView()
+});
 
 //------------------------------------------------------------------------------------------------------------------------
 if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("select", function(message){

@@ -11,6 +11,7 @@ library(shiny)
 library(DT)
 library(htmlwidgets)
 library(nglShiny)
+library(caTools)
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
 nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
@@ -249,11 +250,12 @@ pdbIDs <- c("rcsb://1crn",  # crambin refined against 0.945-A x-ray diffraction 
             pdbstrings <- system(sprintf('cat %s', choice), intern = TRUE)
             choice <- paste0(pdbstrings, collapse='\n')
 
-            fname <- './Data/Mpro-x0104-event_1_1-BDC_0.31_map.ccp4'
+            fname <- './Data/Mpro-x0104_LIG-A-1101_event.ccp4'
             event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
 
-             session$sendCustomMessage(type="setPDB2", message=list(choice))
-            # session$sendCustomMessage(type="addEvent", message=list(event))
+            session$sendCustomMessage(type="setPDB2", message=list(choice))
+            session$sendCustomMessage(type="addEvent", message=list(event))
         }
 
         #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
