@@ -118,8 +118,8 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(mess
     var pdb = message[0];
     var stringBlob = new Blob( [ pdb ], { type: 'text/plain'} );
     console.log("nglShiny setPDB:");
-    stage.loadFile(stringBlob, { ext: "pdb" , defaultRepresentation: true}).then(function (comp) {
-      //comp.addRepresentation("ball+stick", {colorScheme: "atomindex"});
+    stage.loadFile(stringBlob, { ext: "pdb" }).then(function (comp) {
+      comp.addRepresentation("ball+stick");
       comp.autoView("LIG")
     });
 });

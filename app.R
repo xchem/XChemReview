@@ -3,8 +3,8 @@
 # Get Download button to work?
 # Consider modularising bits.
 # Add write-permissions for the app as a whole?
-gpath <- '.'
-#gpath <- '/srv/shiny-server/'
+#gpath <- '.'
+gpath <- '/srv/shiny-server/'
 install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
 library(shiny)
@@ -29,14 +29,36 @@ nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
     elementId = elementId
   )
 } 
-defaultPdbID <- "rcsb://1crn"
-nglRepresentations = c('angle', 'axes', 'ball+stick', 'backbone', 'base', 'cartoon', 'contact',
-                       'dihedral', 'distance', 'helixorient', 'licorice', 'hyperball', 'label',
-                       'line', 'surface', 'point', 'ribbon', 'rocket', 'rope', 'spacefill', 'trace', 'unitcell',
-                       'validation')
+
+nglRepresentations = c(
+    'angle', 
+    'axes', 
+    'ball+stick', 
+    'backbone', 
+    'base', 
+    'cartoon', 
+    'contact',
+    'dihedral', 
+    'distance', 
+    'helixorient', 
+    'licorice', 
+    'hyperball', 
+    'label',
+    'line', 
+    'surface', 
+    'point', 
+    'ribbon', 
+    'rocket', 
+    'rope', 
+    'spacefill', 
+    'trace', 
+    'unitcell',
+    'validation'
+    )
 
 #nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
-nglColorSchemes <-  c('atomindex',
+nglColorSchemes <-  c(
+    'atomindex',
     'bfactor',
     'chainid',
     'chainindex',
@@ -57,13 +79,12 @@ nglColorSchemes <-  c('atomindex',
     'sstruc',
     'uniform',
     'value',
-    'volume')
-
-
+    'volume'
+    )
 
 defaultRepresentation <- "ball+stick"
 defaultColorScheme <- "chainIndex"
-possRes <- c("",  "Needs Refinement", "Not Bound", "Too Low Resolution", 'I don\'t like it')
+possRes <- c("",  "Needs refinement", "Unconvincing ligand density (I\'ve checked event maps)", "Ligand restraints issue", "Low resolution/poor data quality", 'Other')
 
 # UI Changes
 ui <- navbarPage("Staging XChem",           
@@ -135,16 +156,16 @@ ui <- navbarPage("Staging XChem",
 ) # End of UI
 
 server <- function(input, output, session) {
-
+defaultPdbID <- ""
 # Things in Global Scope
 responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
 dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
-pdbIDs <- dir(dataDir, pattern='.pdb', full= TRUE) # My structure (will need to add a mtz...)
-mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE)
+pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
+mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
     # Stuff people shouldn't see.
     #options <- list(pdbID="1pcr")
     #options <- list(pdbID="3kvk")
-    options <- list(pdbID="rcsb://1crn")
+    options <- list(pdbID="")
     #options <- list(pdbID="1rqk")
     output$nglShiny <- renderNglShiny(
         nglShiny(list(), 300, 300)
@@ -239,18 +260,12 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE)
         updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
+        #updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161') )
         #updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
     })
 
     observeEvent(input$fitButton, {
-        session$sendCustomMessage(type="fit", message=list())
-    })
-  
-    observeEvent(input$defaultViewButton, {
-        session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        session$sendCustomMessage(type="setRepresentation", message=list(defaultRepresentation))
-        session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
         session$sendCustomMessage(type="fit", message=list())
     })
   
@@ -270,18 +285,31 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE)
             # From Xtal2, look in folder for .pdb and then ligand centered Map.
             # If pdb is not on pdb... Do things.
             message(sprintf("pdb: %s", choice))
-            pdbstrings <- system(sprintf('cat %s', dir(sprintf('Data/%s', choice), pattern = 'pdb', full.names=T)), intern = TRUE)
-            fname <- dir(sprintf('Data/%s', choice), pattern = 'ccp4', full.names=T)
+            syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+            message(syscall)
+            pdbstrings <- system(syscall, intern = TRUE)
+            fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
+            message(fname)
             choice <- paste0(pdbstrings, collapse='\n')
+            defaultPdbID <<- choice
             event <-  readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
-
+            defaultShell <<- event
             session$sendCustomMessage(type="setPDB2", message=list(choice))
             session$sendCustomMessage(type="addEvent", message=list(event))
         }
         }, silent=T)
         if(inherits(fail, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
         #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
+    })
+
+    observeEvent(input$defaultViewButton, {
+        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))
+        session$sendCustomMessage(type="addEvent", message=list(defaultShell))
+        #session$sendCustomMessage(type="setRepresentation", message=list(defaultRepresentation))
+        #session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
+        #session$sendCustomMessage(type="fit", message=list())
     })
   
     observeEvent(input$representationSelector, {

@@ -11,4 +11,4 @@ docker save 'staging' > staging.tar
 echo 'Loading Docker'
 docker load --input staging.tar
 # Run With
-# docker run --rm -p 3838:3838 staging  
+docker run --rm -p 3838:3838 staging  
