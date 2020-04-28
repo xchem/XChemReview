@@ -129,7 +129,8 @@ ui <- navbarPage("Staging XChem",
             sidebarPanel(
                 textInput("name2", "Name", ""),
                 selectizeInput('Xtal2', 'Which Structure to View/Flag?', list('Mpro-x0104'), multiple = FALSE),
-                selectInput("reason2", "Reason for Rejection", possRes),
+                selectInput("reason2", "Decision", possRes)
+                selectInput("reason2", "Reason", possRes),
                 textOutput('stats'),
                 hr(),
                 textOutput('msg2'),
@@ -178,7 +179,7 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         data
     }
 
-    fieldsAll <- c("name", 'Xtal', "reason")
+    fieldsAll <- c("name", 'Xtal', "decision", "reason")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) input[[x]])
         data <- c(data, timestamp = epochTime())
@@ -186,9 +187,10 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         data
     })
 
-    fieldsAll2 <- c("name2", 'Xtal2', "reason2")
+    fieldsAll2 <- c("name2", 'Xtal2', "decision2", "reason2")
     formData2 <- reactive({
         data <- sapply(fieldsAll2, function(x) input[[x]])
+        names(data) <- gsub('2','',names(data))
         data <- c(data, timestamp = epochTime())
         data <- t(data)
         data

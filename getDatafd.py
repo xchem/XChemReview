@@ -7,7 +7,7 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 from xchem_db.models import *
 
-x = Refinement.objects.filter(outcome__gte=4).filter(outcome__lte=5)
+x = Refinement.objects.filter(outcome=5)
 xtal = [i.crystal_name for i in x]
 
 new = {
