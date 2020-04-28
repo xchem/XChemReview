@@ -3,8 +3,8 @@
 # Get Download button to work?
 # Consider modularising bits.
 # Add write-permissions for the app as a whole?
-#gpath <- '.'
-gpath <- '/srv/shiny-server/'
+gpath <- '.'
+#gpath <- '/srv/shiny-server/'
 install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
 library(shiny)
@@ -220,12 +220,14 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
+
+    # NGL viewer side panel stats
     r2 <- reactive({
         dat <- inputData()[input$Xtal2, ]
         sn <- names(dat)[2:8]
         val <- dat[2:8]
-        values <- sprintf('%s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n',
-            sn[1], val[1], sn[2], val[2], sn[3], val[3], sn[4], val[4], sn[5], val[5], sn[6], val[6] 
+        values <- sprintf('%s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n',
+            sn[1], val[1], sn[2], val[2], sn[3], val[3], sn[4], val[4], sn[5], val[5], sn[6], val[6], sn[7], val[7] 
             )
         values
     })
@@ -260,6 +262,7 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
+        # Swap zombie-codes once deployed on DLS-KN, ensure that xtals can scope for data too?
         #updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161') )
         #updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
