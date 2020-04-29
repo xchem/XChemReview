@@ -1,10 +1,14 @@
-# TODO:
-# Get ngl viewer to read local files?
-# Get Download button to work?
-# Consider modularising bits.
-# Add write-permissions for the app as a whole?
+#################################################################################
+# Structure is horrible, Time for some organisation:
+# Libraries and function definitions
+#################################################################################
+debug = TRUE
+# Set Path: May need to add something later for files on /dls
 gpath <- '.'
 #gpath <- '/srv/shiny-server/'
+
+# Load Required packages:
+# Installing home-brewed version of nglShiny Package as we some source changes.
 install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
 library(shiny)
@@ -12,24 +16,26 @@ library(DT)
 library(htmlwidgets)
 library(nglShiny)
 library(caTools)
+
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
+
 nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
 {
-  sprintf("--- ~/github/nglShiny/R/nglShiny ctor");
-#  stopifnot("pdbID" %in% names(options))
-  
+  sprintf("--- ~/github/nglShiny/R/nglShiny ctor"); 
   htmlwidgets::createWidget(
     name = 'nglShiny',
     options,
     width = width,
     height = height,
-    # sizingPolicy = htmlwidgets::sizingPolicy(padding=0, browser.fill=TRUE),
     package = 'nglShiny',
     elementId = elementId
   )
 } 
 
+#################################################################################
+# Global Variables used in server/UI
+#################################################################################
 nglRepresentations = c(
     'angle', 
     'axes', 
@@ -54,9 +60,8 @@ nglRepresentations = c(
     'trace', 
     'unitcell',
     'validation'
-    )
+)
 
-#nglColorSchemes <- c('residueIndex', 'chainIndex', 'entityType', 'entityIndex')
 nglColorSchemes <-  c(
     'atomindex',
     'bfactor',
@@ -80,14 +85,45 @@ nglColorSchemes <-  c(
     'uniform',
     'value',
     'volume'
-    )
+)
 
 defaultRepresentation <- "ball+stick"
 defaultColorScheme <- "chainIndex"
-possRes <- c("",  "Needs refinement", "Unconvincing ligand density (I\'ve checked event maps)", "Ligand restraints issue", "Low resolution/poor data quality", 'Other')
 
-# UI Changes
-ui <- navbarPage("Staging XChem",           
+possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
+possAns <- possAns2 <- c('Select Decision')
+
+possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
+possRes <- list('Release' = c('Everything is Wonderful'),
+                'Release (notify)' = c(
+                    'Alternate binding conformation',
+                    'Incomplete Density',
+                    'Weak Density',
+                    'Low Resolution',
+                    'Poor Data quality'
+                    ),
+                'More Work' = c(
+                    'Repeat Experiment',
+                    'Check Geometry',
+                    'Check Conformation',
+                    'Check Refinement'
+                    ),
+                'Reject' = c(
+                    'Density too weak',
+                    'Insubstantial Evidence',
+                    'Bad coordination',
+                    'Incomplete Density'
+                    )
+                )
+
+possAns <- possAns2 <- c('Select Decision')
+defaultPdbID <- ""
+
+#################################################################################
+# UI Code
+#################################################################################
+
+ui <- navbarPage("Staging XChem", id='beep',          
     # First Page
     tabPanel("Main Page",
         sidebarLayout(
@@ -97,9 +133,10 @@ ui <- navbarPage("Staging XChem",
                     id = "form",
                     textInput("name", "Name", ""),
                     # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
-                    selectizeInput('Xtal', 'Which Structure to flag?', list(), multiple = FALSE),
+                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
                     #actionButton("download", "Download Data", class = "btn-primary"),
-                    selectInput("reason", "Reason for Rejection", possRes),
+                    selectInput("decision", "Decision", possDec),
+                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
@@ -115,99 +152,102 @@ ui <- navbarPage("Staging XChem",
                     tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
                 )
             ) # mainPanel
+
         ) # sidebarLayout
     ), # tabPanel, 
     # End of Page 1.
+
     # Page 2
     tabPanel('NGL Viewer',
         fluidPage(
             tags$head(
-            tags$style("#nglShiny{height:98vh !important;}"),
-            tags$link(rel="icon", href="data:;base64,iVBORw0KGgo=")
-        ),  
-        sidebarLayout(
-            sidebarPanel(
-                textInput("name2", "Name", ""),
-                selectizeInput('Xtal2', 'Which Structure to View/Flag?', list('Mpro-x0104'), multiple = FALSE),
-                selectInput("reason2", "Decision", possRes)
-                selectInput("reason2", "Reason", possRes),
-                textOutput('stats'),
-                hr(),
-                textOutput('msg2'),
-                actionButton("submit2", "Submit", class = "btn-primary"),
-                hr(),
-                actionButton("fitButton", "Fit"),
-                actionButton("defaultViewButton", "Defaults"),
-                actionButton("clearRepresentationsButton", "Clear Representations"),
-
-                #selectizeInput('pdbSelector', 'Which Structure to view?', list("rcsb://1crn"), multiple = FALSE), # Replace with Xtal2?
-
-                selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
-                width=2
-            ), # sidebarPanel
-            mainPanel(
-                nglShinyOutput('nglShiny'),
-                width=10
-            ) # mainPanel
-        ) # sidebarlayout
-    )#, 
+                tags$style("#nglShiny{height:98vh !important;}"),
+                tags$link(rel="icon", href="data:;base64,iVBORw0KGgo=")
+            ),
+            sidebarLayout(
+                sidebarPanel(
+                    textInput("name2", "Name", ""),
+                    selectizeInput('Xtal2', 'Which Structure?', list('Mpro-x0104'), multiple = FALSE),
+                    selectInput("decision2", "Decision", possDec),
+                    selectizeInput("reason2", "Reason(s)", list(), multiple=TRUE),
+                    textOutput('stats'),
+                    hr(),
+                    textOutput('msg2'),
+                    actionButton("submit2", "Submit", class = "btn-primary"),
+                    actionButton("Back", "Back", class = "btn-primary"),
+                    hr(),
+                    actionButton("fitButton", "Fit"),
+                    actionButton("defaultViewButton", "Defaults"),
+                    actionButton("clearRepresentationsButton", "Clear Representations"),
+                    selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
+                    selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
+                    width=2
+                ), # sidebarPanel
+                mainPanel(
+                    nglShinyOutput('nglShiny'),
+                    width=10
+                ) # mainPanel
+            ) # sidebarlayout
+        )#, 
     )# tabPanel
     # End of Page 2
+
 ) # End of UI
 
-server <- function(input, output, session) {
-defaultPdbID <- ""
-# Things in Global Scope
-responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
-dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
-pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
-mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
-    # Stuff people shouldn't see.
-    #options <- list(pdbID="1pcr")
-    #options <- list(pdbID="3kvk")
-    options <- list(pdbID="")
-    #options <- list(pdbID="1rqk")
-    output$nglShiny <- renderNglShiny(
-        nglShiny(list(), 300, 300)
-    )
 
+#################################################################################
+# Server Code
+#################################################################################
+server <- function(input, output, session) {
+    sessionTime <- epochTime()
+    # Things in Global Scope
+    responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
+    dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
+    pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
+    mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
+    options <- list(pdbID="")
+
+    # Functions
+    # Read-in Responses Form Data
     loadData <- function() {
         files <- list.files(file.path(responsesDir), full.names = TRUE)
         data <- lapply(files, read.csv, stringsAsFactors = FALSE)
         data <- do.call(rbind, data)
         data
     }
+    # Save Responses.
+    saveData <- function(data) {
+        fileName <- sprintf("%s_%s.csv",
+                            humanTime(),
+                            digest::digest(data))
+        write.csv(x = data, file = file.path(responsesDir, fileName),
+                  row.names = FALSE, quote = TRUE)
+    }
 
+    # Reactives
+    # Page 1 Form Handler
     fieldsAll <- c("name", 'Xtal', "decision", "reason")
     formData <- reactive({
-        data <- sapply(fieldsAll, function(x) input[[x]])
+        data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         data <- c(data, timestamp = epochTime())
         data <- t(data)
         data
     })
 
+    # Page 2 Form Handler
     fieldsAll2 <- c("name2", 'Xtal2', "decision2", "reason2")
     formData2 <- reactive({
-        data <- sapply(fieldsAll2, function(x) input[[x]])
+        data <- sapply(fieldsAll2, function(x) paste0(input[[x]], collapse='; '))
         names(data) <- gsub('2','',names(data))
         data <- c(data, timestamp = epochTime())
         data <- t(data)
         data
     })
-  
-    saveData <- function(data) {
-        fileName <- sprintf("%s_%s.csv",
-                            humanTime(),
-                            digest::digest(data))
-    
-        write.csv(x = data, file = file.path(responsesDir, fileName),
-                  row.names = FALSE, quote = TRUE)
-    }
-  
-    # Outputs:
-  
-    # Main Table handler
+
+
+    # Outputs 
+
+    # Main Table Output Handler
     db <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
     dedupe <- duplicated(db[,1])
     db <- db[!dedupe,]
@@ -222,6 +262,7 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
+    output$table <- DT::renderDataTable({r1()}, selection = 'single')
 
     # NGL viewer side panel stats
     r2 <- reactive({
@@ -236,7 +277,10 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
 
     output$stats <- renderText({r2()})
 
-    output$table <- DT::renderDataTable({r1()})
+    # NGL Viewer
+    output$nglShiny <- renderNglShiny(
+        nglShiny(list(), 300, 300)
+    )
 
     # Response Table
     output$resp <- DT::renderDataTable(
@@ -245,69 +289,116 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         options = list(searching = FALSE, lengthChange = FALSE)
     ) 
   
-    output$msg <- renderText({'Please click once, \n refresh page to see response being updated'})  
-    output$msg2 <- renderText({'Please click once, \n refresh page to see response being updated'})  
-    output$value <- renderPrint({ input$action})
+    # Generic Output Messages.
+    output$msg <- renderText({'Please click once'})  
+    output$msg2 <- renderText({'Please click once'})  
+
+
+    # Observers, behaviour will be described as best as possible
+
+    # Upon Row Click
+    observeEvent(input$table_rows_selected, {
+        # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
+        rdat <- r1()[input$table_rows_selected,]
+        if(sessionTime > max( loadData()[,'timestamp']) ){ 
+            # Update Form window (weird bug with changing decision reupdates form...)
+            updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
+            updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
+            # Move to NGL viewer Page
+            updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+
+        } else {
+            # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
+            showModal(modalDialog(title = "Someone has already reviewed this crystal", 
+                "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+                , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+            ))
+        }
+    })
+    observeEvent(input$ok, {
+        session$reload()
+    })
   
-    # Events
+    resetForm <- function(){
+        updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", selected = '', choices = sort(rownames( inputData() )))
+        updateTabsetPanel(session, "beep", selected = 'Main Page') 
+        session$reload()
+    }
+
+    # Upon Main Page Submit
     observeEvent(input$submit, {
-        print(formData())
+        # Add check for recent updates?
+        if(debug) print(formData())
         saveData(formData())
+        resetForm()
     })
     
+    # Upon NGL Viewer Page Submit
     observeEvent(input$submit2, {
-        print(formData2())
+        # Add check for recent updates
+        if(debug) print(formData2())
         saveData(formData2())
+        resetForm()
     })
 
-    observe({
-        updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
-        updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
-        updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
-        # Swap zombie-codes once deployed on DLS-KN, ensure that xtals can scope for data too?
-        #updateSelectizeInput(session, "Xtal2", choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161') )
-        #updateSelectizeInput(session, 'pdbSelector', choices=sort(pdbIDs))
+    # Change reasons based on decisions
+    # Main Page
+    observeEvent(input$decision,{
+        possAns <- possRes[[input$decision]]
     })
 
+    # NGL page
+    observeEvent(input$decision2,{
+        possAns2 <- possRes[[input$decision2]]
+    })
+
+    # Upon pressing Fit, Fit structure in window
     observeEvent(input$fitButton, {
         session$sendCustomMessage(type="fit", message=list())
     })
-  
+
+    # Upon pressing Clear, Remove Everything
     observeEvent(input$clearRepresentationsButton, {
         session$sendCustomMessage(type="removeAllRepresentations", message=list())
         #updateSelectInput(session, "representationSelector", label=NULL, choices=NULL,  selected=defaultRepresentation)
         #updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=defaultColorScheme)
     })
   
+    # When input$Xtal2 (structure dropdown on NGL viewer page) is updated do things
+    # Load structure and event to NGL stage!
     observeEvent(input$Xtal2, {
         fail <- try({
-        choice = input$Xtal2
-        if(grepl('rcsb', choice)){
-            message(sprintf("pdb: %s", choice))
-            session$sendCustomMessage(type="setPDB", message=list(choice))
-        } else {
-            # From Xtal2, look in folder for .pdb and then ligand centered Map.
-            # If pdb is not on pdb... Do things.
-            message(sprintf("pdb: %s", choice))
-            syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
-            message(syscall)
-            pdbstrings <- system(syscall, intern = TRUE)
-            fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-            message(fname)
-            choice <- paste0(pdbstrings, collapse='\n')
-            defaultPdbID <<- choice
-            event <-  readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            defaultShell <<- event
-            session$sendCustomMessage(type="setPDB2", message=list(choice))
-            session$sendCustomMessage(type="addEvent", message=list(event))
-        }
+            choice = input$Xtal2
+            if(grepl('rcsb', choice)){ # If a pdb structure do regular stuff
+                if(debug) message(sprintf("pdb: %s", choice))
+                session$sendCustomMessage(type="setPDB", message=list(choice))
+            } else {
+                # If pdb is not on pdb... Do things.
+                if(debug) message(sprintf("pdb: %s", choice))
+                syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+                if(debug) message(syscall)
+                pdbstrings <- system(syscall, intern = TRUE)
+                fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
+                if(debug) message(fname)
+                choice <- paste0(pdbstrings, collapse='\n')
+                defaultPdbID <<- choice
+                event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+                event <- base64encode(event, size=NA, endian=.Platform$endian)
+                defaultShell <<- event
+                session$sendCustomMessage(type="setPDB2", message=list(choice))
+                session$sendCustomMessage(type="addEvent", message=list(event))
+            }
         }, silent=T)
         if(inherits(fail, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        #updateSelectInput(session, "pdbSelector", label=NULL, choices=NULL,  selected=choice)
     })
 
+    # Go back to main Panel, do a refresh for good measure.
+    observeEvent(input$Back, {
+        resetForm()
+    })
+
+    # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
         session$sendCustomMessage(type="removeAllRepresentations", message=list())
         session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))
@@ -316,7 +407,8 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         #session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
         #session$sendCustomMessage(type="fit", message=list())
     })
-  
+    
+    # Add defaults
     observeEvent(input$representationSelector, {
         choice = input$representationSelector;
         message(sprintf("rep: %s", choice))
@@ -324,6 +416,7 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         updateSelectInput(session, "representationSelector", label=NULL, choices=NULL,  selected=choice)
     })
   
+    # Add colours
     observeEvent(input$colorSchemeSelector, {
         choice = input$colorSchemeSelector;
         message(sprintf("colorScheme: %s", choice))
@@ -331,7 +424,7 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
         updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=choice)
     })
   
-    # Trigger download for input$Xtal
+    # Placeholder download button!
     output$downloadBtn <- downloadHandler(
         filename = function() { 
             'Disintegrate.png'
@@ -340,8 +433,20 @@ mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
             file.copy(file, sprintf('%s',file))
         }
     )
+
+        # Generic Observers?   
+    observe({
+        updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
+        updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
+        updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161') )
+        updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
+        updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
+    })
 } # Server
 
-# Run the application 
+#################################################################################
+# Runtime
+#################################################################################
 app <- shinyApp(ui = ui, server = server)
 runApp(app, host ="0.0.0.0", port = 3838, launch.browser = FALSE)
