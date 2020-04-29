@@ -148,7 +148,7 @@ ui <- navbarPage("Staging XChem", id='beep',
             mainPanel(
                 tabsetPanel(
                     tabPanel("Staged Structures", DT::dataTableOutput("table")),
-                    tabPanel("Responses", DT::dataTableOutput("resp")),
+                    #tabPanel("Responses", DT::dataTableOutput("resp")),
                     tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
                 )
             ) # mainPanel
@@ -253,6 +253,15 @@ server <- function(input, output, session) {
     db <- db[!dedupe,]
     rownames(db) <- db[,1]
     db <- db[,-1]
+    db$Decision <- ''
+    db$Reason <- ''
+
+    currentRes <- loadData()
+    # Get most Recent Response per xtal
+    tofill <- t(sapply(split(currentRes, currentRes$Xtal), function(x) x[which.max(x$timestamp),]))
+    rninter <- intersect(rownames(tofill), rownames(db))
+    db[rownames(tofill), c('Decision', 'Reason')] <- tofill[,3:4]
+
     inputData <- reactive({db})
     r1 <- reactive({
         # Subset data
@@ -263,6 +272,13 @@ server <- function(input, output, session) {
     })
   
     output$table <- DT::renderDataTable({r1()}, selection = 'single')
+
+    # Response Table
+    output$resp <- DT::renderDataTable(
+        loadData(),
+        rownames = FALSE,
+        options = list(searching = FALSE, lengthChange = FALSE)
+    ) 
 
     # NGL viewer side panel stats
     r2 <- reactive({
@@ -282,13 +298,6 @@ server <- function(input, output, session) {
         nglShiny(list(), 300, 300)
     )
 
-    # Response Table
-    output$resp <- DT::renderDataTable(
-        loadData(),
-        rownames = FALSE,
-        options = list(searching = FALSE, lengthChange = FALSE)
-    ) 
-  
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
