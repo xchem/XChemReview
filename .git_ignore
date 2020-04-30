@@ -5,3 +5,4 @@ Responses/*
 .tar
 settings.py
 setup_django.py
+db_config.R

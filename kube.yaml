@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xchemstructurereview
+  name: xchemstructurereview-deployment
 spec:
   replicas: 1
   selector:
@@ -23,7 +23,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: xchemstructurereview
+  name: xchemstructurereview-service
 spec:
   ports:
     - name: http
@@ -37,13 +37,13 @@ spec:
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-  name: example-ingress
+  name: xchemstructurereview-ingress
 spec:
   tls:
   - hosts:
-    - foo.diamond.ac.uk
+    - xchemreview.diamond.ac.uk
   rules:
-    - host: foo.diamond.ac.uk
+    - host: xchemreview.diamond.ac.uk
       http:
         paths:
           - path: /
@@ -54,11 +54,11 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: xchemstructurereview
+  name: xchemstructurereview-pod
 spec: 
   securityContext:
     runAsUser: mly94721
-    runAsGroup: 
+    runAsGroup: i04-1_staff
   volumes:
     - name: dls
       hostPath:

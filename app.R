@@ -4,9 +4,8 @@
 #################################################################################
 debug = TRUE
 # Set Path: May need to add something later for files on /dls
-gpath <- '.'
+#gpath <- '.'
 gpath <- '/srv/shiny-server/'
-
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
 install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
@@ -35,6 +34,13 @@ nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
     elementId = elementId
   )
 } 
+
+getRootFP <- function(pdbpath){
+    splits <- strsplit(pdbpath, split ='/')[[1]]
+    n <- length(splits)
+    paste0(c(splits[1:(n-2)],''), collapse='/')
+}
+
 
 #################################################################################
 # Global Variables used in server/UI
@@ -204,8 +210,8 @@ ui <- navbarPage("Staging XChem", id='beep',
 server <- function(input, output, session) {
     sessionTime <- epochTime()
     # Things in Global Scope
-    responsesDir <- file.path(sprintf('%s/%s', gpath, "Responses"))
-    dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
+    responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses' #file.path(sprintf('%s/%s', gpath, "Responses"))
+    dataDir <- '/dls/science/users/mly94721/xchemreview/Data'#file.path(sprintf('%s/%s', gpath, "Data"))
     pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
     mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
     options <- list(pdbID="")
@@ -428,10 +434,14 @@ server <- function(input, output, session) {
             } else {
                 # If pdb is not on pdb... Do things.
                 if(debug) message(sprintf("pdb: %s", choice))
-                syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+                filepath <- dbdat[choice,'Latest.PDB']
+                XtalRoot <- getRootFP(filepath)
+                #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+                syscall <- sprintf('cat %s', filepath)
                 if(debug) message(syscall)
                 pdbstrings <- system(syscall, intern = TRUE)
-                fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
+                fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
+                #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
                 if(debug) message(fname)
                 choice <- paste0(pdbstrings, collapse='\n')
                 defaultPdbID <<- choice
@@ -510,8 +520,8 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
-        #updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161'))
+        updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
+        #updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
@@ -521,4 +531,4 @@ server <- function(input, output, session) {
 # Runtime
 #################################################################################
 app <- shinyApp(ui = ui, server = server)
-runApp(app, host ="0.0.0.0", port = 3838, launch.browser = FALSE)
+runApp(app, port = 3838, launch.browser = FALSE)
