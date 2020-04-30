@@ -8,7 +8,7 @@ debug = TRUE
 gpath <- '/srv/shiny-server/'
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
-#install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
+install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
 library(shiny)
 library(DT)
