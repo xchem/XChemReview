@@ -12,7 +12,7 @@ spec:
       labels:
         app: xchemstructurereview
     spec:
-      containes:
+      containers:
         - name: xchemstructurereview
           image: xchemapps/xchemstructurereview:latest
           ports: 
