@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: xchemstructurereview
-        image: xchemapps/xchemstructurereview:latest
+        image: gcr.io/diamond-privreg/xchemapps/xchemstructurereview:latest
         ports: 
         - name: http
           containerPort: 3838
