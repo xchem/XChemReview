@@ -120,7 +120,9 @@ if(HTMLWidgets.shinyMode) Shiny.addCustomMessageHandler("setPDB2", function(mess
     console.log("nglShiny setPDB:");
     stage.loadFile(stringBlob, { ext: "pdb" }).then(function (comp) {
       comp.addRepresentation("ball+stick");
-      comp.autoView("LIG")
+      comp.autoView("LIG");
+      comp.setParametes({'clipNear':42, 'clipFar':100, 'clipDist': 10, 'fogNear':50, 'fogFar':62});
+
     });
 });
 

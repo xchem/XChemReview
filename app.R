@@ -5,7 +5,7 @@
 debug = TRUE
 # Set Path: May need to add something later for files on /dls
 gpath <- '.'
-#gpath <- '/srv/shiny-server/'
+gpath <- '/srv/shiny-server/'
 
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
@@ -16,7 +16,10 @@ library(DT)
 library(htmlwidgets)
 library(nglShiny)
 library(caTools)
+library(DBI)
 
+# Who doesn't love unclosed loops.
+#source('./db_config.R')
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
 
@@ -245,33 +248,63 @@ server <- function(input, output, session) {
     })
 
 
-    # Outputs 
+    # Outputs, invest in putting in postgres instead of slurping everything into memory
+    # Otherwise extremely slow to shove this in the front end? and on session loading...
+    # Can use it for
+    #con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password) 
+    
+    #refinement <- dbReadTable(con, 'refinement')
+    #ref4 <- refinement[which(refinement$outcome == 4), ]
+
+    #crystal <- dbReadTable(con, 'crystal')
+    #rownames(crystal) <- crystal[,1]
+    #crystal4 <- crystal[as.character(ref4$crystal_name_id),]
+
+    #dbdat <- cbind('Xtal Name' = crystal4$crystal_name,
+    #            'Protein' =  dbReadTable(con, 'target')[crystal4$target_id, 2],
+    #            'Smiles' =  dbReadTable(con, 'compounds')[crystal4$compound_id, 2],
+    #            'Resolution' = ref4$res ,
+    #            'Rfree' = ref4$r_free     ,
+    #            'lig_confidence' = ref4$lig_confidence ,
+    #            'RMSD_Angles'= ref4$rmsd_angles, 
+    #            'RMSD_bonds'= ref4$rmsd_bonds,      
+    #            'Ramachandran Outliers' = ref4$ramachandran_outliers, 
+    #            #'CIF' : [c.cif for c in x],
+    #            #'Bound Conf' : [c.bound_conf for c in x],  
+    #            #'Ligand Bound Conf' : [c.lig_bound_conf for c in x],  
+    #            'Latest PDB' = ref4$pdb_latest,
+    #            'Latest MTZ' = ref4$mtz_latest
+    #            )
+    #dbDisconnect(con)
+    #rm(refinement, ref4, crystal, crystal4,con)
+    #gc()
+    #dbListTables(con)
 
     # Main Table Output Handler
-    db <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
-    dedupe <- duplicated(db[,1])
-    db <- db[!dedupe,]
-    rownames(db) <- db[,1]
-    db <- db[,-1]
-    db$Decision <- ''
-    db$Reason <- ''
+    dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
+    dedupe <- duplicated(dbdat[,1])
+    if(any(dedupe)) dbdat <- dbdat[!dedupe,]
+    rownames(dbdat) <- dbdat[,1]
+    dbdat <- dbdat[,-1]
+    dbdat$Decision <- ''
+    dbdat$Reason <- ''
     currentRes <- loadData()
     # Get most Recent Response per xtal
     if(!is.null(currentRes)){
         tofill <- t(sapply(split(currentRes, currentRes$Xtal), function(x) x[which.max(x$timestamp),]))
-        rninter <- intersect(rownames(tofill), rownames(db))
-        db[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
-        db[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
+        rninter <- intersect(rownames(tofill), rownames(dbdat))
+        dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
+        dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
     }
 
     # Sort Data 
-    db <- do.call('rbind', 
+    dbdat <- do.call('rbind', 
         lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
-            db[ db[ , 'Decision'] == dec , ]
+            dbdat[ dbdat[ , 'Decision'] == dec , ]
         })
     )
 
-    inputData <- reactive({db})
+    inputData <- reactive({dbdat})
 
     r1 <- reactive({
         # Subset data
@@ -477,7 +510,8 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
+        #updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
