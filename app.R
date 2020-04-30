@@ -139,8 +139,8 @@ ui <- navbarPage("Staging XChem", id='beep',
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
-                    selectizeInput('protein', 'Select Protein Rows', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View?', list(), multiple = TRUE)
+                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
+                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
                     #checkboxInput("check1", "This button does nothing", FALSE),
                 ), width=2 # div
             ), #sidebarPanel
@@ -255,14 +255,24 @@ server <- function(input, output, session) {
     db <- db[,-1]
     db$Decision <- ''
     db$Reason <- ''
-
     currentRes <- loadData()
     # Get most Recent Response per xtal
-    tofill <- t(sapply(split(currentRes, currentRes$Xtal), function(x) x[which.max(x$timestamp),]))
-    rninter <- intersect(rownames(tofill), rownames(db))
-    db[rownames(tofill), c('Decision', 'Reason')] <- tofill[,3:4]
+    if(!is.null(currentRes)){
+        tofill <- t(sapply(split(currentRes, currentRes$Xtal), function(x) x[which.max(x$timestamp),]))
+        rninter <- intersect(rownames(tofill), rownames(db))
+        db[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
+        db[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
+    }
+
+    # Sort Data 
+    db <- do.call('rbind', 
+        lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
+            db[ db[ , 'Decision'] == dec , ]
+        })
+    )
 
     inputData <- reactive({db})
+
     r1 <- reactive({
         # Subset data
         if(is.null(input$protein) & is.null(input$columns)) inputData()
@@ -443,12 +453,31 @@ server <- function(input, output, session) {
         }
     )
 
-        # Generic Observers?   
+    # Generic Observers?   
+    # Default Coloumn Order... May add more...
+    defOrder <- c(
+        'Protein', 
+        'Smiles',  
+        'Decision',
+        'Reason',
+        'Resolution', 
+        'Rfree', 
+        'lig_confidence', 
+        'RMSD_Angles', 
+        'RMSD_bonds',  
+        'Ramachandran.Outliers', 
+        'CIF', 
+        'Bound.Conf', 
+        'Ligand.Bound.Conf',
+        'Latest.PDB',
+        'Latest.MTZ'
+    )
+
     observe({
-        updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
+        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
-        updateSelectizeInput(session, "Xtal", choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161') )
+        updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
