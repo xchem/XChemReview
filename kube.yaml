@@ -17,7 +17,7 @@ spec:
           image: xchemapps/xchemstructurereview:latest
           ports: 
           - name: http
-            containerPost: 3838
+            containerPort: 3838
 
 ---
 apiVersion: v1
