@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: xchemstructurereview
-        image: xchemapps/xchemstructurereview:latest
+        image: gcr.io/diamond-privreg/xchemapps/xchemstructurereview:latest
         ports: 
         - name: http
           containerPort: 3838
@@ -57,17 +57,17 @@ metadata:
   name: xchemstructurereview-pod
 spec: 
   securityContext:
-    runAsUser: mly94721
-    runAsGroup: i04-1_staff
+    runAsUser: 1217235
+    runAsGroup: 1217235
   volumes:
   - name: dls
     hostPath:
       path: /dls
       type: Directory
   containers:
-  - name: xchemapps/xchemstructurereview
+  - name: xchemstructurereview
     securityContext:
-      priviledged: false
+      privileged: false
     image: busybox
     command: ["R", "-e", "source('/srv/shiny-server/app.R')"]
     args:

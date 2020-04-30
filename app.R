@@ -531,4 +531,4 @@ server <- function(input, output, session) {
 # Runtime
 #################################################################################
 app <- shinyApp(ui = ui, server = server)
-runApp(app, port = 3838, launch.browser = FALSE)
+runApp(app, host='0.0.0.0', port = 3838, launch.browser = FALSE)
