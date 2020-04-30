@@ -12,13 +12,26 @@ spec:
       labels:
         app: xchemstructurereview
     spec:
+      securityContext:
+        runAsUser: 1217235
+        runAsGroup: 1217235
+      volumes:
+      - name: dls
+        hostPath:
+          path: /dls
+          type: Directory
       containers:
       - name: xchemstructurereview
+        securityContext:
+            privileged: false
         image: gcr.io/diamond-privreg/xchemapps/xchemstructurereview:latest
         ports: 
         - name: http
           containerPort: 3838
-
+        volumeMounts:
+        - mountPath: /dls
+          name: dls
+          mountPropagation: HostToContainer
 ---
 apiVersion: v1
 kind: Service
@@ -48,30 +61,6 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: xchemstructurereview
+          serviceName: xchemstructurereview-service
           servicePort: 3838
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: xchemstructurereview-pod
-spec: 
-  securityContext:
-    runAsUser: 1217235
-    runAsGroup: 1217235
-  volumes:
-  - name: dls
-    hostPath:
-      path: /dls
-      type: Directory
-  containers:
-  - name: xchemstructurereview
-    securityContext:
-      privileged: false
-    image: busybox
-    command: ["R", "-e", "source('/srv/shiny-server/app.R')"]
-    args:
-    volumeMounts:
-      - mountPath: /dls
-        name: dls
-        mountPropagation: HostToContainer
+

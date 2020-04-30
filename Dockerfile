@@ -13,17 +13,15 @@ RUN apt-get update && apt-get install -y \
 	libpq-dev
 
 # Install R packages
-RUN R -e "
-install.packages('caTools', repos='http://cran.rstudio.com/')
-install.packages('devtools', repos='http://cran.rstudio.com/')
-install.packages('shiny', repos='http://cran.rstudio.com/')
-install.packages('htmlwidgets', repos='http://cran.rstudio.com/')
-install.packages('DT', repos='http://cran.rstudio.com/')
-install.packages('remotes', repos='http://cran.rstudio.com/')
-library(remotes)
-remotes::install_github('r-dbi/RPostgres') 
-install.packages('RPostgres', repos='http://cran.rstudio.com/')
-"
+RUN R -e "install.packages('caTools', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('devtools', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('htmlwidgets', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('DT', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
+RUN R -e "library(remotes);remotes::install_github('r-dbi/RPostgres')" 
+RUN R -e "install.packages('RPostgres', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('nglShiny_0.99.08.tar.gz', repos=NULL, type='source')"
 
 # Copy App to Image
 COPY app.R /srv/shiny-server
