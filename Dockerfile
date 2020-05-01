@@ -28,7 +28,7 @@ COPY app.R /srv/shiny-server
 # COPY getDatafd.py /srv/shiny-server
 # COPY Data /srv/shiny-server/Data
 COPY Pages /srv/shiny-server/Pages
-COPY nglShiny /srv/shiny-server/nglShiny
+#COPY nglShiny /srv/shiny-server/nglShiny
 # COPY Responses /srv/shiny-server/Responses
 
 # Port
@@ -38,4 +38,4 @@ EXPOSE 3838
 RUN sudo chown -R shiny:shiny /srv/shiny-server
 
 # Run App?
-CMD ["R", "-e", "source('/srv/shiny-server/app.R')"]
+#CMD ["R", "-e", "source('/srv/shiny-server/app.R')"]

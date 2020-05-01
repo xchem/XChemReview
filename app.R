@@ -310,12 +310,12 @@ server <- function(input, output, session) {
             dbdat[ dbdat[ , 'Decision'] == dec , ]
         })
     )
-    if(debug) message('Data Loaded')
+    if(debug) print('Data Loaded')
     inputData <- reactive({dbdat})
 
-    if(debug) message('Data Reactivised')
+    if(debug) print('Data Reactivised')
     r1 <- reactive({
-        if(debug) message('Subsetting Table')
+        if(debug) print('Subsetting Table')
         # Subset data
         if(is.null(input$protein) & is.null(input$columns)) inputData()
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[inputData()$Protein %in% input$protein, ]
@@ -324,18 +324,18 @@ server <- function(input, output, session) {
     })
   
     output$table <- DT::renderDataTable({r1()}, selection = 'single')
-    if(debug) message('Response Table Loading')
+    if(debug) print('Response Table Loading')
     # Response Table
     output$resp <- DT::renderDataTable(
         loadData(),
         rownames = FALSE,
         options = list(searching = FALSE, lengthChange = FALSE)
     ) 
-    if(debug) message('Response Table Success')
+    if(debug) print('Response Table Success')
     # NGL viewer side panel stats
-    if(debug) message('NGL viewer Tab')
+    if(debug) print('NGL viewer Tab')
     r2 <- reactive({
-        if(debug) message('Update NGL Viewer Side Panel')
+        if(debug) print('Update NGL Viewer Side Panel')
         dat <- inputData()[input$Xtal2, ]
         sn <- names(dat)[2:8]
         val <- dat[2:8]
@@ -360,7 +360,7 @@ server <- function(input, output, session) {
 
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
-        if(debug) message('Row Click')
+        if(debug) print('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         rdat <- r1()[input$table_rows_selected,]
         if(sessionTime > max( loadData()[,'timestamp']) ){ 
@@ -379,12 +379,12 @@ server <- function(input, output, session) {
         }
     })
     observeEvent(input$ok, {
-        if(debug) message('Reload Session')
+        if(debug) print('Reload Session')
         session$reload()
     })
   
     resetForm <- function(){
-        if(debug) message('Reset Form')
+        if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", selected = '', choices = sort(rownames( inputData() )))
         updateTabsetPanel(session, "beep", selected = 'Main Page') 
@@ -538,4 +538,4 @@ server <- function(input, output, session) {
 # Runtime
 #################################################################################
 app <- shinyApp(ui = ui, server = server)
-runApp(app, host='0.0.0.0', port = 3838, launch.browser = FALSE)
+runApp(app, host='0.0.0.0', port = 3838, launch.browser = FALSE, quiet =T)
