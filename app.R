@@ -538,4 +538,6 @@ server <- function(input, output, session) {
 # Runtime
 #################################################################################
 app <- shinyApp(ui = ui, server = server)
-runApp(app, host='0.0.0.1', port = 3838, launch.browser = FALSE)
+cmd <- commandArgs(T)
+ip <- cmd[1]
+runApp(app, host=ip, port = 3838, launch.browser = FALSE)

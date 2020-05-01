@@ -38,4 +38,4 @@ EXPOSE 3838
 RUN sudo chown -R shiny:shiny /srv/shiny-server
 
 # Run App?
-CMD ["R", "-e", "source('/srv/shiny-server/app.R')"]
+CMD ["Rscript", "/srv/shiny-server/app.R", "'0.0.0.1'"]
