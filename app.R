@@ -3,7 +3,6 @@
 # Libraries and function definitions
 #################################################################################
 debug = TRUE
-options(shiny.trace = TRUE)
 # Set Path: May need to add something later for files on /dls
 #gpath <- '.'
 gpath <- '/srv/shiny-server/'
