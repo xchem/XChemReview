@@ -2,6 +2,8 @@
 # Structure is horrible, Time for some organisation:
 # Libraries and function definitions
 #################################################################################
+{
+rm(list=ls())
 debug = TRUE
 local = FALSE
 # Set Path: May need to add something later for files on /dls
@@ -10,17 +12,19 @@ local = FALSE
 gpath <- '/srv/shiny-server/'
 responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses/' 
 dataDir <- '/dls/science/users/mly94721/xchemreview/Data/'
+library(devtools)
 
 if(local){
  gpath <- '.'
  responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
  dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
+ devtools::install_github('tjgorrie/nglShiny')
 }
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
 #install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
-library(devtools)
-devtools::install_github('tjgorrie/nglShiny')
+
+
 library(shiny)
 library(DT)
 library(htmlwidgets)
@@ -138,7 +142,7 @@ possRes <- list('Release' = c('Everything is Wonderful'),
 
 possAns <- possAns2 <- c('Select Decision')
 defaultPdbID <- ""
-
+}
 #################################################################################
 # UI Code
 #################################################################################
@@ -211,7 +215,6 @@ ui <- navbarPage("Staging XChem", id='beep',
         )#, 
     )# tabPanel
     # End of Page 2
-
 ) # End of UI
 
 
@@ -533,7 +536,7 @@ server <- function(input, output, session) {
     )
 
     observe({
-        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
+        updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
@@ -546,11 +549,13 @@ server <- function(input, output, session) {
 #################################################################################
 # Runtime
 #################################################################################
+{
 app <- shinyApp(ui = ui, server = server)
 cmd <- commandArgs(T)
-#ip <- cmd[1]
-#port <- cmd[2]
- ip = '0.0.0.0'
- port = 3838
+ip <- cmd[1]
+port <- cmd[2]
+# ip = '0.0.0.0'
+# port = 3838
 
 runApp(app, host=ip, port = as.numeric(port), launch.browser = FALSE)
+}
