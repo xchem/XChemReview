@@ -349,7 +349,6 @@ server <- function(input, output, session) {
 
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
-        if(debug) message('NGL Viewer Load')
         nglShiny(list(), 300, 300)
     )
 
