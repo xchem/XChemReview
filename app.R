@@ -27,7 +27,7 @@ message <- function (..., domain = NULL, appendLF = TRUE)
 }
 
 
-    
+
 rm(list=ls())
 debug = TRUE
 local = FALSE
@@ -486,7 +486,7 @@ server <- function(input, output, session) {
                 pdbstrings <- system(syscall, intern = TRUE)
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-                if(debug) message(fname)
+                if(debug) message(sprintf('%s: %s', 'eMap:', fname)
                 choice <- paste0(pdbstrings, collapse='\n')
                 defaultPdbID <<- choice
                 event <-  readBin(fname, what = 'raw', file.info(fname)$size)
@@ -506,12 +506,14 @@ server <- function(input, output, session) {
 
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
+        try({
         session$sendCustomMessage(type="removeAllRepresentations", message=list())
         session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))
         session$sendCustomMessage(type="addEvent", message=list(defaultShell))
         #session$sendCustomMessage(type="setRepresentation", message=list(defaultRepresentation))
         #session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
         #session$sendCustomMessage(type="fit", message=list())
+        }, silent = T)
     })
     
     # Add defaults
