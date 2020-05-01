@@ -481,7 +481,7 @@ server <- function(input, output, session) {
                 # If pdb is not on pdb... Do things.
                 if(debug) message(sprintf("pdb: %s", choice))
                 filepath <- dbdat[choice,'Latest.PDB']
-                XtalRoot <- getRootFP(filepath)
+                XtalRoot <- try(getRootFP(filepath), silent=T)
                 #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
                 syscall <- sprintf('cat %s', filepath)
                 if(debug) message(syscall)
@@ -492,25 +492,27 @@ server <- function(input, output, session) {
                     defaultPdbID <<- choice
                     session$sendCustomMessage(type="setPDB2", message=list(choice))
                 }, silent = TRUE)
+                if(inherits(tryAddPDB, 'try-error')){
+                    defaultPdbID <<- ''
+                    session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                } else {
+                    if(!inherits(XtalRoot, 'try-error')){
+                        fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
+                        #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
+                        if(debug) message(sprintf('%s: %s', 'eMap:', fname))
 
-                fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
-                #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-                if(debug) message(sprintf('%s: %s', 'eMap:', fname))
-
-                tryAddEvent <- try({
-                    event <- readBin(fname, what = 'raw', file.info(fname)$size)
-                    event <- base64encode(event, size=NA, endian=.Platform$endian)
-                    defaultShell <<- event
-                    session$sendCustomMessage(type="addEvent", message=list(event))
-                }, silent=T)
+                        tryAddEvent <- try({
+                            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                            event <- base64encode(event, size=NA, endian=.Platform$endian)
+                            defaultShell <<- event
+                            session$sendCustomMessage(type="addEvent", message=list(event))
+                        }, silent=T)
+                    if(inherits(tryAddEvent, 'try-error')){
+                        defaultShell <<- ''
+                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                    }
+                }
             }
-        if(inherits(tryAddPDB, 'try-error')){
-            defaultPdbID <<- ''
-            session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        }
-        if(inherits(tryAddEvent, 'try-error')){
-            defaultShell <<- ''
-            session$sendCustomMessage(type="removeAllRepresentations", message=list())
         }
     })
 
