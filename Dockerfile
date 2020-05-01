@@ -21,7 +21,7 @@ RUN R -e "install.packages('DT', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
 RUN R -e "library(remotes);remotes::install_github('r-dbi/RPostgres')" 
 RUN R -e "install.packages('RPostgres', repos='http://cran.rstudio.com/')"
-#RUN R CMD INSTALL nglShiny_0.99.08.tar.gz
+RUN R -e "library(devtools); devtools::install_github('tjgorrie/nglShiny')"
 
 # Copy App to Image
 COPY app.R /srv/shiny-server
