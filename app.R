@@ -3,6 +3,7 @@
 # Libraries and function definitions
 #################################################################################
 debug = TRUE
+options(shiny.trace = TRUE)
 # Set Path: May need to add something later for files on /dls
 #gpath <- '.'
 gpath <- '/srv/shiny-server/'
@@ -176,7 +177,7 @@ ui <- navbarPage("Staging XChem", id='beep',
             sidebarLayout(
                 sidebarPanel(
                     textInput("name2", "Name", ""),
-                    selectizeInput('Xtal2', 'Which Structure?', list('Mpro-x0104'), multiple = FALSE),
+                    selectizeInput('Xtal2', 'Which Structure?', list(), multiple = FALSE),
                     selectInput("decision2", "Decision", possDec),
                     selectizeInput("reason2", "Reason(s)", list(), multiple=TRUE),
                     textOutput('stats'),
@@ -208,12 +209,13 @@ ui <- navbarPage("Staging XChem", id='beep',
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
+    if(debug) message('Server Init')
     sessionTime <- epochTime()
     # Things in Global Scope
     responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses' #file.path(sprintf('%s/%s', gpath, "Responses"))
     dataDir <- '/dls/science/users/mly94721/xchemreview/Data'#file.path(sprintf('%s/%s', gpath, "Data"))
-    pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
-    mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
+    #pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
+    #mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
     options <- list(pdbID="")
 
     # Functions
@@ -309,10 +311,12 @@ server <- function(input, output, session) {
             dbdat[ dbdat[ , 'Decision'] == dec , ]
         })
     )
-
+    if(debug) message('Data Loaded')
     inputData <- reactive({dbdat})
 
+    if(debug) message('Data Reactivised')
     r1 <- reactive({
+        if(debug) message('Subsetting Table')
         # Subset data
         if(is.null(input$protein) & is.null(input$columns)) inputData()
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[inputData()$Protein %in% input$protein, ]
@@ -321,16 +325,18 @@ server <- function(input, output, session) {
     })
   
     output$table <- DT::renderDataTable({r1()}, selection = 'single')
-
+    if(debug) message('Response Table Loading')
     # Response Table
     output$resp <- DT::renderDataTable(
         loadData(),
         rownames = FALSE,
         options = list(searching = FALSE, lengthChange = FALSE)
     ) 
-
+    if(debug) message('Response Table Success')
     # NGL viewer side panel stats
+    if(debug) message('NGL viewer Tab')
     r2 <- reactive({
+        if(debug) message('Update NGL Viewer Side Panel')
         dat <- inputData()[input$Xtal2, ]
         sn <- names(dat)[2:8]
         val <- dat[2:8]
@@ -344,6 +350,7 @@ server <- function(input, output, session) {
 
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
+        if(debug) message('NGL Viewer Load')
         nglShiny(list(), 300, 300)
     )
 
@@ -351,11 +358,11 @@ server <- function(input, output, session) {
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
 
-
     # Observers, behaviour will be described as best as possible
 
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
+        if(debug) message('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         rdat <- r1()[input$table_rows_selected,]
         if(sessionTime > max( loadData()[,'timestamp']) ){ 
@@ -374,10 +381,12 @@ server <- function(input, output, session) {
         }
     })
     observeEvent(input$ok, {
+        if(debug) message('Reload Session')
         session$reload()
     })
   
     resetForm <- function(){
+        if(debug) message('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", selected = '', choices = sort(rownames( inputData() )))
         updateTabsetPanel(session, "beep", selected = 'Main Page') 
