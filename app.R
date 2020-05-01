@@ -167,6 +167,7 @@ possRes <- list('Release' = c('Everything is Wonderful'),
 
 possAns <- possAns2 <- c('Select Decision')
 defaultPdbID <- ""
+defaultshell <- ""
 }
 #################################################################################
 # UI Code
@@ -486,7 +487,7 @@ server <- function(input, output, session) {
                 pdbstrings <- system(syscall, intern = TRUE)
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-                if(debug) message(sprintf('%s: %s', 'eMap:', fname)
+                if(debug) message(sprintf('%s: %s', 'eMap:', fname))
                 choice <- paste0(pdbstrings, collapse='\n')
                 defaultPdbID <<- choice
                 event <-  readBin(fname, what = 'raw', file.info(fname)$size)
