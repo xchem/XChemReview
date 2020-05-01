@@ -3,13 +3,24 @@
 # Libraries and function definitions
 #################################################################################
 debug = TRUE
+local = FALSE
 # Set Path: May need to add something later for files on /dls
-#gpath <- '.'
+
+# Server Bindings
 gpath <- '/srv/shiny-server/'
+responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses/' 
+dataDir <- '/dls/science/users/mly94721/xchemreview/Data/'
+
+if(local){
+ gpath <- '.'
+ responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
+ dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
+}
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
 #install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 library(devtools)
+devtools::install_github('tjgorrie/nglShiny')
 library(shiny)
 library(DT)
 library(htmlwidgets)
@@ -211,8 +222,6 @@ server <- function(input, output, session) {
     if(debug) message('Server Init')
     sessionTime <- epochTime()
     # Things in Global Scope
-    responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses' #file.path(sprintf('%s/%s', gpath, "Responses"))
-    dataDir <- '/dls/science/users/mly94721/xchemreview/Data'#file.path(sprintf('%s/%s', gpath, "Data"))
     #pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
     #mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
     options <- list(pdbID="")
@@ -539,6 +548,9 @@ server <- function(input, output, session) {
 #################################################################################
 app <- shinyApp(ui = ui, server = server)
 cmd <- commandArgs(T)
-ip <- cmd[1]
-port <- cmd[2]
+#ip <- cmd[1]
+#port <- cmd[2]
+ ip = '0.0.0.0'
+ port = 3838
+
 runApp(app, host=ip, port = as.numeric(port), launch.browser = FALSE)
