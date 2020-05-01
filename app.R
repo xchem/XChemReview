@@ -480,28 +480,38 @@ server <- function(input, output, session) {
             } else {
                 # If pdb is not on pdb... Do things.
                 if(debug) message(sprintf("pdb: %s", choice))
+                filepath <- dbdat[choice,'Latest.PDB']
+                XtalRoot <- getRootFP(filepath)
+                #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+                syscall <- sprintf('cat %s', filepath)
+                if(debug) message(syscall)
+
                 tryAddPDB <- try({
-                    filepath <- dbdat[choice,'Latest.PDB']
-                    XtalRoot <- getRootFP(filepath)
-                    #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
-                    syscall <- sprintf('cat %s', filepath)
-                    if(debug) message(syscall)
                     pdbstrings <- system(syscall, intern = TRUE)
                     choice <- paste0(pdbstrings, collapse='\n')
                     defaultPdbID <<- choice
                     session$sendCustomMessage(type="setPDB2", message=list(choice))
                 }, silent = TRUE)
+
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
                 if(debug) message(sprintf('%s: %s', 'eMap:', fname))
+
                 tryAddEvent <- try({
-                    event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+                    event <- readBin(fname, what = 'raw', file.info(fname)$size)
                     event <- base64encode(event, size=NA, endian=.Platform$endian)
                     defaultShell <<- event
                     session$sendCustomMessage(type="addEvent", message=list(event))
                 }, silent=T)
             }
-        if(inherits(tryAddPDB, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        if(inherits(tryAddPDB, 'try-error')){
+            defaultPdbID <<- ''
+            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        }
+        if(inherits(tryAddEvent, 'try-error')){
+            defaultShell <<- ''
+            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        }
     })
 
     # Go back to main Panel, do a refresh for good measure.
