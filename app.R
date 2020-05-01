@@ -268,8 +268,10 @@ server <- function(input, output, session) {
         fileName <- sprintf("%s_%s.csv",
                             humanTime(),
                             digest::digest(data))
-        write.csv(x = data, file = file.path(responsesDir, fileName),
+        if(!data[,'name'] %in% c('', ' ')){
+            write.csv(x = data, file = file.path(responsesDir, fileName),
                   row.names = FALSE, quote = TRUE)
+        }
     }
 
     # Reactives
@@ -471,7 +473,6 @@ server <- function(input, output, session) {
     # When input$Xtal2 (structure dropdown on NGL viewer page) is updated do things
     # Load structure and event to NGL stage!
     observeEvent(input$Xtal2, {
-        fail <- try({
             choice = input$Xtal2
             if(grepl('rcsb', choice)){ # If a pdb structure do regular stuff
                 if(debug) message(sprintf("pdb: %s", choice))
@@ -479,25 +480,28 @@ server <- function(input, output, session) {
             } else {
                 # If pdb is not on pdb... Do things.
                 if(debug) message(sprintf("pdb: %s", choice))
-                filepath <- dbdat[choice,'Latest.PDB']
-                XtalRoot <- getRootFP(filepath)
-                #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
-                syscall <- sprintf('cat %s', filepath)
-                if(debug) message(syscall)
-                pdbstrings <- system(syscall, intern = TRUE)
+                tryAddPDB <- try({
+                    filepath <- dbdat[choice,'Latest.PDB']
+                    XtalRoot <- getRootFP(filepath)
+                    #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+                    syscall <- sprintf('cat %s', filepath)
+                    if(debug) message(syscall)
+                    pdbstrings <- system(syscall, intern = TRUE)
+                    choice <- paste0(pdbstrings, collapse='\n')
+                    defaultPdbID <<- choice
+                    session$sendCustomMessage(type="setPDB2", message=list(choice))
+                }, silent = TRUE)
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
                 if(debug) message(sprintf('%s: %s', 'eMap:', fname))
-                choice <- paste0(pdbstrings, collapse='\n')
-                defaultPdbID <<- choice
-                event <-  readBin(fname, what = 'raw', file.info(fname)$size)
-                event <- base64encode(event, size=NA, endian=.Platform$endian)
-                defaultShell <<- event
-                session$sendCustomMessage(type="setPDB2", message=list(choice))
-                session$sendCustomMessage(type="addEvent", message=list(event))
+                tryAddEvent <- try({
+                    event <-  readBin(fname, what = 'raw', file.info(fname)$size)
+                    event <- base64encode(event, size=NA, endian=.Platform$endian)
+                    defaultShell <<- event
+                    session$sendCustomMessage(type="addEvent", message=list(event))
+                }, silent=T)
             }
-        }, silent=T)
-        if(inherits(fail, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        if(inherits(tryAddPDB, 'try-error')) session$sendCustomMessage(type="removeAllRepresentations", message=list())
     })
 
     # Go back to main Panel, do a refresh for good measure.
@@ -507,14 +511,13 @@ server <- function(input, output, session) {
 
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
-        try({
-        session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))
-        session$sendCustomMessage(type="addEvent", message=list(defaultShell))
+        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
+        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
         #session$sendCustomMessage(type="setRepresentation", message=list(defaultRepresentation))
         #session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
         #session$sendCustomMessage(type="fit", message=list())
-        }, silent = T)
+
     })
     
     # Add defaults
@@ -564,7 +567,7 @@ server <- function(input, output, session) {
     )
 
     observe({
-        updateSelectizeInput(session, 'columns', choices = colnames(inputData()))
+        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
