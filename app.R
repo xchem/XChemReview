@@ -3,8 +3,8 @@
 # Libraries and function definitions
 #################################################################################
 {
-message <- function (..., domain = NULL, appendLF = TRUE) 
-{
+rm(list=ls())
+message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
         if (nargs() > 1L) 
@@ -25,12 +25,8 @@ message <- function (..., domain = NULL, appendLF = TRUE)
     }, muffleMessage = function() NULL)
     invisible()
 }
-
-
-
-rm(list=ls())
 debug = TRUE
-local = FALSE
+local = TRUE
 # Set Path: May need to add something later for files on /dls
 
 # Server Bindings
@@ -136,7 +132,7 @@ nglColorSchemes <-  c(
     'volume'
 )
 
-defaultRepresentation <- "ball+stick"
+defaultRepresentation <- "cartoon"
 defaultColorScheme <- "chainIndex"
 
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
@@ -298,41 +294,33 @@ server <- function(input, output, session) {
     # Outputs, invest in putting in postgres instead of slurping everything into memory
     # Otherwise extremely slow to shove this in the front end? and on session loading...
     # Can use it for
-    #con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password) 
+    source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
+    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    onStop(dbDisconnect(con))
+    refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
+    crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
+    target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
+    compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
+    comps <- compound_data[,2]
+    names(comps) <- as.character(compound_data[,1])
+    targs <- target_data[,2]
+    names(targs) <- as.character(target_data[,1])
+
+    # Collapse into DF
+    jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
+    jd$Smiles <- comps[as.character(jd$compound_id)]
+    jd$Protein <- targs[as.character(jd$target_id)]
+
+    dbdat <- jd
+    colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID')
+    gc()
     
-    #refinement <- dbReadTable(con, 'refinement')
-    #ref4 <- refinement[which(refinement$outcome == 4), ]
-
-    #crystal <- dbReadTable(con, 'crystal')
-    #rownames(crystal) <- crystal[,1]
-    #crystal4 <- crystal[as.character(ref4$crystal_name_id),]
-
-    #dbdat <- cbind('Xtal Name' = crystal4$crystal_name,
-    #            'Protein' =  dbReadTable(con, 'target')[crystal4$target_id, 2],
-    #            'Smiles' =  dbReadTable(con, 'compounds')[crystal4$compound_id, 2],
-    #            'Resolution' = ref4$res ,
-    #            'Rfree' = ref4$r_free     ,
-    #            'lig_confidence' = ref4$lig_confidence ,
-    #            'RMSD_Angles'= ref4$rmsd_angles, 
-    #            'RMSD_bonds'= ref4$rmsd_bonds,      
-    #            'Ramachandran Outliers' = ref4$ramachandran_outliers, 
-    #            #'CIF' : [c.cif for c in x],
-    #            #'Bound Conf' : [c.bound_conf for c in x],  
-    #            #'Ligand Bound Conf' : [c.lig_bound_conf for c in x],  
-    #            'Latest PDB' = ref4$pdb_latest,
-    #            'Latest MTZ' = ref4$mtz_latest
-    #            )
-    #dbDisconnect(con)
-    #rm(refinement, ref4, crystal, crystal4,con)
-    #gc()
-    #dbListTables(con)
-
     # Main Table Output Handler
-    dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
-    dedupe <- duplicated(dbdat[,1])
+    # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
+    dedupe <- duplicated(dbdat[,'Xtal']# duplicated(dbdat[,1])
     if(any(dedupe)) dbdat <- dbdat[!dedupe,]
-    rownames(dbdat) <- dbdat[,1]
-    dbdat <- dbdat[,-1]
+    rownames(dbdat) <- dbdat[,'Xtal']
+    #dbdat <- dbdat[,-1]
     dbdat$Decision <- ''
     dbdat$Reason <- ''
     currentRes <- loadData()
@@ -377,8 +365,9 @@ server <- function(input, output, session) {
     r2 <- reactive({
         if(debug) print('Update NGL Viewer Side Panel')
         dat <- inputData()[input$Xtal2, ]
-        sn <- names(dat)[2:8]
-        val <- dat[2:8]
+        # 
+        sn <- names(dat)[3:9]
+        val <- dat[3:11]
         values <- sprintf('%s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n',
             sn[1], val[1], sn[2], val[2], sn[3], val[3], sn[4], val[4], sn[5], val[5], sn[6], val[6], sn[7], val[7] 
             )
@@ -571,9 +560,7 @@ server <- function(input, output, session) {
         'RMSD_Angles', 
         'RMSD_bonds',  
         'Ramachandran.Outliers', 
-        'CIF', 
-        'Bound.Conf', 
-        'Ligand.Bound.Conf',
+        'CIF'
         'Latest.PDB',
         'Latest.MTZ'
     )
