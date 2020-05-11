@@ -296,7 +296,6 @@ server <- function(input, output, session) {
     # Can use it for
     source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    onStop(dbDisconnect(con))
     refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
     crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
     target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
@@ -305,7 +304,7 @@ server <- function(input, output, session) {
     names(comps) <- as.character(compound_data[,1])
     targs <- target_data[,2]
     names(targs) <- as.character(target_data[,1])
-
+    dbDisconnect(con)
     # Collapse into DF
     jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
     jd$Smiles <- comps[as.character(jd$compound_id)]
