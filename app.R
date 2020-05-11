@@ -560,7 +560,7 @@ server <- function(input, output, session) {
         'RMSD_Angles', 
         'RMSD_bonds',  
         'Ramachandran.Outliers', 
-        'CIF'
+        'CIF',
         'Latest.PDB',
         'Latest.MTZ'
     )
