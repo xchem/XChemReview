@@ -317,7 +317,7 @@ server <- function(input, output, session) {
     
     # Main Table Output Handler
     # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
-    dedupe <- duplicated(dbdat[,'Xtal']# duplicated(dbdat[,1])
+    dedupe <- duplicated(dbdat[,'Xtal'])# duplicated(dbdat[,1])
     if(any(dedupe)) dbdat <- dbdat[!dedupe,]
     rownames(dbdat) <- dbdat[,'Xtal']
     #dbdat <- dbdat[,-1]
