@@ -26,7 +26,7 @@ message <- function (..., domain = NULL, appendLF = TRUE) {
     invisible()
 }
 debug = TRUE
-local = TRUE
+local = FALSE
 # Set Path: May need to add something later for files on /dls
 
 # Server Bindings
