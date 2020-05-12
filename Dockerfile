@@ -13,23 +13,14 @@ RUN apt-get update && apt-get install -y \
 	libpq-dev
 
 # Install R packages
-RUN R -e "install.packages('caTools', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('devtools', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('htmlwidgets', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('DT', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('devtools', 'caTools','shiny','htmlwidgets', 'DT', 'remotes'), repos='http://cran.rstudio.com/')"
 RUN R -e "library(remotes);remotes::install_github('r-dbi/RPostgres')" 
 RUN R -e "install.packages('RPostgres', repos='http://cran.rstudio.com/')"
-RUN R -e "library(devtools); devtools::install_github('tjgorrie/nglShiny')"
+RUN R -e "library(remotes);remotes::install_github('tjgorrie/nglShiny')"
 
 # Copy App to Image
 COPY app.R /srv/shiny-server
-# COPY getDatafd.py /srv/shiny-server
-# COPY Data /srv/shiny-server/Data
 COPY Pages /srv/shiny-server/Pages
-#COPY nglShiny /srv/shiny-server/nglShiny
-# COPY Responses /srv/shiny-server/Responses
 
 # Port
 EXPOSE 3838
