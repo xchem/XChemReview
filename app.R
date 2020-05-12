@@ -138,7 +138,6 @@ defaultColorScheme <- "chainIndex"
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
 possAns <- possAns2 <- c('Select Decision')
 
-possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
 possRes <- list('Release' = c('Everything is Wonderful'),
                 'Release (notify)' = c(
                     'Alternate binding conformation',
@@ -161,9 +160,12 @@ possRes <- list('Release' = c('Everything is Wonderful'),
                     )
                 )
 
-possAns <- possAns2 <- c('Select Decision')
 defaultPdbID <- ""
 defaultshell <- ""
+
+possDec_int <- 1:4
+names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
+
 }
 #################################################################################
 # UI Code
@@ -257,6 +259,7 @@ server <- function(input, output, session) {
         files <- list.files(file.path(responsesDir), full.names = TRUE)
         data <- lapply(files, read.csv, stringsAsFactors = FALSE)
         data <- do.call(rbind, data)
+        # Now only contains ID instead of xtal name...
         data
     }
     # Save Responses.
@@ -264,9 +267,12 @@ server <- function(input, output, session) {
         fileName <- sprintf("%s_%s.csv",
                             humanTime(),
                             digest::digest(data))
-        if(!data[,'name'] %in% c('', ' ')){
+        if(!data[,'name'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
             write.csv(x = data, file = file.path(responsesDir, fileName),
                   row.names = FALSE, quote = TRUE)
+            con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+            dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
+            dbDisconnect(con)
         }
     }
 
@@ -275,8 +281,14 @@ server <- function(input, output, session) {
     fieldsAll <- c("name", 'Xtal', "decision", "reason")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
-        data <- c(data, timestamp = epochTime())
-        data <- t(data)
+        # Get Crystal ID
+        data <- c(dbdat[data[2], 'id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- data.frame(t(data), stringsAsFactors=F)
+        # Force Coercion
+        data[,1] <- as.integer(data[,1])
+        data[,3] <- as.integer(data[,3])
+        data[,6] <- as.integer(data[,6])
+        colnames(data) <- c('crystal_id', 'FedID', 'decision_int', 'decision_str', 'reason', 'Time_Submitted')
         data
     })
 
@@ -285,8 +297,14 @@ server <- function(input, output, session) {
     formData2 <- reactive({
         data <- sapply(fieldsAll2, function(x) paste0(input[[x]], collapse='; '))
         names(data) <- gsub('2','',names(data))
-        data <- c(data, timestamp = epochTime())
-        data <- t(data)
+        # Get Crystal ID
+        data <- c(dbdat[data[2], 'id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- data.frame(t(data), stringsAsFactors=F)
+        # Force Coercion
+        data[,1] <- as.integer(data[,1])
+        data[,3] <- as.integer(data[,3])
+        data[,6] <- as.integer(data[,6])
+        colnames(data) <- c('crystal_id', 'FedID', 'decision_int', 'decision_str', 'reason', 'Time_Submitted')
         data
     })
 
@@ -300,6 +318,10 @@ server <- function(input, output, session) {
     crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
     target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
     compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
+
+    # Sort Responses...
+    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses WHERE crystal_id IN (%s)"), paste(crystal_data[,'compound_id'], collapse=','))
+
     comps <- compound_data[,2]
     names(comps) <- as.character(compound_data[,1])
     targs <- target_data[,2]
@@ -322,21 +344,21 @@ server <- function(input, output, session) {
     #dbdat <- dbdat[,-1]
     dbdat$Decision <- ''
     dbdat$Reason <- ''
-    currentRes <- loadData()
+    #currentRes <- loadData()
     # Get most Recent Response per xtal
-    if(!is.null(currentRes)){
-        tofill <- t(sapply(split(currentRes, currentRes$Xtal), function(x) x[which.max(x$timestamp),]))
-        rninter <- intersect(rownames(tofill), rownames(dbdat))
-        dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
-        dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
-    }
+    #if(!is.null(currentRes)){
+    #    tofill <- t(sapply(split(currentRes, currentRes$crystal_id), function(x) x[which.max(x$Time_Submitted),]))
+    #    rninter <- intersect(rownames(tofill), rownames(dbdat))
+    #    dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
+    #    dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
+    #}
 
     # Sort Data 
-    dbdat <- do.call('rbind', 
-        lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
-            dbdat[ dbdat[ , 'Decision'] == dec , ]
-        })
-    )
+    #dbdat <- do.call('rbind', 
+    #    lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
+    #        dbdat[ dbdat[ , 'Decision'] == dec , ]
+    #    })
+    #)
     if(debug) print('Data Loaded')
     inputData <- reactive({dbdat})
 
@@ -551,8 +573,8 @@ server <- function(input, output, session) {
     defOrder <- c(
         'Protein', 
         'Smiles',  
-        'Decision',
-        'Reason',
+        #'Decision',
+        #'Reason',
         'Resolution', 
         'Rfree', 
         'lig_confidence', 
