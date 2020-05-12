@@ -267,7 +267,7 @@ server <- function(input, output, session) {
         fileName <- sprintf("%s_%s.csv",
                             humanTime(),
                             digest::digest(data))
-        if(!data[,'FedID'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
+        if(!data[,'fedid'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
             write.csv(x = data, file = file.path(responsesDir, fileName),
                   row.names = FALSE, quote = TRUE)
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -288,7 +288,7 @@ server <- function(input, output, session) {
         data[,1] <- as.integer(data[,1])
         data[,3] <- as.integer(data[,3])
         data[,6] <- as.integer(data[,6])
-        colnames(data) <- c('crystal_id', 'FedID', 'decision_int', 'decision_str', 'reason', 'Time_Submitted')
+        colnames(data) <- c('crystal_id', 'fedid', 'decision_int', 'decision_str', 'reason', 'time_submitted')
         data
     })
 
@@ -304,7 +304,7 @@ server <- function(input, output, session) {
         data[,1] <- as.integer(data[,1])
         data[,3] <- as.integer(data[,3])
         data[,6] <- as.integer(data[,6])
-        colnames(data) <- c('crystal_id', 'FedID', 'decision_int', 'decision_str', 'reason', 'Time_Submitted')
+        colnames(data) <- c('crystal_id', 'fedid', 'decision_int', 'decision_str', 'reason', 'time_submitted')
         data
     })
 
