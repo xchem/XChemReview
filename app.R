@@ -320,7 +320,7 @@ server <- function(input, output, session) {
     compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
 
     # Sort Responses...
-    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses WHERE crystal_id IN (%s)"), paste(crystal_data[,'compound_id'], collapse=','))
+    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses WHERE crystal_id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
 
     comps <- compound_data[,2]
     names(comps) <- as.character(compound_data[,1])
