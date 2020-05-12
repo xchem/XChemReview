@@ -282,7 +282,7 @@ server <- function(input, output, session) {
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
-        data <- c(dbdat[data[2], 'id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
         data[,1] <- as.integer(data[,1])
@@ -298,7 +298,7 @@ server <- function(input, output, session) {
         data <- sapply(fieldsAll2, function(x) paste0(input[[x]], collapse='; '))
         names(data) <- gsub('2','',names(data))
         # Get Crystal ID
-        data <- c(dbdat[data[2], 'id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
         data[,1] <- as.integer(data[,1])
