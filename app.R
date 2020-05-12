@@ -267,7 +267,7 @@ server <- function(input, output, session) {
         fileName <- sprintf("%s_%s.csv",
                             humanTime(),
                             digest::digest(data))
-        if(!data[,'name'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
+        if(!data[,'FedID'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
             write.csv(x = data, file = file.path(responsesDir, fileName),
                   row.names = FALSE, quote = TRUE)
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
