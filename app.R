@@ -443,6 +443,7 @@ server <- function(input, output, session) {
             ))
         }
     })
+
     observeEvent(input$ok, {
         if(debug) print('Reload Session')
         session$reload()
@@ -461,7 +462,8 @@ server <- function(input, output, session) {
 
         fData <- formData()
         if(debug) print(fData)
-        if(any(fData%in%c('', ' '))){
+        if(any(fData%in%c('', ' '))) {
+
             showModal(modalDialog(title = "Please fill the form out full", 
                 "One or more fields have been left empty, please fill in your FedID, a decision and reason(s) before clicking submit"
                 , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
@@ -507,8 +509,6 @@ server <- function(input, output, session) {
                 ))
             }
         }
-
-    })
     })
 
     # Change reasons based on decisions
