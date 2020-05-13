@@ -414,7 +414,9 @@ server <- function(input, output, session) {
         dbDisconnect(con)
         mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
         rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-        return(sessionTime > unlist(mostrecent[as.character(id), 'time_submitted']))
+        t0 <- unlist(mostrecent[as.character(id), 'time_submitted'])
+        output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
+        return(output)
     }
 
     # Observers, behaviour will be described as best as possible
@@ -438,8 +440,8 @@ server <- function(input, output, session) {
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         } else {
             # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-            showModal(modalDialog(title = "Someone has already reviewed this crystal", 
-                "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+            showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
                 , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
             ))
         }
@@ -465,8 +467,8 @@ server <- function(input, output, session) {
         if(debug) print(fData)
         if(any(fData%in%c('', ' '))) {
 
-            showModal(modalDialog(title = "Please fill the form out full", 
-                "One or more fields have been left empty, please fill in your FedID, a decision and reason(s) before clicking submit"
+            showModal(modalDialog(title = "Please fill all fields in the form", 
+                "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit."
                 , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
             ))
         } else {
@@ -477,8 +479,8 @@ server <- function(input, output, session) {
                 resetForm()
             } else {
                 # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                showModal(modalDialog(title = "Someone has already reviewed this crystal", 
-                    "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
                     , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
                 ))
             }
@@ -492,8 +494,8 @@ server <- function(input, output, session) {
         fData <- formData2()
         if(debug) print(fData)
         if(any(fData%in%c('', ' '))){
-            showModal(modalDialog(title = "Please fill the form out full", 
-                "One or more fields have been left empty, please fill in your FedID, a decision and reason(s) before clicking submit"
+            showModal(modalDialog(title = "Please fill all fields in the form", 
+                "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit."
                 , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
             ))
         } else {
@@ -504,8 +506,8 @@ server <- function(input, output, session) {
                 resetForm()
             } else {
                 # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                showModal(modalDialog(title = "Someone has already reviewed this crystal", 
-                    "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
                     , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
                 ))
             }
