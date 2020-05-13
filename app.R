@@ -318,47 +318,49 @@ server <- function(input, output, session) {
     crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
     target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
     compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
-
     # Sort Responses...
-    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses WHERE crystal_id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
+    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+    dbDisconnect(con)
 
     comps <- compound_data[,2]
     names(comps) <- as.character(compound_data[,1])
     targs <- target_data[,2]
     names(targs) <- as.character(target_data[,1])
-    dbDisconnect(con)
+
     # Collapse into DF
     jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
     jd$Smiles <- comps[as.character(jd$compound_id)]
     jd$Protein <- targs[as.character(jd$target_id)]
 
     dbdat <- jd
-    colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID')
+    colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
     gc()
     
     # Main Table Output Handler
     # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
     dedupe <- duplicated(dbdat[,'Xtal'])# duplicated(dbdat[,1])
     if(any(dedupe)) dbdat <- dbdat[!dedupe,]
-    rownames(dbdat) <- dbdat[,'Xtal']
     #dbdat <- dbdat[,-1]
     dbdat$Decision <- ''
     dbdat$Reason <- ''
     #currentRes <- loadData()
     # Get most Recent Response per xtal
-    #if(!is.null(currentRes)){
-    #    tofill <- t(sapply(split(currentRes, currentRes$crystal_id), function(x) x[which.max(x$Time_Submitted),]))
-    #    rninter <- intersect(rownames(tofill), rownames(dbdat))
-    #    dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 3])
-    #    dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 4])
-    #}
+    rownames(dbdat) <- as.character(dbdat$Id)
+    if(nrow(response_data) > 0){
+        tofill <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+        rownames(tofill) <- as.character(tofill$crystal_id)
+        rninter <- intersect(rownames(tofill), rownames(dbdat))
+        dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 'decision_str'])
+        dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 'reason'])
 
+    }
+    rownames(dbdat) <- dbdat[,'Xtal']
     # Sort Data 
-    #dbdat <- do.call('rbind', 
-    #    lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
-    #        dbdat[ dbdat[ , 'Decision'] == dec , ]
-    #    })
-    #)
+    dbdat <- do.call('rbind', 
+        lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
+            dbdat[ dbdat[ , 'Decision'] == dec , ]
+        })
+    )
     if(debug) print('Data Loaded')
     inputData <- reactive({dbdat})
 
@@ -406,20 +408,33 @@ server <- function(input, output, session) {
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
 
+    sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
+        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+        dbDisconnect(con)
+        mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+        rownames(mostrecent) <- as.character(mostrecent$crystal_id)
+        return(sessionTime > unlist(mostrecent[as.character(id), 'time_submitted']))
+    }
+
     # Observers, behaviour will be described as best as possible
 
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         if(debug) print('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
-        rdat <- r1()[input$table_rows_selected,]
-        if(sessionTime > max( loadData()[,'timestamp']) ){ 
+        # Connect to DB and get most recent time...        
+
+        rdat <- r1()[input$table_rows_selected,]time_submitted
+        cId <- rdat['Id']
+        
+        #if(sessionTime > max( loadData()[,'timestamp']) ){ 
+        if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             # Move to NGL viewer Page
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
-
         } else {
             # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
             showModal(modalDialog(title = "Someone has already reviewed this crystal", 
@@ -443,18 +458,57 @@ server <- function(input, output, session) {
 
     # Upon Main Page Submit
     observeEvent(input$submit, {
-        # Add check for recent updates?
-        if(debug) print(formData())
-        saveData(formData())
-        resetForm()
+
+        fData <- formData()
+        if(debug) print(fData)
+        if(any(fData%in%c('', ' '))){
+            showModal(modalDialog(title = "Please fill the form out full", 
+                "One or more fields have been left empty, please fill in your FedID, a decision and reason(s) before clicking submit"
+                , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
+            ))
+        } else {
+             # Get ID...
+            cID <- fData[ ,'crystal_id']
+            if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+                saveData(fData)
+                resetForm()
+            } else {
+                # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
+                showModal(modalDialog(title = "Someone has already reviewed this crystal", 
+                    "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                ))
+            }
+        }
+
     })
     
     # Upon NGL Viewer Page Submit
     observeEvent(input$submit2, {
-        # Add check for recent updates
-        if(debug) print(formData2())
-        saveData(formData2())
-        resetForm()
+
+        fData <- formData2()
+        if(debug) print(fData)
+        if(any(fData%in%c('', ' '))){
+            showModal(modalDialog(title = "Please fill the form out full", 
+                "One or more fields have been left empty, please fill in your FedID, a decision and reason(s) before clicking submit"
+                , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
+            ))
+        } else {
+             # Get ID...
+            cID <- fData[ ,'crystal_id']
+            if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+                saveData(fData)
+                resetForm()
+            } else {
+                # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
+                showModal(modalDialog(title = "Someone has already reviewed this crystal", 
+                    "Someone has recently reviewed this structure. Restarting the session to capture their reponse, you can then review the structure or choose another."
+                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                ))
+            }
+        }
+
+    })
     })
 
     # Change reasons based on decisions
@@ -573,8 +627,8 @@ server <- function(input, output, session) {
     defOrder <- c(
         'Protein', 
         'Smiles',  
-        #'Decision',
-        #'Reason',
+        'Decision',
+        'Reason',
         'Resolution', 
         'Rfree', 
         'lig_confidence', 
