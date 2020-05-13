@@ -425,7 +425,7 @@ server <- function(input, output, session) {
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
 
-        rdat <- r1()[input$table_rows_selected,]time_submitted
+        rdat <- r1()[input$table_rows_selected,]
         cId <- rdat['Id']
         
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
