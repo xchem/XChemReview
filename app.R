@@ -425,8 +425,9 @@ server <- function(input, output, session) {
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
 
-        rdat <- r1()[input$table_rows_selected,]
-        cId <- rdat['Id']
+        rdat <- r1()[input$table_rows_selected,,drop=FALSE]
+        selrow <- rownames(rdat) 
+        cId <- dbdat[selrow, 'Id']
         
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
         if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
@@ -470,7 +471,7 @@ server <- function(input, output, session) {
             ))
         } else {
              # Get ID...
-            cID <- fData[ ,'crystal_id']
+            cId <- fData[ ,'crystal_id']
             if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
                 saveData(fData)
                 resetForm()
@@ -497,7 +498,7 @@ server <- function(input, output, session) {
             ))
         } else {
              # Get ID...
-            cID <- fData[ ,'crystal_id']
+            cId <- fData[ ,'crystal_id']
             if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
                 saveData(fData)
                 resetForm()
