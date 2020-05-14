@@ -132,7 +132,7 @@ nglColorSchemes <-  c(
     'volume'
 )
 
-defaultRepresentation <- "cartoon"
+defaultRepresentation <- "ball+stick"
 defaultColorScheme <- "chainIndex"
 
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
@@ -179,7 +179,7 @@ ui <- navbarPage("Staging XChem", id='beep',
             sidebarPanel(
                 div(
                     id = "form",
-                    textInput("name", "Name", ""),
+                    textInput("name", "FedID", ""),
                     # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
                     selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
                     #actionButton("download", "Download Data", class = "btn-primary"),
@@ -214,7 +214,7 @@ ui <- navbarPage("Staging XChem", id='beep',
             ),
             sidebarLayout(
                 sidebarPanel(
-                    textInput("name2", "Name", ""),
+                    textInput("name2", "FedID", ""),
                     selectizeInput('Xtal2', 'Which Structure?', list(), multiple = FALSE),
                     selectInput("decision2", "Decision", possDec),
                     selectizeInput("reason2", "Reason(s)", list(), multiple=TRUE),
@@ -419,6 +419,22 @@ server <- function(input, output, session) {
         return(output)
     }
 
+    displayModalWhoUpdated <- functoin(id){
+                con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+                response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+                dbDisconnect(con)
+
+                mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+                rownames(mostrecent) <- as.character(mostrecent$crystal_id)
+                user <- unlist(mostrecent[as.character(id), 'fedid'])
+
+                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
+                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                ))
+    }
+
+
     # Observers, behaviour will be described as best as possible
 
     # Upon Row Click
@@ -440,10 +456,11 @@ server <- function(input, output, session) {
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         } else {
             # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-            showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
-                , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-            ))
+            #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+            #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
+            #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+            #))
+            displayModalWhoUpdated(id=cId)
         }
     })
 
@@ -466,7 +483,6 @@ server <- function(input, output, session) {
         fData <- formData()
         if(debug) print(fData)
         if(any(fData%in%c('', ' '))) {
-
             showModal(modalDialog(title = "Please fill all fields in the form", 
                 "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit."
                 , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
@@ -479,10 +495,11 @@ server <- function(input, output, session) {
                 resetForm()
             } else {
                 # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
-                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-                ))
+                #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
+                #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                #))
+                displayModalWhoUpdated(id=cId)
             }
         }
 
@@ -506,10 +523,11 @@ server <- function(input, output, session) {
                 resetForm()
             } else {
                 # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
-                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-                ))
+                #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
+                #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                #))
+                displayModalWhoUpdated(id=cId)
             }
         }
     })
