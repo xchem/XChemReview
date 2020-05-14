@@ -414,7 +414,7 @@ server <- function(input, output, session) {
         dbDisconnect(con)
         mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
         rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-        t0 <- unlist(mostrecent[as.character(id), 'time_submitted'])
+        t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
         output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
         return(output)
     }
@@ -426,7 +426,7 @@ server <- function(input, output, session) {
 
                 mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
                 rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-                user <- unlist(mostrecent[as.character(id), 'fedid'])
+                user <- mostrecent[as.character(id), 'fedid'][[1]]
 
                 showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
                     sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
@@ -455,11 +455,12 @@ server <- function(input, output, session) {
             # Move to NGL viewer Page
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         } else {
+            #user <- displayModalWhoUpdated(id=cId)
             # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-            #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-            #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
-            #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-            #))
+            #    showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+            #        sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
+            #        , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+            #    ))
             displayModalWhoUpdated(id=cId)
         }
     })
@@ -494,9 +495,10 @@ server <- function(input, output, session) {
                 saveData(fData)
                 resetForm()
             } else {
+                #user <- displayModalWhoUpdated(id=cId)
                 # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
                 #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
+                #    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
                 #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
                 #))
                 displayModalWhoUpdated(id=cId)
@@ -522,9 +524,10 @@ server <- function(input, output, session) {
                 saveData(fData)
                 resetForm()
             } else {
-                # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
+                #user <- displayModalWhoUpdated(id=cId)
+                ## Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
                 #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                #    "Someone has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal."
+                #    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
                 #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
                 #))
                 displayModalWhoUpdated(id=cId)
@@ -651,7 +654,7 @@ server <- function(input, output, session) {
         'Decision',
         'Reason',
         'Resolution', 
-        'Rfree', 
+        'RFree', 
         'lig_confidence', 
         'RMSD_Angles', 
         'RMSD_bonds',  
