@@ -249,8 +249,7 @@ ui <- navbarPage("Staging XChem", id='beep',
 server <- function(input, output, session) {
     if(debug) message('Server Init')
     sessionTime <- epochTime()
-    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
-    updateTabsetPanel(session, "beep", selected = 'Main Page')
+
     # Things in Global Scope
     #pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
     #mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
@@ -412,6 +411,10 @@ server <- function(input, output, session) {
     output$msg2 <- renderText({'Please click once'})  
     output$msg3 <- renderText({'If crystal isn\'t showing up, press defaults'})
 
+    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+    Sys.sleep(1)
+    updateTabsetPanel(session, "beep", selected = 'Main Page')
+
     sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
         response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
@@ -446,7 +449,6 @@ server <- function(input, output, session) {
         if(debug) print('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
-
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
         selrow <- rownames(rdat) 
         cId <- dbdat[selrow, 'Id']
@@ -549,8 +551,6 @@ server <- function(input, output, session) {
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal2, {
         # Retry everything to ensure that view loads after stage load...
-        session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        session$sendCustomMessage(type="setPDB", message=list(''))
         choice = input$Xtal2
         # If pdb is not on pdb... Do things.
         if(debug) message(sprintf("pdb: %s", choice))
@@ -584,8 +584,6 @@ server <- function(input, output, session) {
                 if(inherits(tryAddEvent, 'try-error')){
                     defaultShell <<- ''
                     session$sendCustomMessage(type="removeAllRepresentations", message=list())
-                } else {
-                    session$sendCustomMessage(type="addEvent", message=list(event))  
                 }
             }
         }
