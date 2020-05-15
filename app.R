@@ -173,38 +173,6 @@ names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
 ui <- navbarPage("Staging XChem", id='beep',          
     # First Page
-    tabPanel("Main Page",
-        sidebarLayout(
-            # Sidebar panel for inputs ----
-            sidebarPanel(
-                div(
-                    id = "form",
-                    textInput("name", "FedID", ""),
-                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
-                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
-                    #actionButton("download", "Download Data", class = "btn-primary"),
-                    selectInput("decision", "Decision", possDec),
-                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
-                    textOutput('msg'),
-                    actionButton("submit", "Submit", class = "btn-primary"),
-                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
-                    #checkboxInput("check1", "This button does nothing", FALSE),
-                ), width=2 # div
-            ), #sidebarPanel
-                            
-            mainPanel(
-                tabsetPanel(
-                    tabPanel("Staged Structures", DT::dataTableOutput("table")),
-                    #tabPanel("Responses", DT::dataTableOutput("resp")),
-                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
-                )
-            ) # mainPanel
-
-        ) # sidebarLayout
-    ), # tabPanel, 
-    # End of Page 1.
-
     # Page 2
     tabPanel('NGL Viewer',
         fluidPage(
@@ -238,8 +206,39 @@ ui <- navbarPage("Staging XChem", id='beep',
                 ) # mainPanel
             ) # sidebarlayout
         )#, 
-    )# tabPanel
+    ),# tabPanel
     # End of Page 2
+        tabPanel("Main Table",
+        sidebarLayout(
+            # Sidebar panel for inputs ----
+            sidebarPanel(
+                div(
+                    id = "form",
+                    textInput("name", "FedID", ""),
+                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
+                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
+                    #actionButton("download", "Download Data", class = "btn-primary"),
+                    selectInput("decision", "Decision", possDec),
+                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
+                    textOutput('msg'),
+                    actionButton("submit", "Submit", class = "btn-primary"),
+                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
+                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
+                    #checkboxInput("check1", "This button does nothing", FALSE),
+                ), width=2 # div
+            ), #sidebarPanel
+                            
+            mainPanel(
+                tabsetPanel(
+                    tabPanel("Staged Structures", DT::dataTableOutput("table")),
+                    #tabPanel("Responses", DT::dataTableOutput("resp")),
+                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
+                )
+            ) # mainPanel
+
+        ) # sidebarLayout
+    ) # tabPanel, 
+    # End of Page 1.
 ) # End of UI
 
 
@@ -247,7 +246,6 @@ ui <- navbarPage("Staging XChem", id='beep',
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
-    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
     if(debug) message('Server Init')
     sessionTime <- epochTime()
 
@@ -471,7 +469,7 @@ server <- function(input, output, session) {
         if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, "Xtal2", selected = '', choices = sort(rownames( inputData() )))
-        updateTabsetPanel(session, "beep", selected = 'Main Page') 
+        updateTabsetPanel(session, "beep", selected = 'Main Table') 
         session$reload()
     }
 
@@ -654,7 +652,7 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
-    updateTabsetPanel(session, "beep", selected = 'Main Page')
+    updateTabsetPanel(session, "beep", selected = 'Main Table')
 } # Server
 
 #################################################################################
