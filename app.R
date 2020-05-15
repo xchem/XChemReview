@@ -560,48 +560,47 @@ server <- function(input, output, session) {
   
     # When input$Xtal2 (structure dropdown on NGL viewer page) is updated do things
     # Load structure and event to NGL stage!
+    # Really need to sort this logic ball out...
     observeEvent(input$Xtal2, {
-            choice = input$Xtal2
-            if(grepl('rcsb', choice)){ # If a pdb structure do regular stuff
-                if(debug) message(sprintf("pdb: %s", choice))
-                session$sendCustomMessage(type="setPDB", message=list(choice))
-            } else {
-                # If pdb is not on pdb... Do things.
-                if(debug) message(sprintf("pdb: %s", choice))
-                filepath <- dbdat[choice,'Latest.PDB']
-                XtalRoot <- try(getRootFP(filepath), silent=T)
-                #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
-                syscall <- sprintf('cat %s', filepath)
-                if(debug) message(syscall)
+        choice = input$Xtal2
+        # If pdb is not on pdb... Do things.
+        if(debug) message(sprintf("pdb: %s", choice))
+        filepath <- dbdat[choice,'Latest.PDB']
+        XtalRoot <- try(getRootFP(filepath), silent=T)
+        #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
+        syscall <- sprintf('cat %s', filepath)
+        if(debug) message(syscall)
+        tryAddPDB <- try({
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            defaultPdbID <<- choice
+            session$sendCustomMessage(type="setPDB2", message=list(choice))
+            }, silent = TRUE)
+        if(inherits(tryAddPDB, 'try-error')){
+            defaultPdbID <<- ''
+            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        } else {
+            if(!inherits(XtalRoot, 'try-error')){
+                fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
+                #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
+                if(debug) message(sprintf('%s: %s', 'eMap:', fname))
 
-                tryAddPDB <- try({
-                    pdbstrings <- system(syscall, intern = TRUE)
-                    choice <- paste0(pdbstrings, collapse='\n')
-                    defaultPdbID <<- choice
-                    session$sendCustomMessage(type="setPDB2", message=list(choice))
-                }, silent = TRUE)
-                if(inherits(tryAddPDB, 'try-error')){
-                    defaultPdbID <<- ''
+                tryAddEvent <- try({
+                    event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                    event <- base64encode(event, size=NA, endian=.Platform$endian)
+                    defaultShell <<- event
+                    session$sendCustomMessage(type="addEvent", message=list(event))
+                }, silent=T)
+                if(inherits(tryAddEvent, 'try-error')){
+                    defaultShell <<- ''
                     session$sendCustomMessage(type="removeAllRepresentations", message=list())
-                } else {
-                    if(!inherits(XtalRoot, 'try-error')){
-                        fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
-                        #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-                        if(debug) message(sprintf('%s: %s', 'eMap:', fname))
-
-                        tryAddEvent <- try({
-                            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-                            event <- base64encode(event, size=NA, endian=.Platform$endian)
-                            defaultShell <<- event
-                            session$sendCustomMessage(type="addEvent", message=list(event))
-                        }, silent=T)
-                    if(inherits(tryAddEvent, 'try-error')){
-                        defaultShell <<- ''
-                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
-                    }
                 }
             }
         }
+        # Retry everything to ensure that view loads after stage load...
+        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
+        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
     })
 
     # Go back to main Panel, do a refresh for good measure.
