@@ -409,11 +409,7 @@ server <- function(input, output, session) {
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
-    output$msg3 <- renderText({'If crystal isn\'t showing up, press defaults'})
-
-    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
-    Sys.sleep(1)
-    updateTabsetPanel(session, "beep", selected = 'Main Page')
+    output$msg3 <- renderText({' '})
 
     sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -455,11 +451,11 @@ server <- function(input, output, session) {
         
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
         if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+            # Move to NGL viewer Page
+            updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
-            # Move to NGL viewer Page
-            updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         } else {
             displayModalWhoUpdated(id=cId)
         }
@@ -569,7 +565,6 @@ server <- function(input, output, session) {
             defaultPdbID <<- ''
             session$sendCustomMessage(type="removeAllRepresentations", message=list())
         } else {
-            session$sendCustomMessage(type="setPDB2", message=list(choice))
             if(!inherits(XtalRoot, 'try-error')){
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
