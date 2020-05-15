@@ -456,7 +456,11 @@ server <- function(input, output, session) {
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
-            updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+
+            try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
+            try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
+            try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
+
         } else {
             displayModalWhoUpdated(id=cId)
         }
