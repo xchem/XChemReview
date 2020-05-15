@@ -249,6 +249,8 @@ ui <- navbarPage("Staging XChem", id='beep',
 server <- function(input, output, session) {
     if(debug) message('Server Init')
     sessionTime <- epochTime()
+    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+    updateTabsetPanel(session, "beep", selected = 'Main Page')
     # Things in Global Scope
     #pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
     #mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
