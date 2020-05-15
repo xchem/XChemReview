@@ -224,6 +224,7 @@ ui <- navbarPage("Staging XChem", id='beep',
                     actionButton("submit2", "Submit", class = "btn-primary"),
                     actionButton("Back", "Back", class = "btn-primary"),
                     hr(),
+                    textOutput('msg3'),
                     actionButton("fitButton", "Fit"),
                     actionButton("defaultViewButton", "Defaults"),
                     actionButton("clearRepresentationsButton", "Clear Representations"),
@@ -407,6 +408,7 @@ server <- function(input, output, session) {
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
+    output$msg3 <- renderText({'If crystal isn\'t showing up, press defaults'})
 
     sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -440,9 +442,6 @@ server <- function(input, output, session) {
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         if(debug) print('Row Click')
-        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-        try({session$sendCustomMessage(type="setPDB2", message=list(''))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(''))}, silent = T)
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
 
@@ -458,12 +457,6 @@ server <- function(input, output, session) {
             # Move to NGL viewer Page
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         } else {
-            #user <- displayModalWhoUpdated(id=cId)
-            # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-            #    showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-            #        sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-            #        , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-            #    ))
             displayModalWhoUpdated(id=cId)
         }
     })
@@ -498,12 +491,6 @@ server <- function(input, output, session) {
                 saveData(fData)
                 resetForm()
             } else {
-                #user <- displayModalWhoUpdated(id=cId)
-                # Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                #    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-                #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-                #))
                 displayModalWhoUpdated(id=cId)
             }
         }
@@ -527,12 +514,6 @@ server <- function(input, output, session) {
                 saveData(fData)
                 resetForm()
             } else {
-                #user <- displayModalWhoUpdated(id=cId)
-                ## Show Dialog that things have changed, allow user to restart session (OK) or cancel out and look at something else
-                #showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                #    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-                #    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-                #))
                 displayModalWhoUpdated(id=cId)
             }
         }
@@ -566,9 +547,8 @@ server <- function(input, output, session) {
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal2, {
         # Retry everything to ensure that view loads after stage load...
-        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-        try({session$sendCustomMessage(type="setPDB2", message=list(''))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(''))}, silent = T)
+        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        session$sendCustomMessage(type="setPDB", message=list(''))
         choice = input$Xtal2
         # If pdb is not on pdb... Do things.
         if(debug) message(sprintf("pdb: %s", choice))
@@ -587,6 +567,7 @@ server <- function(input, output, session) {
             defaultPdbID <<- ''
             session$sendCustomMessage(type="removeAllRepresentations", message=list())
         } else {
+            session$sendCustomMessage(type="setPDB2", message=list(choice))
             if(!inherits(XtalRoot, 'try-error')){
                 fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
                 #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
@@ -601,6 +582,8 @@ server <- function(input, output, session) {
                 if(inherits(tryAddEvent, 'try-error')){
                     defaultShell <<- ''
                     session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                } else {
+                    session$sendCustomMessage(type="addEvent", message=list(event))  
                 }
             }
         }
