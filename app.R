@@ -453,6 +453,7 @@ server <- function(input, output, session) {
         if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
             # Move to NGL viewer Page
             updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+            Sys.sleep(1)
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
