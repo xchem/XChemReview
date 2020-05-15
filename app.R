@@ -173,6 +173,37 @@ names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
 ui <- navbarPage("Staging XChem", id='beep',          
     # First Page
+    tabPanel("Main Table",
+        sidebarLayout(
+            # Sidebar panel for inputs ----
+            sidebarPanel(
+                div(
+                    id = "form",
+                    textInput("name", "FedID", ""),
+                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
+                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
+                    #actionButton("download", "Download Data", class = "btn-primary"),
+                    selectInput("decision", "Decision", possDec),
+                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
+                    textOutput('msg'),
+                    actionButton("submit", "Submit", class = "btn-primary"),
+                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
+                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
+                    #checkboxInput("check1", "This button does nothing", FALSE),
+                ), width=2 # div
+            ), #sidebarPanel
+                            
+            mainPanel(
+                tabsetPanel(
+                    tabPanel("Staged Structures", DT::dataTableOutput("table")),
+                    #tabPanel("Responses", DT::dataTableOutput("resp")),
+                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
+                )
+            ) # mainPanel
+
+        ) # sidebarLayout
+    ), # tabPanel, 
+    # End of Page 1.
     # Page 2
     tabPanel('NGL Viewer',
         fluidPage(
@@ -206,52 +237,15 @@ ui <- navbarPage("Staging XChem", id='beep',
                 ) # mainPanel
             ) # sidebarlayout
         )#, 
-    ),# tabPanel
+    )# tabPanel
     # End of Page 2
-        tabPanel("Main Table",
-        sidebarLayout(
-            # Sidebar panel for inputs ----
-            sidebarPanel(
-                div(
-                    id = "form",
-                    textInput("name", "FedID", ""),
-                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
-                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
-                    #actionButton("download", "Download Data", class = "btn-primary"),
-                    selectInput("decision", "Decision", possDec),
-                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
-                    textOutput('msg'),
-                    actionButton("submit", "Submit", class = "btn-primary"),
-                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
-                    #checkboxInput("check1", "This button does nothing", FALSE),
-                ), width=2 # div
-            ), #sidebarPanel
-                            
-            mainPanel(
-                tabsetPanel(
-                    tabPanel("Staged Structures", DT::dataTableOutput("table")),
-                    #tabPanel("Responses", DT::dataTableOutput("resp")),
-                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
-                )
-            ) # mainPanel
-
-        ) # sidebarLayout
-    ) # tabPanel, 
-    # End of Page 1.
 ) # End of UI
-
 
 #################################################################################
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
     if(debug) message('Server Init')
-    sessionTime <- epochTime()
-
-    # Things in Global Scope
-    #pdbIDs <- dir(dataDir, pattern='.pdb', full = TRUE, rec=TRUE)
-    #mapIDs <- dir(dataDir, pattern='.ccp4', full = TRUE, rec=TRUE)
     options <- list(pdbID="")
 
     # Functions
@@ -263,6 +257,7 @@ server <- function(input, output, session) {
         # Now only contains ID instead of xtal name...
         data
     }
+
     # Save Responses.
     saveData <- function(data) {
         fileName <- sprintf("%s_%s.csv",
@@ -275,6 +270,32 @@ server <- function(input, output, session) {
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
         }
+    }
+
+    sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
+        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+        dbDisconnect(con)
+        mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+        rownames(mostrecent) <- as.character(mostrecent$crystal_id)
+        t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
+        output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
+        return(output)
+    }
+
+    displayModalWhoUpdated <- function(id){
+                con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+                response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+                dbDisconnect(con)
+
+                mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+                rownames(mostrecent) <- as.character(mostrecent$crystal_id)
+                user <- mostrecent[as.character(id), 'fedid'][[1]]
+
+                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
+                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                ))
     }
 
     # Reactives
@@ -409,33 +430,6 @@ server <- function(input, output, session) {
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
     output$msg3 <- renderText({' '})
-
-    sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
-        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
-        dbDisconnect(con)
-        mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-        rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-        t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
-        output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
-        return(output)
-    }
-
-    displayModalWhoUpdated <- function(id){
-                con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-                response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
-                dbDisconnect(con)
-
-                mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-                rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-                user <- mostrecent[as.character(id), 'fedid'][[1]]
-
-                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
-                    sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
-                ))
-    }
-
 
     # Observers, behaviour will be described as best as possible
 
@@ -652,7 +646,12 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
-    updateTabsetPanel(session, "beep", selected = 'Main Table')
+
+    observeEvent(sessionTime, {
+        updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
+        updateTabsetPanel(session, "beep", selected = 'Main Table')
+    })
+    sessionTime <- epochTime()
 } # Server
 
 #################################################################################
