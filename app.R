@@ -246,6 +246,7 @@ ui <- navbarPage("Staging XChem", id='beep',
 #################################################################################
 server <- function(input, output, session) {
     if(debug) message('Server Init')
+    sessionTime <- epochTime()
     options <- list(pdbID="")
 
     # Functions
@@ -429,7 +430,7 @@ server <- function(input, output, session) {
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
     output$msg2 <- renderText({'Please click once'})  
-    output$msg3 <- renderText({' '})
+    output$msg3 <- renderText({'If the crystal doesn\' appear, try pressing the Defaults button.'})
 
     # Observers, behaviour will be described as best as possible
 
@@ -647,11 +648,12 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
 
-    observeEvent(sessionTime, {
+    session$onRestored(function(){
         updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
         updateTabsetPanel(session, "beep", selected = 'Main Table')
-    })
-    sessionTime <- epochTime()
+        })
+
+
 } # Server
 
 #################################################################################
