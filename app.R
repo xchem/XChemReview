@@ -247,6 +247,7 @@ ui <- navbarPage("Staging XChem", id='beep',
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
+    updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
     if(debug) message('Server Init')
     sessionTime <- epochTime()
 
@@ -456,11 +457,6 @@ server <- function(input, output, session) {
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
             updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
-
-            try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-            try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
-            try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
-
         } else {
             displayModalWhoUpdated(id=cId)
         }
@@ -658,6 +654,7 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
         updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
+    updateTabsetPanel(session, "beep", selected = 'Main Page')
 } # Server
 
 #################################################################################
