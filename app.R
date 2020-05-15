@@ -440,6 +440,9 @@ server <- function(input, output, session) {
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         if(debug) print('Row Click')
+        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
+        try({session$sendCustomMessage(type="setPDB2", message=list(''))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(''))}, silent = T)
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
 
@@ -562,6 +565,10 @@ server <- function(input, output, session) {
     # Load structure and event to NGL stage!
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal2, {
+        # Retry everything to ensure that view loads after stage load...
+        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
+        try({session$sendCustomMessage(type="setPDB2", message=list(''))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(''))}, silent = T)
         choice = input$Xtal2
         # If pdb is not on pdb... Do things.
         if(debug) message(sprintf("pdb: %s", choice))
@@ -597,10 +604,6 @@ server <- function(input, output, session) {
                 }
             }
         }
-        # Retry everything to ensure that view loads after stage load...
-        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
     })
 
     # Go back to main Panel, do a refresh for good measure.
