@@ -1,6 +1,8 @@
 # App Refactor
 {
 rm(list=ls())
+debug = TRUE
+local = FALSE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -22,8 +24,6 @@ message <- function (..., domain = NULL, appendLF = TRUE) {
     }, muffleMessage = function() NULL)
     invisible()
 }
-debug = TRUE
-local = TRUE
 # Set Path: May need to add something later for files on /dls
 
 # Server Bindings
