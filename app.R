@@ -209,6 +209,12 @@ ui <- navbarPage("Staging XChem", id='beep',
 #################################################################################
 server <- function(input, output, session) {
     if(debug) message('Server Init')
+
+    session$allowReconnect('force')
+
+	sessionDisconnect <- function() message('User Disconnected')
+    session$onSessionEnded(sessionDisconnect)
+
     sessionTime <- epochTime()
     options <- list(pdbID="")
 
@@ -515,6 +521,13 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
     })
+
+    # Ticker
+    autoInvalidate <- reactiveTimer(10000)
+  	observe({
+    	autoInvalidate()
+    	cat("")
+  	})
 } # Server
 
 #################################################################################
