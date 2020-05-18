@@ -180,7 +180,7 @@ ui <- navbarPage("Staging XChem", id='beep',
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
                     selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
+                    selectizeInput('columns', 'Select Columns to View? (delete/add more values as needed)', list(), multiple = TRUE)
                 )
 			),
 			column(8,
@@ -347,7 +347,7 @@ server <- function(input, output, session) {
     
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
-        nglShiny(list(), 300, 300)
+        nglShiny(list(), 300, 200)
     )
 
     # Generic Output Messages.
@@ -355,7 +355,6 @@ server <- function(input, output, session) {
     output$msg3 <- renderText({'NGL Viewer Controls'})
 
     # Observers, behaviour will be described as best as possible
-
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         if(debug) print('Row Click')
@@ -495,8 +494,7 @@ server <- function(input, output, session) {
         updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=choice)
     })
 
-    defOrder <- c(
-        'Protein', 
+    defOrder <- c( 
         'Smiles',  
         'Decision',
         'Reason',
@@ -505,10 +503,10 @@ server <- function(input, output, session) {
         'lig_confidence', 
         'RMSD_Angles', 
         'RMSD_bonds',  
-        'Ramachandran.Outliers', 
-        'CIF',
-        'Latest.PDB',
-        'Latest.MTZ'
+        'Ramachandran.Outliers'#, 
+        #'CIF',
+        #'Latest.PDB',
+        #'Latest.MTZ'
     )
 
     observe({
