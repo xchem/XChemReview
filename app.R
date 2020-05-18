@@ -184,7 +184,7 @@ ui <- navbarPage("Staging XChem", id='beep',
                 )
 			),
 			column(8,
-				nglShinyOutput('nglShiny'),
+				nglShinyOutput('nglShiny', height = '300px'),
             	hr(),
             	DT::dataTableOutput("table")
 			),
@@ -347,7 +347,7 @@ server <- function(input, output, session) {
     
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
-        nglShiny(list(), 300, 200)
+        nglShiny(list(), 300, 300)
     )
 
     # Generic Output Messages.
