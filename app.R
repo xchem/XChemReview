@@ -184,7 +184,7 @@ ui <- navbarPage("Staging XChem", id='beep',
                 )
 			),
 			column(8,
-				nglShinyOutput('nglShiny', height = '300px'),
+				nglShinyOutput('nglShiny', height = '450px'),
             	hr(),
             	DT::dataTableOutput("table")
 			),
