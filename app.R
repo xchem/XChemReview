@@ -1,7 +1,4 @@
-#################################################################################
-# Structure is horrible, Time for some organisation:
-# Libraries and function definitions
-#################################################################################
+# App Refactor
 {
 rm(list=ls())
 message <- function (..., domain = NULL, appendLF = TRUE) {
@@ -26,7 +23,7 @@ message <- function (..., domain = NULL, appendLF = TRUE) {
     invisible()
 }
 debug = TRUE
-local = FALSE
+local = TRUE
 # Set Path: May need to add something later for files on /dls
 
 # Server Bindings
@@ -76,7 +73,6 @@ getRootFP <- function(pdbpath){
     n <- length(splits)
     paste0(c(splits[1:(n-2)],''), collapse='/')
 }
-
 
 #################################################################################
 # Global Variables used in server/UI
@@ -167,79 +163,46 @@ possDec_int <- 1:4
 names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
 }
-#################################################################################
-# UI Code
-#################################################################################
 
-ui <- navbarPage("Staging XChem", id='beep',          
-    # First Page
-    tabPanel("Main Table",
-        sidebarLayout(
-            # Sidebar panel for inputs ----
-            sidebarPanel(
+# UI Code
+ui <- navbarPage("Staging XChem", id='beep',
+	# First Page
+	tabPanel('Main',
+		fluidRow(
+			column(2,
                 div(
                     id = "form",
                     textInput("name", "FedID", ""),
-                    # selectizeInput('site', 'Which Site?', list(), multiple=TRUE),
                     selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
-                    #actionButton("download", "Download Data", class = "btn-primary"),
                     selectInput("decision", "Decision", possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
+                    actionButton('clear', 'Clear', class = 'btn-primary'),
                     selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
                     selectizeInput('columns', 'Select Columns to View? (delete/add values as needed)', list(), multiple = TRUE)
-                    #checkboxInput("check1", "This button does nothing", FALSE),
-                ), width=2 # div
-            ), #sidebarPanel
-                            
-            mainPanel(
-                tabsetPanel(
-                    tabPanel("Staged Structures", DT::dataTableOutput("table")),
-                    #tabPanel("Responses", DT::dataTableOutput("resp")),
-                    tabPanel("Help", includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md")))
                 )
-            ) # mainPanel
-
-        ) # sidebarLayout
-    ), # tabPanel, 
-    # End of Page 1.
-    # Page 2
-    tabPanel('NGL Viewer',
-        fluidPage(
-            tags$head(
-                tags$style("#nglShiny{height:98vh !important;}"),
-                tags$link(rel="icon", href="data:;base64,iVBORw0KGgo=")
-            ),
-            sidebarLayout(
-                sidebarPanel(
-                    textInput("name2", "FedID", ""),
-                    selectizeInput('Xtal2', 'Which Structure?', list(), multiple = FALSE),
-                    selectInput("decision2", "Decision", possDec),
-                    selectizeInput("reason2", "Reason(s)", list(), multiple=TRUE),
-                    textOutput('stats'),
-                    hr(),
-                    textOutput('msg2'),
-                    actionButton("submit2", "Submit", class = "btn-primary"),
-                    actionButton("Back", "Back", class = "btn-primary"),
-                    hr(),
-                    textOutput('msg3'),
-                    actionButton("fitButton", "Fit"),
-                    actionButton("defaultViewButton", "Defaults"),
-                    actionButton("clearRepresentationsButton", "Clear Representations"),
-                    selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                    selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme),
-                    width=2
-                ), # sidebarPanel
-                mainPanel(
-                    nglShinyOutput('nglShiny'),
-                    width=10
-                ) # mainPanel
-            ) # sidebarlayout
-        )#, 
-    )# tabPanel
-    # End of Page 2
-) # End of UI
+			),
+			column(8,
+				nglShinyOutput('nglShiny'),
+            	hr(),
+            	DT::dataTableOutput("table")
+			),
+			column(2,
+                textOutput('msg3'),
+                actionButton("fitButton", "Fit"),
+                actionButton("defaultViewButton", "Defaults"),
+                actionButton("clearRepresentationsButton", "Clear Representations"),
+                selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
+                selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
+			)
+		) # Fluid Row
+	), # Tab Panel
+	tabPanel('Help',
+		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
+	) # Tab Panel
+) # Nav Bar Page
+# End of UI
 
 #################################################################################
 # Server Code
@@ -300,7 +263,7 @@ server <- function(input, output, session) {
     }
 
     # Reactives
-    # Page 1 Form Handler
+    # Form Handler
     fieldsAll <- c("name", 'Xtal', "decision", "reason")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
@@ -314,23 +277,6 @@ server <- function(input, output, session) {
         colnames(data) <- c('crystal_id', 'fedid', 'decision_int', 'decision_str', 'reason', 'time_submitted')
         data
     })
-
-    # Page 2 Form Handler
-    fieldsAll2 <- c("name2", 'Xtal2', "decision2", "reason2")
-    formData2 <- reactive({
-        data <- sapply(fieldsAll2, function(x) paste0(input[[x]], collapse='; '))
-        names(data) <- gsub('2','',names(data))
-        # Get Crystal ID
-        data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
-        data <- data.frame(t(data), stringsAsFactors=F)
-        # Force Coercion
-        data[,1] <- as.integer(data[,1])
-        data[,3] <- as.integer(data[,3])
-        data[,6] <- as.integer(data[,6])
-        colnames(data) <- c('crystal_id', 'fedid', 'decision_int', 'decision_str', 'reason', 'time_submitted')
-        data
-    })
-
 
     # Outputs, invest in putting in postgres instead of slurping everything into memory
     # Otherwise extremely slow to shove this in the front end? and on session loading...
@@ -366,7 +312,7 @@ server <- function(input, output, session) {
     #dbdat <- dbdat[,-1]
     dbdat$Decision <- ''
     dbdat$Reason <- ''
-    #currentRes <- loadData()
+
     # Get most Recent Response per xtal
     rownames(dbdat) <- as.character(dbdat$Id)
     if(nrow(response_data) > 0){
@@ -398,30 +344,7 @@ server <- function(input, output, session) {
     })
   
     output$table <- DT::renderDataTable({r1()}, selection = 'single')
-    if(debug) print('Response Table Loading')
-    # Response Table
-    output$resp <- DT::renderDataTable(
-        loadData(),
-        rownames = FALSE,
-        options = list(searching = FALSE, lengthChange = FALSE)
-    ) 
-    if(debug) print('Response Table Success')
-    # NGL viewer side panel stats
-    if(debug) print('NGL viewer Tab')
-    r2 <- reactive({
-        if(debug) print('Update NGL Viewer Side Panel')
-        dat <- inputData()[input$Xtal2, ]
-        # 
-        sn <- names(dat)[3:9]
-        val <- dat[3:11]
-        values <- sprintf('%s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n %s: %s \n',
-            sn[1], val[1], sn[2], val[2], sn[3], val[3], sn[4], val[4], sn[5], val[5], sn[6], val[6], sn[7], val[7] 
-            )
-        values
-    })
-
-    output$stats <- renderText({r2()})
-
+    
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
         nglShiny(list(), 300, 300)
@@ -429,8 +352,7 @@ server <- function(input, output, session) {
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
-    output$msg2 <- renderText({'Please click once'})  
-    output$msg3 <- renderText({'If the crystal doesn\' appear, try pressing the Defaults button.'})
+    output$msg3 <- renderText({'NGL Viewer Controls'})
 
     # Observers, behaviour will be described as best as possible
 
@@ -441,15 +363,11 @@ server <- function(input, output, session) {
         # Connect to DB and get most recent time...        
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
         selrow <- rownames(rdat) 
-        cId <- dbdat[selrow, 'Id']
-        
+        cId <- dbdat[selrow, 'Id']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
         if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
-            # Move to NGL viewer Page
-            updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
-            updateSelectizeInput(session, "Xtal2", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
             displayModalWhoUpdated(id=cId)
         }
@@ -463,8 +381,6 @@ server <- function(input, output, session) {
     resetForm <- function(){
         if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", selected = '', choices = sort(rownames( inputData() )))
-        updateTabsetPanel(session, "beep", selected = 'Main Table') 
         session$reload()
     }
 
@@ -491,37 +407,10 @@ server <- function(input, output, session) {
 
     })
     
-    # Upon NGL Viewer Page Submit
-    observeEvent(input$submit2, {
-
-        fData <- formData2()
-        if(debug) print(fData)
-        if(any(fData%in%c('', ' '))){
-            showModal(modalDialog(title = "Please fill all fields in the form", 
-                "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit."
-                , easyClose=TRUE, footer = tagList(modalButton("Cancel"))
-            ))
-        } else {
-             # Get ID...
-            cId <- fData[ ,'crystal_id']
-            if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
-                saveData(fData)
-                resetForm()
-            } else {
-                displayModalWhoUpdated(id=cId)
-            }
-        }
-    })
-
     # Change reasons based on decisions
     # Main Page
     observeEvent(input$decision,{
         possAns <- possRes[[input$decision]]
-    })
-
-    # NGL page
-    observeEvent(input$decision2,{
-        possAns2 <- possRes[[input$decision2]]
     })
 
     # Upon pressing Fit, Fit structure in window
@@ -539,9 +428,9 @@ server <- function(input, output, session) {
     # When input$Xtal2 (structure dropdown on NGL viewer page) is updated do things
     # Load structure and event to NGL stage!
     # Really need to sort this logic ball out...
-    observeEvent(input$Xtal2, {
+    observeEvent(input$Xtal, {
         # Retry everything to ensure that view loads after stage load...
-        choice = input$Xtal2
+        choice = input$Xtal
         # If pdb is not on pdb... Do things.
         if(debug) message(sprintf("pdb: %s", choice))
         filepath <- dbdat[choice,'Latest.PDB']
@@ -579,7 +468,7 @@ server <- function(input, output, session) {
     })
 
     # Go back to main Panel, do a refresh for good measure.
-    observeEvent(input$Back, {
+    observeEvent(input$clear, {
         resetForm()
     })
 
@@ -588,10 +477,6 @@ server <- function(input, output, session) {
         try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
         try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
         try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
-        #session$sendCustomMessage(type="setRepresentation", message=list(defaultRepresentation))
-        #session$sendCustomMessage(type="setColorScheme", message=list(defaultColorScheme))
-        #session$sendCustomMessage(type="fit", message=list())
-
     })
     
     # Add defaults
@@ -609,19 +494,7 @@ server <- function(input, output, session) {
         session$sendCustomMessage(type="setColorScheme", message=list(choice))
         updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=choice)
     })
-  
-    # Placeholder download button!
-    output$downloadBtn <- downloadHandler(
-        filename = function() { 
-            'Disintegrate.png'
-        },
-        content = function(file) {
-            file.copy(file, sprintf('%s',file))
-        }
-    )
 
-    # Generic Observers?   
-    # Default Coloumn Order... May add more...
     defOrder <- c(
         'Protein', 
         'Smiles',  
@@ -642,18 +515,8 @@ server <- function(input, output, session) {
         updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
         updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
         updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, "Xtal2", selected = input$Xtal2, choices = sort(rownames( inputData() )))
-        #updateSelectizeInput(session, "Xtal2", choices = c('Mpro-x0104', 'Mpro-x0161'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
-        updateSelectizeInput(session, 'reason2', choices = possRes[[input$decision2]])
     })
-
-    session$onRestored(function(){
-        updateTabsetPanel(session, "beep", selected = 'NGL Viewer')
-        updateTabsetPanel(session, "beep", selected = 'Main Table')
-        })
-
-
 } # Server
 
 #################################################################################
@@ -664,8 +527,5 @@ app <- shinyApp(ui = ui, server = server)
 cmd <- commandArgs(T)
 ip <- cmd[1]
 port <- cmd[2]
-# ip = '0.0.0.0'
-# port = 3838
-
 runApp(app, host=ip, port = as.numeric(port), launch.browser = FALSE)
 }
