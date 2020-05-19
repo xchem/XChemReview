@@ -35,8 +35,8 @@ library(devtools)
 if(local){
  gpath <- '.'
  responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
- dataDir <- file.path(sprintf('%s/%s', gpath, "Data"))
- devtools::install_github('tjgorrie/nglShiny')
+ source('./db_config.R')
+ #devtools::install_github('tjgorrie/nglShiny')
 }
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
@@ -51,7 +51,6 @@ library(caTools)
 library(DBI)
 
 # Who doesn't love unclosed loops.
-#source('./db_config.R')
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
 
@@ -193,6 +192,20 @@ ui <- navbarPage("Staging XChem", id='beep',
                 actionButton("fitButton", "Fit"),
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
+                hr(),
+                sliderInput("iso", "ISO level:",
+                  min = 0, max = 5,
+                  value = 1.5, step = 0.1),
+                hr(),
+                actionButton("updateView", "Update Clipping + Fogging"),
+                numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
+                sliderInput("fogging", "Fogging:",
+                  min = 0, max = 100,
+                  value = c(42,62)),
+                sliderInput("clipping", "Clipping:",
+                  min = 0, max = 100,
+                  value = c(0,100)),   
+                hr(),      
                 selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
                 selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
 			)
@@ -211,7 +224,6 @@ server <- function(input, output, session) {
     if(debug) message('Server Init')
 
     session$allowReconnect('force')
-
 	sessionDisconnect <- function() message('User Disconnected')
     session$onSessionEnded(sessionDisconnect)
 
@@ -287,7 +299,7 @@ server <- function(input, output, session) {
     # Outputs, invest in putting in postgres instead of slurping everything into memory
     # Otherwise extremely slow to shove this in the front end? and on session loading...
     # Can use it for
-    source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
+    if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
     crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
@@ -383,6 +395,10 @@ server <- function(input, output, session) {
         session$reload()
     })
   
+    observeEvent(input$updateView,{
+        session$sendCustomMessage(type="fit", message=list())
+    })
+
     resetForm <- function(){
         if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
@@ -421,6 +437,12 @@ server <- function(input, output, session) {
     # Upon pressing Fit, Fit structure in window
     observeEvent(input$fitButton, {
         session$sendCustomMessage(type="fit", message=list())
+    })
+
+    observeEvent(input$updateView,{
+        session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+            input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+        try(session$sendCustomMessage(type="twiddleISO", message=list(input$iso)), silent=T)
     })
 
     # Upon pressing Clear, Remove Everything
@@ -535,8 +557,13 @@ server <- function(input, output, session) {
 #################################################################################
 {
 app <- shinyApp(ui = ui, server = server)
+if(local){
+ip <- '0.0.0.0'
+port <- '3838'
+} else {
 cmd <- commandArgs(T)
 ip <- cmd[1]
 port <- cmd[2]
+}
 runApp(app, host=ip, port = as.numeric(port), launch.browser = FALSE)
 }
