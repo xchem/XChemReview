@@ -315,55 +315,61 @@ server <- function(input, output, session) {
     # Otherwise extremely slow to shove this in the front end? and on session loading...
     # Can use it for
     if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
-    crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
-    target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
-    compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
-    # Sort Responses...
-    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
-    dbDisconnect(con)
+    getData <- function(db, host_db, db_port, db_user, db_password){
+        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
+        crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
+        target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
+        compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
+        # Sort Responses...
+        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+        dbDisconnect(con)
 
-    comps <- compound_data[,2]
-    names(comps) <- as.character(compound_data[,1])
-    targs <- target_data[,2]
-    names(targs) <- as.character(target_data[,1])
+        comps <- compound_data[,2]
+        names(comps) <- as.character(compound_data[,1])
+        targs <- target_data[,2]
+        names(targs) <- as.character(target_data[,1])
 
-    # Collapse into DF
-    jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
-    jd$Smiles <- comps[as.character(jd$compound_id)]
-    jd$Protein <- targs[as.character(jd$target_id)]
+        # Collapse into DF
+        jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
+        jd$Smiles <- comps[as.character(jd$compound_id)]
+        jd$Protein <- targs[as.character(jd$target_id)]
 
-    dbdat <- jd
-    colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
-    gc()
+        dbdat <- jd
+        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+        gc()
     
-    # Main Table Output Handler
-    # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
-    dedupe <- duplicated(dbdat[,'Xtal']) # duplicated(dbdat[,1])
-    if(any(dedupe)) dbdat <- dbdat[!dedupe,]
-    #dbdat <- dbdat[,-1]
-    dbdat$Decision <- ''
-    dbdat$Reason <- ''
+        # Main Table Output Handler
+        # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
+        dedupe <- duplicated(dbdat[,'Xtal']) # duplicated(dbdat[,1])
+        if(any(dedupe)) dbdat <- dbdat[!dedupe,]
+        #dbdat <- dbdat[,-1]
+        dbdat$Decision <- ''
+        dbdat$Reason <- ''
 
-    # Get most Recent Response per xtal
-    rownames(dbdat) <- as.character(dbdat$Id)
-    if(nrow(response_data) > 0){
-        tofill <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-        rownames(tofill) <- as.character(tofill$crystal_id)
-        rninter <- intersect(rownames(tofill), rownames(dbdat))
-        dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 'decision_str'])
-        dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 'reason'])
-
-    }
-    rownames(dbdat) <- dbdat[,'Xtal']
-    # Sort Data 
-    dbdat <- do.call('rbind', 
+        # Get most Recent Response per xtal
+        rownames(dbdat) <- as.character(dbdat$Id)
+        if(nrow(response_data) > 0){
+            tofill <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+            rownames(tofill) <- as.character(tofill$crystal_id)
+            rninter <- intersect(rownames(tofill), rownames(dbdat))
+            dbdat[rninter, 'Decision'] <- unlist(tofill[rninter, 'decision_str'])
+            dbdat[rninter, 'Reason'] <- unlist(tofill[rninter, 'reason'])
+        }
+        rownames(dbdat) <- dbdat[,'Xtal']
+        # Sort Data 
+        dbdat <- do.call('rbind', 
         lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
             dbdat[ dbdat[ , 'Decision'] == dec , ]
         })
-    )
+        )
+        return(dbdat)
+    }
+
+    dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+                    db_user=db_user, db_password=db_password)
     if(debug) print('Data Loaded')
+
     inputData <- reactive({dbdat})
 
     if(debug) print('Data Reactivised')
@@ -407,7 +413,11 @@ server <- function(input, output, session) {
 
     observeEvent(input$ok, {
         if(debug) print('Reload Session')
-        session$reload()
+        #session$reload()
+        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+                        db_user=db_user, db_password=db_password)
+        inputData <- reactive({dbdat})
+        sessionTime <- epochTime()
     })
   
     observeEvent(input$updateView,{
@@ -417,7 +427,11 @@ server <- function(input, output, session) {
     resetForm <- function(){
         if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
-        session$reload()
+        #session$reload()
+        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+                        db_user=db_user, db_password=db_password)
+        inputData <- reactive({dbdat})
+        sessionTime <- epochTime()
     }
 
     # Upon Main Page Submit
