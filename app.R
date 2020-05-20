@@ -280,6 +280,21 @@ server <- function(input, output, session) {
                 ))
     }
 
+    defOrder <- c( 
+        'Smiles',  
+        'Decision',
+        'Reason',
+        'Resolution', 
+        'RFree', 
+        'lig_confidence', 
+        'RMSD_Angles', 
+        'RMSD_bonds',  
+        'Ramachandran.Outliers'#, 
+        #'CIF',
+        #'Latest.PDB',
+        #'Latest.MTZ'
+    )
+
     # Reactives
     # Form Handler
     fieldsAll <- c("name", 'Xtal', "decision", "reason")
@@ -325,7 +340,7 @@ server <- function(input, output, session) {
     
     # Main Table Output Handler
     # dbdat <- read.csv(paste(dataDir,'mock.csv', sep='/'), stringsAsFactors=F, row.names=1)
-    dedupe <- duplicated(dbdat[,'Xtal'])# duplicated(dbdat[,1])
+    dedupe <- duplicated(dbdat[,'Xtal']) # duplicated(dbdat[,1])
     if(any(dedupe)) dbdat <- dbdat[!dedupe,]
     #dbdat <- dbdat[,-1]
     dbdat$Decision <- ''
@@ -442,7 +457,6 @@ server <- function(input, output, session) {
     observeEvent(input$updateView,{
         session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
             input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
-        try(session$sendCustomMessage(type="twiddleISO", message=list(input$iso)), silent=T)
     })
 
     # Upon pressing Clear, Remove Everything
@@ -484,7 +498,7 @@ server <- function(input, output, session) {
                     event <- readBin(fname, what = 'raw', file.info(fname)$size)
                     event <- base64encode(event, size=NA, endian=.Platform$endian)
                     defaultShell <<- event
-                    session$sendCustomMessage(type="addEvent", message=list(event))
+                    session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso)))
                 }, silent=T)
                 if(inherits(tryAddEvent, 'try-error')){
                     defaultShell <<- ''
@@ -521,21 +535,6 @@ server <- function(input, output, session) {
         session$sendCustomMessage(type="setColorScheme", message=list(choice))
         updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=choice)
     })
-
-    defOrder <- c( 
-        'Smiles',  
-        'Decision',
-        'Reason',
-        'Resolution', 
-        'RFree', 
-        'lig_confidence', 
-        'RMSD_Angles', 
-        'RMSD_bonds',  
-        'Ramachandran.Outliers'#, 
-        #'CIF',
-        #'Latest.PDB',
-        #'Latest.MTZ'
-    )
 
     observe({
         updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
