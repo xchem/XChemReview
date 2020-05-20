@@ -223,13 +223,13 @@ ui <- navbarPage("XChem Review", id='beep',
 server <- function(input, output, session) {
 
     observe({
-        que <- parseQueryString(session$clientData$url_search)
+        query <- parseQueryString(session$clientData$url_search)
         if(!is.null(query[['fedid']])) updateTextInput(session, "name", value = query[['fedid']])
         if(!is.null(query[['iso']])) updateNumericInput(session, "iso", value = query[['iso']])
         if(!is.null(query[['clipDist']])) updateNumericInput(session, 'clipDist', value=query[['clipDist']])
         if(!is.null(query[['clipFar']] & !is.null(query[['clipNear']]))) updateNumericInput(session, 'clipping', value=c(query[['clipNear']], query[['clipFar']]))
         if(!is.null(query[['fogNear']] & !is.null(query[['fogFar']]))) updateNumericInput(session, 'fogging', value=c(query[['fogNear']], query[['fogFar']]))
-        })
+    })
 
     if(debug) message('Server Init')
 
