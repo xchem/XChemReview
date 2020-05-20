@@ -36,7 +36,7 @@ if(local){
  gpath <- '.'
  responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
  source('./db_config.R')
- #devtools::install_github('tjgorrie/nglShiny')
+ install.packages('~/Documents/GitFiles/nglshiny', repos=NULL, type='source')
 }
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
@@ -164,7 +164,7 @@ names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 }
 
 # UI Code
-ui <- navbarPage("Staging XChem", id='beep',
+ui <- navbarPage("XChem Review", id='beep',
 	# First Page
 	tabPanel('Main',
 		fluidRow(
@@ -197,7 +197,7 @@ ui <- navbarPage("Staging XChem", id='beep',
                   min = 0, max = 5,
                   value = 1.5, step = 0.1),
                 hr(),
-                actionButton("updateView", "Update Clipping + Fogging"),
+                actionButton("updateView", "Update Parameters"),
                 numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
                 sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
