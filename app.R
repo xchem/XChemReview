@@ -221,6 +221,16 @@ ui <- navbarPage("XChem Review", id='beep',
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
+
+    observe({
+        que <- parseQueryString(session$clientData$url_search)
+        if(!is.null(query[['fedid']])) updateTextInput(session, "name", value = query[['fedid']])
+        if(!is.null(query[['iso']])) updateNumericInput(session, "iso", value = query[['iso']])
+        if(!is.null(query[['clipDist']])) updateNumericInput(session, 'clipDist', value=query[['clipDist']])
+        if(!is.null(query[['clipFar']] & !is.null(query[['clipNear']]))) updateNumericInput(session, 'clipping', value=c(query[['clipNear']], query[['clipFar']]))
+        if(!is.null(query[['fogNear']] & !is.null(query[['fogFar']]))) updateNumericInput(session, 'fogging', value=c(query[['fogNear']], query[['fogFar']]))
+        })
+
     if(debug) message('Server Init')
 
     session$allowReconnect('force')
@@ -372,6 +382,13 @@ server <- function(input, output, session) {
 
     inputData <- reactive({dbdat})
 
+    observe({
+        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
+        updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
+        updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
+        updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
+    })
+
     if(debug) print('Data Reactivised')
     r1 <- reactive({
         if(debug) print('Subsetting Table')
@@ -388,6 +405,10 @@ server <- function(input, output, session) {
     output$nglShiny <- renderNglShiny(
         nglShiny(list(), 300, 300)
     )
+
+    observeEvent(input$iso, {
+        updateQueryString(sprintf('?iso=%s',input$iso), mode = "push")
+    })
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
@@ -413,11 +434,11 @@ server <- function(input, output, session) {
 
     observeEvent(input$ok, {
         if(debug) print('Reload Session')
-        #session$reload()
-        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-                        db_user=db_user, db_password=db_password)
-        inputData <- reactive({dbdat})
-        sessionTime <- epochTime()
+        session$reload()
+        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+        #                db_user=db_user, db_password=db_password)
+        #inputData <- reactive({dbdat})
+        #sessionTime <- epochTime()
     })
   
     observeEvent(input$updateView,{
@@ -427,11 +448,11 @@ server <- function(input, output, session) {
     resetForm <- function(){
         if(debug) print('Reset Form')
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
-        #session$reload()
-        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-                        db_user=db_user, db_password=db_password)
-        inputData <- reactive({dbdat})
-        sessionTime <- epochTime()
+        session$reload()
+        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+        #                db_user=db_user, db_password=db_password)
+        #inputData <- reactive({dbdat})
+        #sessionTime <- epochTime()
     }
 
     # Upon Main Page Submit
@@ -561,13 +582,6 @@ server <- function(input, output, session) {
         message(sprintf("colorScheme: %s", choice))
         session$sendCustomMessage(type="setColorScheme", message=list(choice))
         updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=choice)
-    })
-
-    observe({
-        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
-        updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
-        updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
-        updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
     })
 
     # Ticker
