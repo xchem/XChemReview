@@ -189,10 +189,10 @@ ui <- navbarPage("XChem Review", id='beep',
 			),
 			column(2,
                 textOutput('msg3'),
-                actionButton("fitButton", "Fit"),
+                #actionButton("fitButton", "Fit"),
                 actionButton("defaultViewButton", "Defaults"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
-                actionButton("updateView", "Update Parameters"),
+                #actionButton("updateView", "Update Parameters"),
                 hr(),
                 sliderInput("iso", "ISO level:",
                   min = 0, max = 5,
@@ -483,7 +483,12 @@ server <- function(input, output, session) {
             pdbstrings <- system(syscall, intern = TRUE)
             choice <- paste0(pdbstrings, collapse='\n')
             defaultPdbID <<- choice
-            session$sendCustomMessage(type="setPDB2", message=list(choice))
+            session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID, 
+                                                                as.character(input$clipDist), 
+                                                                as.character(input$clipping[1]),
+                                                                as.character(input$clipping[2]),
+                                                                as.character(input$fogging[1]),
+                                                                as.character(input$fogging[2])))
             }, silent = TRUE)
         if(inherits(tryAddPDB, 'try-error')){
             defaultPdbID <<- ''
@@ -516,8 +521,13 @@ server <- function(input, output, session) {
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
         try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell))}, silent = T)
+        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID, 
+            as.character(input$clipDist), 
+            as.character(input$clipping[1]),
+            as.character(input$clipping[2]),
+            as.character(input$fogging[1]),
+            as.character(input$fogging[2])))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell, as.character(input$iso))}, silent = T)
     })
     
     # Add defaults
