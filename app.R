@@ -488,7 +488,9 @@ server <- function(input, output, session) {
                                                                 as.character(input$clipping[1]),
                                                                 as.character(input$clipping[2]),
                                                                 as.character(input$fogging[1]),
-                                                                as.character(input$fogging[2])))
+                                                                as.character(input$fogging[2])
+                                                                )
+                                    )
             }, silent = TRUE)
         if(inherits(tryAddPDB, 'try-error')){
             defaultPdbID <<- ''
@@ -527,7 +529,8 @@ server <- function(input, output, session) {
             as.character(input$clipping[2]),
             as.character(input$fogging[1]),
             as.character(input$fogging[2])))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell, as.character(input$iso))}, silent = T)
+        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell, as.character(input$iso)))
+            }, silent = T)
     })
     
     # Add defaults
