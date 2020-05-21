@@ -521,30 +521,30 @@ server <- function(input, output, session) {
         fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
         # Event Map
-        tryAddEvent <- try({
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
-        }, silent=T)
+        #tryAddEvent <- try({
+        event <- readBin(fname, what = 'raw', file.info(fname)$size)
+        event <- base64encode(event, size=NA, endian=.Platform$endian)
+        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
+        #}, silent=T)
         fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-        if(debug) message(sprintf('%s: %s', '2fofc', fname))
+        #if(debug) message(sprintf('%s: %s', '2fofc', fname))
         tryAddEvent <- try({
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
-        }, silent=T)
+        event <- readBin(fname, what = 'raw', file.info(fname)$size)
+        event <- base64encode(event, size=NA, endian=.Platform$endian)
+        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
+        #}, silent=T)
         fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)
         if(debug) message(sprintf('%s: %s', 'fofc', fname))
-        tryAddEvent <- try({
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('lightgreen'), as.character('false')))
-        }, silent=T)
-        tryAddEvent <- try({
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('tomato'), as.character('true')))
-        }, silent=T)
+        #tryAddEvent <- try({
+        event <- readBin(fname, what = 'raw', file.info(fname)$size)
+        event <- base64encode(event, size=NA, endian=.Platform$endian)
+        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('lightgreen'), as.character('false')))
+        #}, silent=T)
+        #tryAddEvent <- try({
+        event <- readBin(fname, what = 'raw', file.info(fname)$size)
+        event <- base64encode(event, size=NA, endian=.Platform$endian)
+        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('tomato'), as.character('true')))
+        #}, silent=T)
     }
 
     # Really need to sort this logic ball out...
