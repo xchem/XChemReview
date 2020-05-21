@@ -190,7 +190,7 @@ ui <- navbarPage("XChem Review", id='beep',
 			column(2,
                 textOutput('msg3'),
                 #actionButton("fitButton", "Fit"),
-                actionButton("defaultViewButton", "Defaults"),
+                actionButton("defaultViewButton", "View/Update Parameters"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
                 #actionButton("updateView", "Update Parameters"),
                 hr(),
@@ -204,10 +204,10 @@ ui <- navbarPage("XChem Review", id='beep',
                   value = c(42,62)),
                 sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
-                  value = c(0,100)),   
-                hr(),      
-                selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
+                  value = c(0,100))#,   
+                #hr(),      
+                #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
+                #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
 			)
 		) # Fluid Row
 	), # Tab Panel
@@ -329,7 +329,7 @@ server <- function(input, output, session) {
     if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
     getData <- function(db, host_db, db_port, db_user, db_password){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4")
+        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
         crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
         target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
         compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
@@ -499,49 +499,71 @@ server <- function(input, output, session) {
         #updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=defaultColorScheme)
     })
   
-    # When input$Xtal2 (structure dropdown on NGL viewer page) is updated do things
     # Load structure and event to NGL stage!
+    uploadPDB <- function(filepath, input){
+        syscall <- sprintf('cat %s', filepath)
+        if(debug) message(syscall)
+        pdbstrings <- system(syscall, intern = TRUE)
+        choice <- paste0(pdbstrings, collapse='\n')
+        defaultPdbID <- choice
+        session$sendCustomMessage(
+            type="setPDB2", 
+            message=list(defaultPdbID, 
+                as.character(input$clipDist), 
+                as.character(input$clipping[1]),
+                as.character(input$clipping[2]),
+                as.character(input$fogging[1]),
+                as.character(input$fogging[2])
+            )
+        )
+        return(defaultPdbID)
+    }
+
+    uploadEMaps <- function(XtalRoot, input){
+        fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
+        if(debug) message(sprintf('%s: %s', 'eMap:', fname))
+        # Event Map
+        tryAddEvent <- try({
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
+        }, silent=T)
+        fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+        tryAddEvent <- try({
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
+        }, silent=T)
+        fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)
+        tryAddEvent <- try({
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('lightgreen'), as.character('false')))
+        }, silent=T)
+        tryAddEvent <- try({
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('tomato'), as.character('true')))
+        }, silent=T)
+    }
+
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
         # Retry everything to ensure that view loads after stage load...
         choice = input$Xtal
-        # If pdb is not on pdb... Do things.
-        if(debug) message(sprintf("pdb: %s", choice))
         filepath <- dbdat[choice,'Latest.PDB']
         XtalRoot <- try(getRootFP(filepath), silent=T)
-        #syscall <- sprintf('cat %s', dir(sprintf('%s/%s',dataDir, choice), pattern = 'pdb', full.names=T))
-        syscall <- sprintf('cat %s', filepath)
-        if(debug) message(syscall)
-        tryAddPDB <- try({
-            pdbstrings <- system(syscall, intern = TRUE)
-            choice <- paste0(pdbstrings, collapse='\n')
-            defaultPdbID <<- choice
-            session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID, 
-                                                                as.character(input$clipDist), 
-                                                                as.character(input$clipping[1]),
-                                                                as.character(input$clipping[2]),
-                                                                as.character(input$fogging[1]),
-                                                                as.character(input$fogging[2])
-                                                                )
-                                    )
-            }, silent = TRUE)
+        tryAddPDB <- try(uploadPDB(filepath=filepath, input=input), silent=T)
         if(inherits(tryAddPDB, 'try-error')){
-            defaultPdbID <<- ''
+            defaultPdbID <- ''
             session$sendCustomMessage(type="removeAllRepresentations", message=list())
         } else {
+            defaultPdbID <- tryAddPDB
             if(!inherits(XtalRoot, 'try-error')){
-                fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
-                #fname <- dir(sprintf('%s/%s',dataDir, choice), pattern = 'ccp4', full.names=T)
-                if(debug) message(sprintf('%s: %s', 'eMap:', fname))
-
-                tryAddEvent <- try({
-                    event <- readBin(fname, what = 'raw', file.info(fname)$size)
-                    event <- base64encode(event, size=NA, endian=.Platform$endian)
-                    defaultShell <<- event
-                    session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso)))
-                }, silent=T)
+                defaultShell <- XtalRoot
+                tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
                 if(inherits(tryAddEvent, 'try-error')){
-                    defaultShell <<- ''
+                    defaultShell <- ''
                     session$sendCustomMessage(type="removeAllRepresentations", message=list())
                 }
             }
@@ -556,14 +578,8 @@ server <- function(input, output, session) {
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
         try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent = T)
-        try({session$sendCustomMessage(type="setPDB2", message=list(defaultPdbID, 
-            as.character(input$clipDist), 
-            as.character(input$clipping[1]),
-            as.character(input$clipping[2]),
-            as.character(input$fogging[1]),
-            as.character(input$fogging[2])))}, silent = T)
-        try({session$sendCustomMessage(type="addEvent", message=list(defaultShell, as.character(input$iso)))
-            }, silent = T)
+        try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+        try(uploadEMaps(XtalRoot=defaultShell, input=input), silent = T)
     })
     
     # Add defaults
