@@ -2,7 +2,7 @@
 {
 rm(list=ls())
 debug = TRUE
-local = FALSE
+local = TRUE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -192,7 +192,7 @@ ui <- navbarPage("XChem Review", id='beep',
                 #actionButton("updateView", "Update Parameters"),
                 hr(),
                 checkboxInput('eventMap', 'Show Event Map', value = TRUE),
-                checkboxInput('2fofcMap', 'Show 2Fo-Fc Map', value = TRUE),
+                checkboxInput('twofofcMap', 'Show 2Fo-Fc Map', value = TRUE),
                 checkboxInput('fofcMap', 'Show Fo-Fc Map', value = TRUE),
 
                 sliderInput("iso", "ISO level (fofc is 2x):",
@@ -206,9 +206,9 @@ ui <- navbarPage("XChem Review", id='beep',
                 sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
                   value = c(0,100)),   
-                hr(),      
-                selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
+                hr()#,      
+                #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation, width=0),
+                #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme,width=0)
 			)
 		) # Fluid Row
 	), # Tab Panel
@@ -223,7 +223,7 @@ ui <- navbarPage("XChem Review", id='beep',
 #################################################################################
 server <- function(input, output, session) {
     defaultPdbID <- ""
-    defaultshell <- ""
+    defaultShell <- ""
     #observe({
     #    query <- parseQueryString(session$clientData$url_search)
     #    if(!is.null(query[['fedid']])) updateTextInput(session, "name", value = query[['fedid']])
@@ -529,7 +529,7 @@ server <- function(input, output, session) {
             event <- base64encode(event, size=NA, endian=.Platform$endian)
             session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
         }
-        if(input$2fofcMap){
+        if(input$twofofcMap){
             fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
             if(debug) message(sprintf('%s: %s', '2fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
