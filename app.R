@@ -155,9 +155,6 @@ possRes <- list('Release' = c('Everything is Wonderful'),
                     )
                 )
 
-defaultPdbID <- ""
-defaultshell <- ""
-
 possDec_int <- 1:4
 names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
@@ -221,6 +218,8 @@ ui <- navbarPage("XChem Review", id='beep',
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
+    defaultPdbID <- ""
+    defaultshell <- ""
     #observe({
     #    query <- parseQueryString(session$clientData$url_search)
     #    if(!is.null(query[['fedid']])) updateTextInput(session, "name", value = query[['fedid']])
@@ -297,7 +296,8 @@ server <- function(input, output, session) {
         'Decision',
         'Reason',
         'Resolution', 
-        'RFree', 
+        'RFree',
+        'Rwork', 
         'lig_confidence', 
         'RMSD_Angles', 
         'RMSD_bonds',  
@@ -329,7 +329,7 @@ server <- function(input, output, session) {
     if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
     getData <- function(db, host_db, db_port, db_user, db_password){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
+        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, r_cryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
         crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
         target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
         compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
@@ -348,7 +348,7 @@ server <- function(input, output, session) {
         jd$Protein <- targs[as.character(jd$target_id)]
 
         dbdat <- jd
-        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
         gc()
     
         # Main Table Output Handler
@@ -505,7 +505,6 @@ server <- function(input, output, session) {
         if(debug) message(syscall)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse='\n')
-        defaultPdbID <- choice
         session$sendCustomMessage(
             type="setPDB2", 
             message=list(defaultPdbID, 
@@ -516,7 +515,6 @@ server <- function(input, output, session) {
                 as.character(input$fogging[2])
             )
         )
-        return(defaultPdbID)
     }
 
     uploadEMaps <- function(XtalRoot, input){
@@ -558,7 +556,7 @@ server <- function(input, output, session) {
             defaultPdbID <- ''
             session$sendCustomMessage(type="removeAllRepresentations", message=list())
         } else {
-            defaultPdbID <- tryAddPDB
+            defaultPdbID <- filepath
             if(!inherits(XtalRoot, 'try-error')){
                 defaultShell <- XtalRoot
                 tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
