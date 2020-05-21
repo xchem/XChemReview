@@ -580,12 +580,27 @@ server <- function(input, output, session) {
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
         try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
-        message(defaultPdbID)
-        try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-        message(defaultShell)
-        try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+        choice = input$Xtal
+        filepath <- dbdat[choice,'Latest.PDB']
+        XtalRoot <- try(getRootFP(filepath), silent=T)
+        defaultPdbID <- filepath
+        defaultShell <- XtalRoot
+        tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+        if(inherits(tryAddPDB, 'try-error')){
+            defaultPdbID <- ''
+            defaultShell <- ''
+            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        } else {
+            if(!inherits(XtalRoot, 'try-error')){
+                tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+                if(inherits(tryAddEvent, 'try-error')){
+                    defaultShell <- ''
+                    session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                }
+            }
+        }
     })
-    
+   
     # Add defaults
     observeEvent(input$representationSelector, {
         choice = input$representationSelector;
