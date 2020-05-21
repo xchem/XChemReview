@@ -191,7 +191,11 @@ ui <- navbarPage("XChem Review", id='beep',
                 actionButton("clearRepresentationsButton", "Clear Representations"),
                 #actionButton("updateView", "Update Parameters"),
                 hr(),
-                sliderInput("iso", "ISO level:",
+                checkboxInput('eventMap', 'Show Event Map', value = TRUE),
+                checkboxInput('2fofcMap', 'Show 2Fo-Fc Map', value = TRUE),
+                checkboxInput('fofcMap', 'Show Fo-Fc Map', value = TRUE),
+
+                sliderInput("iso", "ISO level (fofc is 2x):",
                   min = 0, max = 5,
                   value = 1.5, step = 0.1),
                 hr(),
@@ -520,31 +524,28 @@ server <- function(input, output, session) {
     uploadEMaps <- function(XtalRoot, input){
         fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
-        # Event Map
-        #tryAddEvent <- try({
-        event <- readBin(fname, what = 'raw', file.info(fname)$size)
-        event <- base64encode(event, size=NA, endian=.Platform$endian)
-        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
-        #}, silent=T)
-        fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-        #if(debug) message(sprintf('%s: %s', '2fofc', fname))
-        #tryAddEvent <- try({
-        event <- readBin(fname, what = 'raw', file.info(fname)$size)
-        event <- base64encode(event, size=NA, endian=.Platform$endian)
-        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
-        #}, silent=T)
-        fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)
-        if(debug) message(sprintf('%s: %s', 'fofc', fname))
-        #tryAddEvent <- try({
-        event <- readBin(fname, what = 'raw', file.info(fname)$size)
-        event <- base64encode(event, size=NA, endian=.Platform$endian)
-        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('lightgreen'), as.character('false')))
-        #}, silent=T)
-        #tryAddEvent <- try({
-        event <- readBin(fname, what = 'raw', file.info(fname)$size)
-        event <- base64encode(event, size=NA, endian=.Platform$endian)
-        session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('tomato'), as.character('true')))
-        #}, silent=T)
+        if(input$eventMap){   
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
+        }
+        if(input$2fofcMap){
+            fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+            if(debug) message(sprintf('%s: %s', '2fofc', fname))
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
+        }
+        if(input$fofcMap){
+            fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)
+            if(debug) message(sprintf('%s: %s', 'fofc', fname))
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('lightgreen'), as.character('false')))
+            event <- readBin(fname, what = 'raw', file.info(fname)$size)
+            event <- base64encode(event, size=NA, endian=.Platform$endian)
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('tomato'), as.character('true')))
+        }
     }
 
     # Really need to sort this logic ball out...
@@ -553,15 +554,15 @@ server <- function(input, output, session) {
         choice = input$Xtal
         filepath <- dbdat[choice,'Latest.PDB']
         XtalRoot <- try(getRootFP(filepath), silent=T)
-        tryAddPDB <- try(uploadPDB(filepath=filepath, input=input), silent=T)
+        defaultPdbID <- filepath
+        defaultShell <- XtalRoot
+        tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
         if(inherits(tryAddPDB, 'try-error')){
             defaultPdbID <- ''
             defaultShell <- ''
             session$sendCustomMessage(type="removeAllRepresentations", message=list())
         } else {
-            defaultPdbID <- filepath
             if(!inherits(XtalRoot, 'try-error')){
-                defaultShell <- XtalRoot
                 tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
                 if(inherits(tryAddEvent, 'try-error')){
                     defaultShell <- ''
@@ -579,8 +580,10 @@ server <- function(input, output, session) {
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
         try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent=T)
-        try(uploadPDB(filepath=filepath, input=input), silent=T)
-        try(uploadEMaps(XtalRoot=XtalRoot, input=input), silent=T)
+        message(defaultPdbID)
+        try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+        message(defaultShell)
+        try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
     })
     
     # Add defaults
