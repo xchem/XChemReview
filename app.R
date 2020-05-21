@@ -2,7 +2,7 @@
 {
 rm(list=ls())
 debug = TRUE
-local = TRUE
+local = FALSE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
