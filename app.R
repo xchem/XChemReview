@@ -201,10 +201,10 @@ ui <- navbarPage("XChem Review", id='beep',
                   value = c(42,62)),
                 sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
-                  value = c(0,100))#,   
-                #hr(),      
-                #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
-                #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
+                  value = c(0,100)),   
+                hr(),      
+                selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation),
+                selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme)
 			)
 		) # Fluid Row
 	), # Tab Panel
