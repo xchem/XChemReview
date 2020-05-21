@@ -2,7 +2,7 @@
 {
 rm(list=ls())
 debug = TRUE
-local = FALSE
+local = TRUE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -528,7 +528,7 @@ server <- function(input, output, session) {
         #}, silent=T)
         fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
         #if(debug) message(sprintf('%s: %s', '2fofc', fname))
-        tryAddEvent <- try({
+        #tryAddEvent <- try({
         event <- readBin(fname, what = 'raw', file.info(fname)$size)
         event <- base64encode(event, size=NA, endian=.Platform$endian)
         session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
