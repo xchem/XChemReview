@@ -579,7 +579,7 @@ server <- function(input, output, session) {
 
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
-        try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
+        #try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
         choice = input$Xtal
         filepath <- dbdat[choice,'Latest.PDB']
         XtalRoot <- try(getRootFP(filepath), silent=T)
