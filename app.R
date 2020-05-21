@@ -579,7 +579,7 @@ server <- function(input, output, session) {
 
     # When pressed re-create original xtal ngl view...
     observeEvent(input$defaultViewButton, {
-        try({session$sendCustomMessage(type="removeAllRepresentations", message=list())}, silent=T)
+        try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
         message(defaultPdbID)
         try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
         message(defaultShell)
