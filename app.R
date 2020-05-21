@@ -507,7 +507,7 @@ server <- function(input, output, session) {
         choice <- paste0(pdbstrings, collapse='\n')
         session$sendCustomMessage(
             type="setPDB2", 
-            message=list(defaultPdbID, 
+            message=list(choice, 
                 as.character(input$clipDist), 
                 as.character(input$clipping[1]),
                 as.character(input$clipping[2]),
@@ -519,7 +519,7 @@ server <- function(input, output, session) {
 
     uploadEMaps <- function(XtalRoot, input){
         fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)
-        if(debug) message(sprintf('%s: %s', 'eMap:', fname))
+        if(debug) message(sprintf('%s: %s', 'event Map', fname))
         # Event Map
         tryAddEvent <- try({
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
@@ -527,12 +527,14 @@ server <- function(input, output, session) {
             session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false')))
         }, silent=T)
         fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+        if(debug) message(sprintf('%s: %s', '2fofc', fname))
         tryAddEvent <- try({
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
             session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false')))
         }, silent=T)
         fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)
+        if(debug) message(sprintf('%s: %s', 'fofc', fname))
         tryAddEvent <- try({
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
