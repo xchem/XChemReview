@@ -1,41 +1,21 @@
-# staging
-Shiny App to collect responses for XChem Experiments
+# XChemReview
+A shiny app to collect the responses from XChemExperiments
 
 ## Setup
 ### Requirements
-* Python3 environment with django, pandas, xchem-db and psycopg-binary installed
-* Relevant setting.py and setup_django.py files containing keys to xchem-db in the root of the directory
-* Docker installed and running :)
+* Podman/Docker (The scripts int this are setup to use podman but you can replace podman with docker)
+* Access to a database containing various information about xchem experiments.
+* In this example a kubernetes cluster...
 
 ### Installation
-Configure `recontain.sh` to use the python env you want and then run:
-```
-bash recontain.sh
-``` 
-Which should populate the data file with structures we want to stage, build and save the docker to the root of the directory and finally load the containered app. 
+If rebuilding the image configure the `kube.yaml`, `Dockerfile` and `rebuild_image.sh` correctly, specifying the repository you want to store you image into. Then run `rebuild_image.sh` to clean up images, rebuild and then redeploy.
 
-Alternatively you can do it step by step: 
-
-Populate the Data folder with the summary of crystals that are to be staged.
-```
-<venv>/bin/python3 getDatafd.py
-```
-
-Use docker to contain and load the shinyApp
-```
-docker build -t staging . 
-docker save 'staging' > staging.tar
-docker load --input staging.tar
-```
+If you have made changes to the `tjgorrie/nglshiny` or `app.R` run `restart_pod.sh` to restart the kubernetes pod.
 
 ## Running
-To Run the docker on a server simply run, configure ports accordingly in `app.R` and in `Dockerfile`
-```
-docker run -p 3838:3838 staging
-```
+While connected to the VPN you should be able to access xchemreview.diamond.ac.uk and use the website.
 
 ## Using staging
-Click on buttons to make things happen, it shouldn't crash!
+Click on buttons to make things happen, it shouldn't crash! If it does, email me.
 
-## Extracting Responses from container?
-To do...
+
