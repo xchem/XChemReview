@@ -46,7 +46,7 @@ install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL,
 library(shiny)
 library(DT)
 library(htmlwidgets)
-library(nglShiny)
+library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
 library(caTools)
 library(DBI)
 
