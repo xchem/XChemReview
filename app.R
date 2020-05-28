@@ -42,7 +42,7 @@ if(local){
 # Installing home-brewed version of nglShiny Package as we some source changes.
 #install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 
-
+install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
 library(shiny)
 library(DT)
 library(htmlwidgets)
