@@ -523,8 +523,8 @@ server <- function(input, output, session) {
 
     uploadEMaps <- function(XtalRoot, input){
         if(debug) print(dir(XtalRoot))
-        #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
-        fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
+        fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
+        #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
         if(input$eventMap){   
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
@@ -536,20 +536,20 @@ server <- function(input, output, session) {
             session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false'), as.character('ccp4')))
         }
         if(input$twofofcMap){
-            #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-            fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
+            fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+            #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
             if(debug) message(sprintf('%s: %s', '2fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false'), as.character('map')))
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false'), as.character('ccp4')))
         }
         if(input$fofcMap){
-            #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
-            fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
+            fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
+            #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
             if(debug) message(sprintf('%s: %s', 'fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('lightgreen'), as.character('false'), as.character('map')))
+            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('lightgreen'), as.character('false'), as.character('ccp4')))
             #event <- readBin(fname, what = 'raw', file.info(fname)$size)
             #event <- base64encode(event, size=NA, endian=.Platform$endian)
             session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('tomato'), as.character('true'), as.character('ccp4')))
