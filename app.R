@@ -558,13 +558,14 @@ server <- function(input, output, session) {
     findFiles <- function(fp){
         files <- dir(fp)
         eventmapStrings <- c('_event.ccp4', 'event_map.map')
-        2fofcStrings <- c('_2fofc.cpp4', '^2fofc.map')
+        fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
         fofcStrings <- c('_fofc.ccp4', '^fofc.map')
+
         # first look for .ccp4 files
         eventmapFile <- findFirstMatchingFile(eventmapStrings, fp=fp)
-        2fofcFile <- findFirstMatchingFile(2fofcStrings, fp=fp)
+        fofc2File <- findFirstMatchingFile(fofc2Strings, fp=fp)
         fofcFile <- findFirstMatchingFile(fofcStrings, fp=fp)
-        return(c(eventmapFile, 2fofcFile, fofcFile))
+        return(c(eventmapFile, fofc2File, fofcFile))
     }
 
     uploadEMaps <- function(XtalRoot, input){
