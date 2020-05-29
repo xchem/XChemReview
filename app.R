@@ -2,7 +2,7 @@
 {
 rm(list=ls())
 debug = TRUE
-local = FALSE
+local = TRUE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -32,23 +32,33 @@ responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses/'
 dataDir <- '/dls/science/users/mly94721/xchemreview/Data/'
 library(devtools)
 
-if(local){
- gpath <- '.'
- responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
- source('./db_config.R')
- install.packages('~/Documents/GitFiles/nglshiny', repos=NULL, type='source')
-}
+
 # Load Required packages:
 # Installing home-brewed version of nglShiny Package as we some source changes.
 #install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
 
-install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
+
 library(shiny)
 library(DT)
 library(htmlwidgets)
-library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
+
 library(caTools)
 library(DBI)
+
+if(local){
+ gpath <- '.'
+ responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
+ source('./db_config.R')
+ install.packages('~/nglshiny', repos=NULL, type='source')
+ install.packages('shinyalert')
+ library(shinyalert)
+ library(nglShiny)
+} else {
+    install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
+    library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
+    install.packages('shinyalert', lib="/dls/science/users/mly94721/R/")
+    library(shinyalert, lib.loc = "/dls/science/users/mly94721/R/")
+}
 
 # Who doesn't love unclosed loops.
 epochTime <- function() as.integer(Sys.time())
@@ -127,6 +137,61 @@ nglColorSchemes <-  c(
     'volume'
 )
 
+defOrder <- c( 
+    'Smiles',  
+    'Decision',
+    'Reason',
+    'Resolution', 
+    'RFree',
+    'Rwork', 
+    'lig_confidence', 
+    'RMSD_Angles', 
+    'RMSD_bonds',  
+    'Ramachandran.Outliers',
+    'Protein'
+)
+
+colss <- c( 
+    'Smiles',  
+    'Decision',
+    'Reason',
+    'Resolution', 
+    'RFree',
+    'Rwork', 
+    'lig_confidence', 
+    'RMSD_Angles', 
+    'RMSD_bonds',  
+    'Ramachandran.Outliers', 
+    'CIF',
+    'Latest.PDB',
+    'Latest.MTZ',
+    'Protein'
+)
+
+
+con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
+crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
+target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
+compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
+comps <- compound_data[,2]
+names(comps) <- as.character(compound_data[,1])
+targs <- target_data[,2]
+names(targs) <- as.character(target_data[,1])
+# Collapse into DF
+jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], crystal_data[,-1])
+jd$Smiles <- comps[as.character(jd$compound_id)]
+jd$Protein <- targs[as.character(jd$target_id)]
+colnames(jd) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+dbDisconnect(con)
+
+proteinList <- sort(unique(jd$Protein))
+xtalList <-  sort(unique(jd[,'Xtal']))
+
+rm(refinement_data, crystal_data, target_data, compound_data, jd, targs, comps)
+gc()
+
+
 defaultRepresentation <- "ball+stick"
 defaultColorScheme <- "chainIndex"
 
@@ -169,14 +234,14 @@ ui <- navbarPage("XChem Review", id='beep',
                 div(
                     id = "form",
                     textInput("name", "FedID", ""),
-                    selectizeInput('Xtal', 'Which Structure?', list(), multiple = FALSE),
-                    selectInput("decision", "Decision", possDec),
+                    selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
+                    selectInput("decision", "Decision", choices = possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    selectizeInput('protein', 'Select Specific Protein', list(), multiple=TRUE),
-                    selectizeInput('columns', 'Select Columns to View? (delete/add more values as needed)', list(), multiple = TRUE)
+                    selectInput('protein', 'Select Specific Protein', choices = proteinList, multiple=TRUE),
+                    selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
 			),
 			column(8,
@@ -202,15 +267,15 @@ ui <- navbarPage("XChem Review", id='beep',
                 numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
                 sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
-                  value = c(42,62)),
+                  value = c(50,62)),
                 sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
-                  value = c(0,100)),   
+                  value = c(42,100)),   
                 hr()#,      
                 #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation, width=0),
                 #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme,width=0)
 			)
-		) # Fluid Row
+		) # Fluid row
 	), # Tab Panel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
@@ -224,24 +289,10 @@ ui <- navbarPage("XChem Review", id='beep',
 server <- function(input, output, session) {
     defaultPdbID <- ""
     defaultShell <- ""
-    #observe({
-    #    query <- parseQueryString(session$clientData$url_search)
-    #    if(!is.null(query[['fedid']])) updateTextInput(session, "name", value = query[['fedid']])
-    #    if(!is.null(query[['iso']])) updateNumericInput(session, "iso", value = query[['iso']])
-    #    if(!is.null(query[['clipDist']])) updateNumericInput(session, 'clipDist', value=query[['clipDist']])
-    #    if(!is.null(query[['clipFar']] & !is.null(query[['clipNear']]))) updateNumericInput(session, 'clipping', value=c(query[['clipNear']], query[['clipFar']]))
-    #    if(!is.null(query[['fogNear']] & !is.null(query[['fogFar']]))) updateNumericInput(session, 'fogging', value=c(query[['fogNear']], query[['fogFar']]))
-    #})
-    #observeEvent(input$iso, {
-    #    updateQueryString(sprintf('?iso=%s',input$iso), mode = "push")
-    #})
-
     if(debug) message('Server Init')
-
     session$allowReconnect('force')
 	sessionDisconnect <- function() message('User Disconnected')
     session$onSessionEnded(sessionDisconnect)
-
     sessionTime <- epochTime()
     options <- list(pdbID="")
 
@@ -295,24 +346,9 @@ server <- function(input, output, session) {
                 ))
     }
 
-    defOrder <- c( 
-        'Smiles',  
-        'Decision',
-        'Reason',
-        'Resolution', 
-        'RFree',
-        'Rwork', 
-        'lig_confidence', 
-        'RMSD_Angles', 
-        'RMSD_bonds',  
-        'Ramachandran.Outliers'#, 
-        #'CIF',
-        #'Latest.PDB',
-        #'Latest.MTZ'
-    )
-
-    # Reactives
+    # Reactives?
     # Form Handler
+
     fieldsAll <- c("name", 'Xtal', "decision", "reason")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
@@ -331,6 +367,7 @@ server <- function(input, output, session) {
     # Otherwise extremely slow to shove this in the front end? and on session loading...
     # Can use it for
     if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
+
     getData <- function(db, host_db, db_port, db_user, db_password){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
         refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
@@ -388,16 +425,19 @@ server <- function(input, output, session) {
 
     inputData <- reactive({dbdat})
 
-    observe({
-        updateSelectizeInput(session, 'columns', selected = defOrder, choices = colnames(inputData()))
-        updateSelectizeInput(session, 'protein', choices = sort(unique(inputData()$Protein)))
-        updateSelectizeInput(session, "Xtal", selected = input$Xtal, choices = sort(rownames( inputData() )))
+    # NGL Viewer
+    output$nglShiny <- renderNglShiny(
+        nglShiny(list(), 300, 300)
+    )
+
+    observeEvent(input$decision,{
+        if(debug) message('Updating Decision')
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
     })
 
     if(debug) print('Data Reactivised')
     r1 <- reactive({
-        if(debug) print('Subsetting Table')
+        if(debug) print('Subsetting Table') # Based on input$protein and input$columns?
         # Subset data
         if(is.null(input$protein) & is.null(input$columns)) inputData()
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[inputData()$Protein %in% input$protein, ]
@@ -406,11 +446,6 @@ server <- function(input, output, session) {
     })
   
     output$table <- DT::renderDataTable({r1()}, selection = 'single')
-    
-    # NGL Viewer
-    output$nglShiny <- renderNglShiny(
-        nglShiny(list(), 300, 300)
-    )
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
@@ -533,7 +568,15 @@ server <- function(input, output, session) {
             # filepath as event blob (base64string)
             # desired iso level
 
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('orange'), as.character('false'), as.character('ccp4')))
+            session$sendCustomMessage(type="addEvent", 
+                message=list(
+                    event, 
+                    as.character(input$iso), 
+                    as.character('orange'), 
+                    as.character('false'), 
+                    as.character('ccp4')
+                )
+            )
         }
         if(input$twofofcMap){
             fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
@@ -541,7 +584,15 @@ server <- function(input, output, session) {
             if(debug) message(sprintf('%s: %s', '2fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(input$iso), as.character('blue'), as.character('false'), as.character('ccp4')))
+            session$sendCustomMessage(type="addEvent", 
+                message=list(
+                    event, 
+                    as.character(input$iso), 
+                    as.character('blue'), 
+                    as.character('false'), 
+                    as.character('ccp4')
+                )
+            )
         }
         if(input$fofcMap){
             fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
@@ -549,10 +600,24 @@ server <- function(input, output, session) {
             if(debug) message(sprintf('%s: %s', 'fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('lightgreen'), as.character('false'), as.character('ccp4')))
-            #event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            #event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", message=list(event, as.character(2*input$iso), as.character('tomato'), as.character('true'), as.character('ccp4')))
+            session$sendCustomMessage(type="addEvent", 
+                message=list(
+                    event, 
+                    as.character(2*input$iso), 
+                    as.character('lightgreen'), 
+                    as.character('false'), 
+                    as.character('ccp4')
+                )
+            )
+            session$sendCustomMessage(type="addEvent", 
+                message=list(
+                    event, 
+                    as.character(2*input$iso), 
+                    as.character('tomato'), 
+                    as.character('true'), 
+                    as.character('ccp4')
+                )
+            )
         }
     }
 
