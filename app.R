@@ -2,7 +2,7 @@
 {
 rm(list=ls())
 debug = TRUE
-local = TRUE
+local = FALSE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -31,13 +31,6 @@ gpath <- '/srv/shiny-server/'
 responsesDir <- '/dls/science/users/mly94721/xchemreview/Responses/' 
 dataDir <- '/dls/science/users/mly94721/xchemreview/Data/'
 library(devtools)
-
-
-# Load Required packages:
-# Installing home-brewed version of nglShiny Package as we some source changes.
-#install.packages(sprintf('%s/%s', gpath, 'nglShiny'), type='source', repos=NULL)
-
-
 library(shiny)
 library(DT)
 library(htmlwidgets)
@@ -50,14 +43,10 @@ if(local){
  responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
  source('./db_config.R')
  install.packages('~/nglshiny', repos=NULL, type='source')
- install.packages('shinyalert')
- library(shinyalert)
  library(nglShiny)
 } else {
     install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
     library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
-    install.packages('shinyalert', lib="/dls/science/users/mly94721/R/")
-    library(shinyalert, lib.loc = "/dls/science/users/mly94721/R/")
 }
 
 # Who doesn't love unclosed loops.
