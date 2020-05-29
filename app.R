@@ -545,10 +545,34 @@ server <- function(input, output, session) {
         )
     }
 
+    getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
+
+    findFirstMatchingFile <- function(x, fp){
+        results <- lapply(x, function(y, fp){
+            dir(fp, pattern=y)
+        }, fp=fp)
+        first <- which(sapply(results, length)>0)[1] # Take First one...
+        results[[first]][1]
+    }
+
+    findFiles <- function(fp){
+        files <- dir(fp)
+        eventmapStrings <- c('_event.ccp4', 'event_map.map')
+        2fofcStrings <- c('_2fofc.cpp4', '^2fofc.map')
+        fofcStrings <- c('_fofc.ccp4', '^fofc.map')
+        # first look for .ccp4 files
+        eventmapFile <- findFirstMatchingFile(eventmapStrings, fp=fp)
+        2fofcFile <- findFirstMatchingFile(2fofcStrings, fp=fp)
+        fofcFile <- findFirstMatchingFile(fofcStrings, fp=fp)
+        return(c(eventmapFile, 2fofcFile, fofcFile))
+    }
+
     uploadEMaps <- function(XtalRoot, input){
         if(debug) print(dir(XtalRoot))
-        fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
+        theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+        #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
         #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
+        fname <- theFiles[1]
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
         if(input$eventMap){   
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
@@ -563,13 +587,15 @@ server <- function(input, output, session) {
                     as.character(input$iso), 
                     as.character('orange'), 
                     as.character('false'), 
-                    as.character('ccp4')
+                    as.character(getExt(fname))
                 )
             )
         }
+
         if(input$twofofcMap){
-            fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+            #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
             #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
+            fname <- theFiles[2]
             if(debug) message(sprintf('%s: %s', '2fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
@@ -579,13 +605,14 @@ server <- function(input, output, session) {
                     as.character(input$iso), 
                     as.character('blue'), 
                     as.character('false'), 
-                    as.character('ccp4')
+                    as.character(getExt(fname))
                 )
             )
         }
         if(input$fofcMap){
-            fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
+            #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
+            fname <- theFiles[3]
             if(debug) message(sprintf('%s: %s', 'fofc', fname))
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
@@ -595,7 +622,7 @@ server <- function(input, output, session) {
                     as.character(2*input$iso), 
                     as.character('lightgreen'), 
                     as.character('false'), 
-                    as.character('ccp4')
+                    as.character(getExt(fname))
                 )
             )
             session$sendCustomMessage(type="addEvent", 
@@ -604,7 +631,7 @@ server <- function(input, output, session) {
                     as.character(2*input$iso), 
                     as.character('tomato'), 
                     as.character('true'), 
-                    as.character('ccp4')
+                    as.character(getExt(fname))
                 )
             )
         }
