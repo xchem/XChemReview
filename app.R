@@ -549,7 +549,7 @@ server <- function(input, output, session) {
 
     findFirstMatchingFile <- function(x, fp){
         results <- lapply(x, function(y, fp){
-            dir(fp, pattern=y)
+            dir(fp, pattern=y, full.names=T)
         }, fp=fp)
         first <- which(sapply(results, length)>0)[1] # Take First one...
         results[[first]][1]
