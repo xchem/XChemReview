@@ -554,8 +554,14 @@ server <- function(input, output, session) {
         results <- lapply(x, function(y, fp){
             dir(fp, pattern=y, full.names=T)
         }, fp=fp)
-        first <- which(sapply(results, length)>0)[1] # Take First one...
-        output <- results[[first]][1]
+        filesFound <- sapply(results, length)>0
+        if(any(filesFound)){
+            # If any files are found, take the first one, otherwise return NA...
+            first <- which(sapply(results, length)>0)[1] # Take First one...
+            output <- results[[first]][1]
+        } else {
+            output <- NA
+        }
         return(output)
     }
 
