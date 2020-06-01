@@ -311,11 +311,16 @@ server <- function(input, output, session) {
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
         response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
         dbDisconnect(con)
-        mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-        rownames(mostrecent) <- as.character(mostrecent$crystal_id)
-        t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
-        output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
+        if(nrow(response_data) > 0){
+            mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+            rownames(mostrecent) <- as.character(mostrecent$crystal_id)
+            t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
+            output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
+        } else {
+            output <- TRUE
+        }
         return(output)
+
     }
 
     displayModalWhoUpdated <- function(id){
