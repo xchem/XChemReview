@@ -557,7 +557,7 @@ server <- function(input, output, session) {
         } else {
             output <- NA
         }
-        return(NA)
+        return(output)
     }
 
     findFiles <- function(fp){
