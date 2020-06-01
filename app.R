@@ -1,6 +1,5 @@
 # App Refactor
 {
-rm(list=ls())
 debug = TRUE
 local = FALSE
 message <- function (..., domain = NULL, appendLF = TRUE) {
@@ -34,7 +33,6 @@ library(devtools)
 library(shiny)
 library(DT)
 library(htmlwidgets)
-
 library(caTools)
 library(DBI)
 
@@ -229,7 +227,7 @@ ui <- navbarPage("XChem Review", id='beep',
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    selectInput('protein', 'Select Specific Protein', choices = proteinList, multiple=TRUE),
+                    selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
                     selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
 			),
@@ -551,12 +549,18 @@ server <- function(input, output, session) {
         results <- lapply(x, function(y, fp){
             dir(fp, pattern=y, full.names=T)
         }, fp=fp)
-        first <- which(sapply(results, length)>0)[1] # Take First one...
-        results[[first]][1]
+        filesFound <- sapply(results, length)>0
+        if(any(filesFound)){
+            # If any files are found, take the first one, otherwise return NA...
+            first <- which(sapply(results, length)>0)[1] # Take First one...
+            output <- results[[first]][1]
+        } else {
+            output <- NA
+        }
+        return(NA)
     }
 
     findFiles <- function(fp){
-        files <- dir(fp)
         eventmapStrings <- c('_event.ccp4', 'event_map.map')
         fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
         fofcStrings <- c('_fofc.ccp4', '^fofc.map')
