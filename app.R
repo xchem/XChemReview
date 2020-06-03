@@ -176,6 +176,16 @@ colnames(jd) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resol
 dbDisconnect(con)
 
 proteinList <- sort(unique(jd$Protein))
+emailListperStructure <- lapply(proteinList, function(x){
+    # Default Users
+    c('<tyler.gorrie-stone@diamond.ac.uk>')
+}
+names(emailListperStructure) <- proteinList
+
+# specific Users:
+# Emails need to be added to list 
+#emailListperStructure[['Mpro']] <- c(emailListperStructure[['Mpro']], '<>')
+
 xtalList <-  sort(unique(jd[,'Xtal']))
 
 rm(refinement_data, crystal_data, target_data, compound_data, jd, targs, comps)
@@ -297,11 +307,21 @@ server <- function(input, output, session) {
     }
 
     sendEmail <- function(structure, user, decision, reason){
+        protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = '<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = emailListperStructure[[protein]],#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
             subject = sprintf('%s has been labelled as %s', structure, decision),
-            msg = sprintf('%s has been labelled as %s by %s for the following reason(s): %s', structure, decision, user, reason),
+            msg = sprintf(
+'%s has been labelled as %s by %s for the following reason(s): %s.
+
+If you want to review this change please go to xchemreview.diamond.ac.uk while 
+connect to the VPN or NX and under protein search for the specific protein: %s and find the structure.
+
+If you wish to change the outcome, please feel free to submit another form.
+
+This email was automatically sent by The XChem Review app',
+            structure, decision, user, reason, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
