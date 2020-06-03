@@ -227,13 +227,15 @@ ui <- navbarPage("XChem Review", id='beep',
                 div(
                     id = "form",
                     textInput("name", "FedID", ""),
-                    selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
+                    uiOutput('xtalselect'),
+                    #selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
                     selectInput("decision", "Decision", choices = possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
+                    uiOutput('proteinselect'),
+                    #selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
                     selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
 			),
@@ -311,12 +313,14 @@ server <- function(input, output, session) {
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
 
+Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
+
 If you disagree with this decision please discuss and change the outcome by submitting a new response.
 
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, protein),
+            structure, decision, user, reason, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -497,10 +501,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$ok, {
         if(debug) print('Reload Session')
         session$reload()
-        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-        #                db_user=db_user, db_password=db_password)
-        #inputData <- reactive({dbdat})
-        #sessionTime <- epochTime()
     })
   
     observeEvent(input$updateView,{
@@ -756,6 +756,25 @@ If you believe you have been sent this message in error, please email tyler.gorr
     	autoInvalidate()
     	cat("")
   	})
+
+    output$proteinselect <- renderUI({
+        query <- parseQueryString(session$clientData$url_search)
+        if (!is.null(query[['protein']])) {
+            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=query[['protein']], multiple=TRUE) 
+        } else {
+            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=list(), multiple=TRUE)                  
+        }
+    })
+
+    output$xtalselect <- renderUI({
+        query <- parseQueryString(session$clientData$url_search)
+        if(!is.null(query[['xtal']])){
+            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = query[['xtal']], multiple = FALSE)
+        } else {
+            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE)
+        }
+    })
+
 } # Server
 
 #################################################################################
