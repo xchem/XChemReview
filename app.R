@@ -227,13 +227,14 @@ ui <- navbarPage("XChem Review", id='beep',
                 div(
                     id = "form",
                     textInput("name", "FedID", ""),
-                    selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
+                    uiOutput('xtalselect'),
+                    #selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
                     selectInput("decision", "Decision", choices = possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    uiOutput('inVar'),
+                    uiOutput('proteinselect'),
                     #selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
                     selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
@@ -759,7 +760,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
   	})
 
     #observe({
-    output$inVar <- renderUI({
+    output$proteinselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if (!is.null(query[['protein']])) {
             selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=query[['protein']], multiple=TRUE) 
@@ -768,10 +769,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
-    observe({
+    output$xtalselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if(!is.null(query[['xtal']])){
-            updateSelectizeInput(session, "Xtal", selected = query[['xtal']], choices = sort(rownames( inputData() )))
+            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = query[['xtal']], multiple = FALSE)
+        } else {
+            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE)
         }
     })
 
