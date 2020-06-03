@@ -756,6 +756,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
     	autoInvalidate()
     	cat("")
   	})
+
+    observe({
+      query <- parseQueryString(session$clientData$url_search)
+      if (!is.null(query[['protein']])) {
+        updateTextInput(session, "protein", value = query[['protein']])
+      }
+    })
 } # Server
 
 #################################################################################
