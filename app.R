@@ -320,7 +320,7 @@ If you disagree with this decision please discuss and change the outcome by subm
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, protein, structure, protein),
+            structure, decision, user, reason, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -501,10 +501,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$ok, {
         if(debug) print('Reload Session')
         session$reload()
-        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-        #                db_user=db_user, db_password=db_password)
-        #inputData <- reactive({dbdat})
-        #sessionTime <- epochTime()
     })
   
     observeEvent(input$updateView,{
@@ -761,7 +757,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     	cat("")
   	})
 
-    #observe({
     output$proteinselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if (!is.null(query[['protein']])) {
