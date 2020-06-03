@@ -233,7 +233,8 @@ ui <- navbarPage("XChem Review", id='beep',
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
+                    uiOutput('inVar'),
+                    #selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
                     selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
 			),
@@ -757,12 +758,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
     	cat("")
   	})
 
-    observe({
-      query <- parseQueryString(session$clientData$url_search)
-      if (!is.null(query[['protein']])) {
-        updateTextInput(session, "protein", value = query[['protein']])
-      }
+    #observe({
+    output$inVar <- renderUI({
+        query <- parseQueryString(session$clientData$url_search)
+        if (!is.null(query[['protein']])) {
+            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=query[['protein']], multiple=TRUE) 
+        } else {
+            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=list(), multiple=TRUE)                  
+        }
     })
+    
 } # Server
 
 #################################################################################
