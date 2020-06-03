@@ -767,7 +767,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=list(), multiple=TRUE)                  
         }
     })
-    
+
+    observe({
+        query <- parseQueryString(session$clientData$url_search)
+        if(!is.null(query[['xtal']])){
+            updateSelectizeInput(session, "Xtal", selected = query[['xtal']], choices = sort(rownames( inputData() )))
+        }
+    })
+
 } # Server
 
 #################################################################################
