@@ -311,7 +311,7 @@ server <- function(input, output, session) {
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
 
-If you disagree with this decision please discuss and change the outcome by submitted a new response.
+If you disagree with this decision please discuss and change the outcome by submitting a new response.
 
 This email was automatically sent by The XChem Review app
 
