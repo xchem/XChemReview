@@ -315,12 +315,14 @@ server <- function(input, output, session) {
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
 
-If you want to review this change please go to xchemreview.diamond.ac.uk while 
-connect to the VPN or NX and under protein search for the specific protein: %s and find the structure.
+If you wish to review this change please go to xchemreview.diamond.ac.uk while 
+connected to the diamond VPN or via NX.
 
-If you wish to change the outcome, please feel free to submit another form.
+If you disagree with this decision please discuss and change the outcome by submitted a new response.
 
-This email was automatically sent by The XChem Review app',
+This email was automatically sent by The XChem Review app
+
+If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
             structure, decision, user, reason, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
