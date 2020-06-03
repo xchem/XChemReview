@@ -179,7 +179,7 @@ proteinList <- sort(unique(jd$Protein))
 emailListperStructure <- lapply(proteinList, function(x){
     # Default Users
     c('<tyler.gorrie-stone@diamond.ac.uk>')
-}
+})
 names(emailListperStructure) <- proteinList
 
 # specific Users:
