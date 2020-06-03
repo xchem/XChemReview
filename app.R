@@ -251,14 +251,20 @@ ui <- navbarPage("XChem Review", id='beep',
                 actionButton("clearRepresentationsButton", "Clear Representations"),
                 #actionButton("updateView", "Update Parameters"),
                 hr(),
-                checkboxInput('eventMap', 'Show Event Map', value = TRUE),
-                checkboxInput('twofofcMap', 'Show 2Fo-Fc Map', value = TRUE),
-                checkboxInput('fofcMap', 'Show Fo-Fc Map', value = TRUE),
-
-                sliderInput("iso", "ISO level (fofc is 2x):",
-                  min = 0, max = 5,
+                #checkboxInput('eventMap', 'Show Event Map', value = TRUE),
+                #checkboxInput('twofofcMap', 'Show 2Fo-Fc Map', value = TRUE),
+                #checkboxInput('fofcMap', 'Show Fo-Fc Map', value = TRUE),
+                sliderInput("isoEvent", "Event ISO",
+                  min = 0, max = 10,
+                  value = 1, step = 0.1),
+                sliderInput("iso2fofc", "2fofc ISO",
+                  min = 0, max = 10,
                   value = 1.5, step = 0.1),
+                sliderInput("isofofc", "fofc ISO",
+                  min = 0, max = 10,
+                  value = 3, step = 0.1),
                 hr(),
+                numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100),
                 numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
                 sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
@@ -628,10 +634,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             session$sendCustomMessage(type="addEvent", 
                 message=list(
                     event, 
-                    as.character(input$iso), 
+                    as.character(input$isoEvent), 
                     as.character('orange'), 
                     as.character('false'), 
-                    as.character(getExt(fname))
+                    as.character(getExt(fname)),
+                    as.character(input$boxsize)
                 )
             )
         }
@@ -646,10 +653,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             session$sendCustomMessage(type="addEvent", 
                 message=list(
                     event, 
-                    as.character(input$iso), 
+                    as.character(input$iso2fofc), 
                     as.character('blue'), 
                     as.character('false'), 
-                    as.character(getExt(fname))
+                    as.character(getExt(fname)),
+                    as.character(input$boxsize)
                 )
             )
         }
@@ -663,19 +671,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
             session$sendCustomMessage(type="addEvent", 
                 message=list(
                     event, 
-                    as.character(2*input$iso), 
+                    as.character(input$isofofc), 
                     as.character('lightgreen'), 
                     as.character('false'), 
-                    as.character(getExt(fname))
+                    as.character(getExt(fname)),
+                    as.character(input$boxsize)
                 )
             )
             session$sendCustomMessage(type="addEvent", 
                 message=list(
                     event, 
-                    as.character(2*input$iso), 
+                    as.character(input$isofofc), 
                     as.character('tomato'), 
                     as.character('true'), 
-                    as.character(getExt(fname))
+                    as.character(getExt(fname)),
+                    as.character(input$boxsize)
                 )
             )
         }
