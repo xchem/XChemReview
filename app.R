@@ -313,12 +313,14 @@ server <- function(input, output, session) {
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
 
+Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
+
 If you disagree with this decision please discuss and change the outcome by submitting a new response.
 
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, protein),
+            structure, decision, user, reason, protein, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
