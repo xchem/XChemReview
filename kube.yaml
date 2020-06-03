@@ -51,6 +51,8 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: xchemstructurereview-ingress
+  annotations:
+    nginx.org/websocket-services: "xchemstructurereview-service"
 spec:
   tls:
   - hosts:
