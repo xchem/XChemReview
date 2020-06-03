@@ -176,15 +176,8 @@ colnames(jd) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resol
 dbDisconnect(con)
 
 proteinList <- sort(unique(jd$Protein))
-emailListperStructure <- lapply(proteinList, function(x){
-    # Default Users
-    c('<tyler.gorrie-stone@diamond.ac.uk>')
-})
-names(emailListperStructure) <- proteinList
-
-# specific Users:
-# Emails need to be added to list 
-#emailListperStructure[['Mpro']] <- c(emailListperStructure[['Mpro']], '<>')
+# Source mailing list from file...
+source('/dls/science/users/mly94721/xchemreview/mailing_list.R')
 
 xtalList <-  sort(unique(jd[,'Xtal']))
 
@@ -310,7 +303,7 @@ server <- function(input, output, session) {
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = emailListperStructure[[protein]],#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
