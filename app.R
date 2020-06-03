@@ -45,6 +45,9 @@ if(local){
 } else {
     install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
     library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
+    # Move this to docker...
+    install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
+    library(sendmailR, lib.loc = "/dls/science/users/mly94721/R/")
 }
 
 # Who doesn't love unclosed loops.
@@ -293,8 +296,21 @@ server <- function(input, output, session) {
         data
     }
 
+    sendEmail <- function(structure, user, decision, reason){
+        sendmailR::sendmail(
+            from = '<XChemStructureReview@diamond.ac.uk>',
+            to = '<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            subject = sprintf('%s has been labelled as %s', structure, decision),
+            msg = sprintf('%s has been labelled as %s by %s for the following reason(s): %s', structure, decision, user, reason),
+            control = list(
+                smtpServer = 'exchsmtp.stfc.ac.uk',
+                smtpPort = 25
+                )
+        )
+    }
+
     # Save Responses.
-    saveData <- function(data) {
+    saveData <- function(data, xtaln) {
         fileName <- sprintf("%s_%s.csv",
                             humanTime(),
                             digest::digest(data))
@@ -304,6 +320,7 @@ server <- function(input, output, session) {
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
+            sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'])
         }
     }
 
@@ -345,6 +362,7 @@ server <- function(input, output, session) {
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
+        xtalname <- data[2]
         data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
@@ -352,7 +370,7 @@ server <- function(input, output, session) {
         data[,3] <- as.integer(data[,3])
         data[,6] <- as.integer(data[,6])
         colnames(data) <- c('crystal_id', 'fedid', 'decision_int', 'decision_str', 'reason', 'time_submitted')
-        data
+        list(data=data, xtalname=xtalname)
     })
 
     # Outputs, invest in putting in postgres instead of slurping everything into memory
@@ -487,7 +505,8 @@ server <- function(input, output, session) {
     # Upon Main Page Submit
     observeEvent(input$submit, {
 
-        fData <- formData()
+        fData <- formData()[[1]]
+        xtaln <- formData()[[2]]
         if(debug) print(fData)
         if(any(fData%in%c('', ' '))) {
             showModal(modalDialog(title = "Please fill all fields in the form", 
@@ -498,7 +517,7 @@ server <- function(input, output, session) {
              # Get ID...
             cId <- fData[ ,'crystal_id']
             if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
-                saveData(fData)
+                saveData(fData, xtaln)
                 resetForm()
             } else {
                 displayModalWhoUpdated(id=cId)
