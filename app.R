@@ -176,6 +176,9 @@ colnames(jd) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resol
 dbDisconnect(con)
 
 proteinList <- sort(unique(jd$Protein))
+# Source mailing list from file...
+source('/dls/science/users/mly94721/xchemreview/mailing_list.R')
+
 xtalList <-  sort(unique(jd[,'Xtal']))
 
 rm(refinement_data, crystal_data, target_data, compound_data, jd, targs, comps)
@@ -297,11 +300,23 @@ server <- function(input, output, session) {
     }
 
     sendEmail <- function(structure, user, decision, reason){
+        protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = '<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
             subject = sprintf('%s has been labelled as %s', structure, decision),
-            msg = sprintf('%s has been labelled as %s by %s for the following reason(s): %s', structure, decision, user, reason),
+            msg = sprintf(
+'%s has been labelled as %s by %s for the following reason(s): %s.
+
+If you wish to review this change please go to xchemreview.diamond.ac.uk while 
+connected to the diamond VPN or via NX.
+
+If you disagree with this decision please discuss and change the outcome by submitting a new response.
+
+This email was automatically sent by The XChem Review app
+
+If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
+            structure, decision, user, reason, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
