@@ -1,7 +1,7 @@
 # App Refactor
 {
 debug = TRUE
-local = FALSE
+local = TRUE
 message <- function (..., domain = NULL, appendLF = TRUE) {
     args <- list(...)
     cond <- if (length(args) == 1L && inherits(args[[1L]], "condition")) {
@@ -178,7 +178,7 @@ dbDisconnect(con)
 
 proteinList <- sort(unique(jd$Protein))
 # Source mailing list from file...
-source('/dls/science/users/mly94721/xchemreview/mailing_list.R')
+if(!local) source('/dls/science/users/mly94721/xchemreview/mailing_list.R')
 
 xtalList <-  sort(unique(jd[,'Xtal']))
 
@@ -615,7 +615,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fname <- theFiles[1]
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
 
-        if(input$isoEvent){   
+        if(input$eventMap){   
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
             # addEvent requires:
@@ -634,7 +634,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             )
         }
 
-        if(input$iso2fofc){
+        if(input$twofofcMap){
             #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
             #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
             fname <- theFiles[2]
@@ -652,7 +652,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             )
         }
-        if(input$isofofc){
+        if(input$fofcMap){
             #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
             fname <- theFiles[3]
@@ -777,7 +777,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$isoEventSlider <- renderUI({
-        if(isoEvent){
+        if(input$eventMap){
         sliderInput("isoEvent", "",
                     min = 0, max = 10,
                     value = 1, step = 0.1)
@@ -787,7 +787,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$iso2fofcSlider <- renderUI({
-        if(iso2fofc){
+        if(input$twofofcMap){
         sliderInput("iso2fofc", "",
                     min = 0, max = 10,
                     value = 1.5, step = 0.1)
@@ -797,7 +797,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$isofofcSlider <- renderUI({
-        if(isofofc){
+        if(input$fofcMap){
             sliderInput("isofofc", "",
                 min = 0, max = 10,
                 value = 3, step = 0.1)
