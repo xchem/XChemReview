@@ -241,7 +241,7 @@ ui <- navbarPage("XChem Review", id='beep',
 			),
 			column(8,
 				nglShinyOutput('nglShiny', height = '600px'),
-                div(style="height: 200px;", br()),
+                div(style="height: 50px;", br()),
             	DT::dataTableOutput("table")
 			),
 			column(2,
