@@ -241,8 +241,7 @@ ui <- navbarPage("XChem Review", id='beep',
 			),
 			column(8,
 				nglShinyOutput('nglShiny', height = '600px'),
-                br(),
-                br(),
+                div(style="height: 50px;", br()),
             	DT::dataTableOutput("table")
 			),
 			column(2,
@@ -258,22 +257,22 @@ ui <- navbarPage("XChem Review", id='beep',
                 div(style="height: 27px;",
                 sliderInput("isoEvent", "Event ISO",
                   min = 0, max = 10,
-                  value = 1, step = 0.1)),
+                  value = 1, step = 0.1)), br(),
                 div(style="height: 27px;",sliderInput("iso2fofc", "2fofc ISO",
                   min = 0, max = 10,
-                  value = 1.5, step = 0.1)),
+                  value = 1.5, step = 0.1)),br(),
                 div(style="height: 27px;",sliderInput("isofofc", "fofc ISO",
                   min = 0, max = 10,
-                  value = 3, step = 0.1)),
+                  value = 3, step = 0.1)),br(),
                 hr(),
                 numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100),
                 numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
                 div(style="height: 27px;",sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
-                  value = c(50,62))),
+                  value = c(50,62))),br(),
                 div(style="height: 27px;",sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
-                  value = c(42,100))),   
+                  value = c(42,100))),br(),   
                 hr()#,      
                 #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation, width=0),
                 #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme,width=0)
@@ -482,7 +481,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
-    output$table <- DT::renderDataTable({r1()}, selection = 'single')
+    output$table <- DT::renderDataTable({r1()}, options= list(pageLength=20),selection = 'single')
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
