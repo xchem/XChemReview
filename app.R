@@ -173,6 +173,7 @@ jd <- cbind(refinement_data[match(crystal_data[,1], refinement_data[,2]), ], cry
 jd$Smiles <- comps[as.character(jd$compound_id)]
 jd$Protein <- targs[as.character(jd$target_id)]
 colnames(jd) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
 dbDisconnect(con)
 
 proteinList <- sort(unique(jd$Protein))
@@ -191,31 +192,17 @@ defaultColorScheme <- "chainIndex"
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
 possAns <- possAns2 <- c('Select Decision')
 
-possRes <- list('Release' = c('Everything is Wonderful'),
-                'Release (notify)' = c(
-                    'Alternate binding conformation',
-                    'Incomplete Density',
-                    'Weak Density',
-                    'Low Resolution',
-                    'Poor Data quality'
-                    ),
-                'More Work' = c('Cannot View Density',
-                    'Repeat Experiment',
-                    'Check Geometry',
-                    'Check Conformation',
-                    'Check Refinement'
-                    ),
-                'Reject' = c(
-                    'Density too weak',
-                    'Insubstantial Evidence',
-                    'Bad coordination',
-                    'Incomplete Density'
-                    )
-                )
+possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
+                    function(x){
+                        unique(unlist(strsplit(x, '; ')))
+                        })
 
+possRes[['Release']] <- c(possRes[['Release']], 'Everything is Wonderful')
+possRes[['Release (notify)']] <- c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality')
+possRes[['More Work']] <- c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement')
+possRes[['Reject']] <- c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density')
 possDec_int <- 1:4
 names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
-
 }
 
 # UI Code
@@ -224,23 +211,23 @@ ui <- navbarPage("XChem Review", id='beep',
 	tabPanel('Main',
 		fluidRow(
 			column(2,
+                uiOutput('proteinselect'),
                 div(
                     id = "form",
                     textInput("name", "FedID", ""),
                     uiOutput('xtalselect'),
                     #selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE),
                     selectInput("decision", "Decision", choices = possDec),
-                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
+                    selectizeInput("reason", "Reason(s)", list(), multiple=TRUE, options(create=TRUE)),
                     textOutput('msg'),
                     actionButton("submit", "Submit", class = "btn-primary"),
                     actionButton('clear', 'Clear', class = 'btn-primary'),
-                    uiOutput('proteinselect'),
                     #selectInput('protein', 'Select Specific Protein', choices = proteinList, selected= uiOutput("inVar"), multiple=TRUE),
                     selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                 )
 			),
 			column(8,
-				nglShinyOutput('nglShiny', height = '600px'),
+				fixedPanel(nglShinyOutput('nglShiny', height = '400px')),
                 div(style="height: 50px;", br()),
             	DT::dataTableOutput("table")
 			),
@@ -250,29 +237,31 @@ ui <- navbarPage("XChem Review", id='beep',
                 actionButton("defaultViewButton", "View/Update Parameters"),
                 actionButton("clearRepresentationsButton", "Clear Representations"),
                 #actionButton("updateView", "Update Parameters"),
-                hr(),
-                #checkboxInput('eventMap', 'Show Event Map', value = TRUE),
-                #checkboxInput('twofofcMap', 'Show 2Fo-Fc Map', value = TRUE),
-                #checkboxInput('fofcMap', 'Show Fo-Fc Map', value = TRUE),
-                
-                sliderInput("isoEvent", "Event ISO",
-                  min = 0, max = 10,
-                  value = 1, step = 0.1),
-                sliderInput("iso2fofc", "2fofc ISO",
-                  min = 0, max = 10,
-                  value = 1.5, step = 0.1),
-                sliderInput("isofofc", "fofc ISO",
-                  min = 0, max = 10,
-                  value = 3, step = 0.1),
+                hr(),          
+                checkboxInput('eventMap', 'Event map', value = TRUE),
+                uiOutput('isoEventSlider'), 
+                #sliderInput("isoEvent", "Event ISO",
+                #    min = 0, max = 10,
+                #    value = 1, step = 0.1),
+                checkboxInput('twofofcMap', '2fofc map', value = TRUE),
+                uiOutput('iso2fofcSlider'),
+                #sliderInput("iso2fofc", "2fofc ISO",
+                #    min = 0, max = 10,
+                #    value = 1.5, step = 0.1),
+                checkboxInput('fofcMap', 'fofc Map', value = TRUE),
+                uiOutput('isofofcSlider'),
+                #sliderInput("isofofc", "fofc ISO",
+                #    min = 0, max = 10,
+                #    value = 3, step = 0.1),
                 hr(),
                 numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100),
                 numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
                 sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
-                  value = c(50,62)),
+                  value = c(45,58)),
                 sliderInput("clipping", "Clipping:",
                   min = 0, max = 100,
-                  value = c(42,100)),  
+                  value = c(47,100)),  
                 hr()#,      
                 #selectInput("representationSelector", "", nglRepresentations, selected=defaultRepresentation, width=0),
                 #selectInput("colorSchemeSelector", "", nglColorSchemes, selected=defaultColorScheme,width=0)
@@ -625,8 +614,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
         fname <- theFiles[1]
         if(debug) message(sprintf('%s: %s', 'event Map', fname))
-        forcelogical = TRUE
-        if(forcelogical){   
+
+        if(input$isoEvent){   
             event <- readBin(fname, what = 'raw', file.info(fname)$size)
             event <- base64encode(event, size=NA, endian=.Platform$endian)
             # addEvent requires:
@@ -645,7 +634,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             )
         }
 
-        if(forcelogical){
+        if(input$iso2fofc){
             #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
             #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
             fname <- theFiles[2]
@@ -663,7 +652,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             )
         }
-        if(forcelogical){
+        if(input$isofofc){
             #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
             fname <- theFiles[3]
@@ -786,6 +775,36 @@ If you believe you have been sent this message in error, please email tyler.gorr
             selectizeInput('Xtal', 'Which Structure?', choices = xtalList, multiple = FALSE)
         }
     })
+
+    output$isoEventSlider <- renderUI({
+        if(isoEvent){
+        sliderInput("isoEvent", "",
+                    min = 0, max = 10,
+                    value = 1, step = 0.1)
+        } else {
+            NULL
+        }
+    }
+
+    output$iso2fofcSlider <- renderUI({
+        if(iso2fofc){
+        sliderInput("iso2fofc", "",
+                    min = 0, max = 10,
+                    value = 1.5, step = 0.1)
+        } else {
+            NULL
+        }
+    }
+
+    output$isofofcSlider <- renderUI({
+        if(isofofc){
+            sliderInput("isofofc", "",
+                min = 0, max = 10,
+                value = 3, step = 0.1)
+        } else {
+            NULL
+        }
+    }
 
 } # Server
 
