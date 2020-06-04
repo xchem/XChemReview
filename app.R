@@ -255,7 +255,7 @@ ui <- navbarPage("XChem Review", id='beep',
                 #    value = 3, step = 0.1),
                 hr(),
                 numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100),
-                numericInput("clipDist", "Clipping Distance", value=10, min = 0, max = 100),
+                numericInput("clipDist", "Clipping Distance", value=5, min = 0, max = 100),
                 sliderInput("fogging", "Fogging:",
                   min = 0, max = 100,
                   value = c(45,58)),
@@ -784,7 +784,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             NULL
         }
-    }
+    })
 
     output$iso2fofcSlider <- renderUI({
         if(iso2fofc){
@@ -794,7 +794,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             NULL
         }
-    }
+    })
 
     output$isofofcSlider <- renderUI({
         if(isofofc){
@@ -804,7 +804,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             NULL
         }
-    }
+    })
 
 } # Server
 
