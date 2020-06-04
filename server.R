@@ -173,6 +173,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     db_user=db_user, db_password=db_password)
     if(debug) print('Data Loaded')
 
+    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+    dbDisconnect(con)
+
+    possRes <- tapply(  X = response_data$reason, 
+                        INDEX = response_data$decision_str,
+                        function(x){
+                            unique(unlist(strsplit(x, '; ')))
+                        })
+
+    possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
+    possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
+    possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
+    possRes[['Reject']] <- unique(c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density'))
+    possDec_int <- 1:4
+    names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
+
+
     inputData <- reactive({dbdat})
 
     # NGL Viewer
