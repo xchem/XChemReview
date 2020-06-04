@@ -131,4 +131,4 @@ possRes[['More Work']] <- c(possRes[['More Work']], 'Cannot View Density', 'Repe
 possRes[['Reject']] <- c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density')
 possDec_int <- 1:4
 names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
-}
+

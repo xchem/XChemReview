@@ -1,6 +1,6 @@
 # App Refactor
 debug = TRUE
-local = TRUE # Binding for testing on a local machine bodes no use other than me...
+local = FALSE # Binding for testing on a local machine bodes no use other than me...
 
 # Set Path: May need to add something later for files on /dls
 
