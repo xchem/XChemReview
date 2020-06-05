@@ -305,20 +305,25 @@ If you believe you have been sent this message in error, please email tyler.gorr
   
     # Load structure and event to NGL stage!
     uploadPDB <- function(filepath, input){
-        syscall <- sprintf('cat %s', filepath)
-        if(debug) message(syscall)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse='\n')
-        session$sendCustomMessage(
-            type="setPDB2", 
-            message=list(choice, 
-                as.character(input$clipDist), 
-                as.character(input$clipping[1]),
-                as.character(input$clipping[2]),
-                as.character(input$fogging[1]),
-                as.character(input$fogging[2])
+        withProgress(message = 'Uploading PDB', style='notification', detail = 'Finding File', value = 0, {
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) message(syscall)
+            incProgress(.25, detail = 'Reading File')
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            incProgress(.25, detail = 'Sending File to stage')
+            session$sendCustomMessage(
+                type="setPDB2", 
+                message=list(choice, 
+                    as.character(input$clipDist), 
+                    as.character(input$clipping[1]),
+                    as.character(input$clipping[2]),
+                    as.character(input$fogging[1]),
+                    as.character(input$fogging[2])
+                )
             )
-        )
+            setProgress(1)
+        })
     }
 
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
@@ -351,102 +356,112 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadEMaps <- function(XtalRoot, input){
-        if(debug) print(dir(XtalRoot))
-        theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
-        #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
-        #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
-        fname <- theFiles[1]
-        if(debug) message(sprintf('%s: %s', 'event Map', fname))
+        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
+            if(debug) print(dir(XtalRoot))
+            theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+            incProgress(.1, details='Load Event Map')
+            #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
+            #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
+            fname <- theFiles[1]
+            if(debug) message(sprintf('%s: %s', 'event Map', fname))
 
-        if(input$eventMap){   
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            # addEvent requires:
-            # filepath as event blob (base64string)
-            # desired iso level
+            if(input$eventMap){   
+                event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                event <- base64encode(event, size=NA, endian=.Platform$endian)
+                # addEvent requires:
+                # filepath as event blob (base64string)
+                # desired iso level
 
-            session$sendCustomMessage(type="addEvent", 
-                message=list(
-                    event, 
-                    as.character(input$isoEvent), 
-                    as.character('orange'), 
-                    as.character('false'), 
-                    as.character(getExt(fname)),
-                    as.character(input$boxsize)
+                session$sendCustomMessage(type="addEvent", 
+                    message=list(
+                        event, 
+                        as.character(input$isoEvent), 
+                        as.character('orange'), 
+                        as.character('false'), 
+                        as.character(getExt(fname)),
+                        as.character(input$boxsize)
+                    )
                 )
-            )
-        }
-
-        if(input$twofofcMap){
-            #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-            #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
-            fname <- theFiles[2]
-            if(debug) message(sprintf('%s: %s', '2fofc', fname))
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", 
-                message=list(
-                    event, 
-                    as.character(input$iso2fofc), 
-                    as.character('blue'), 
-                    as.character('false'), 
-                    as.character(getExt(fname)),
-                    as.character(input$boxsize)
+            }
+            incProgress(.3, details='Load 2fofc Map')
+            if(input$twofofcMap){
+                #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
+                #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
+                fname <- theFiles[2]
+                if(debug) message(sprintf('%s: %s', '2fofc', fname))
+                event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                event <- base64encode(event, size=NA, endian=.Platform$endian)
+                session$sendCustomMessage(type="addEvent", 
+                    message=list(
+                        event, 
+                        as.character(input$iso2fofc), 
+                        as.character('blue'), 
+                        as.character('false'), 
+                        as.character(getExt(fname)),
+                        as.character(input$boxsize)
+                    )
                 )
-            )
-        }
-        if(input$fofcMap){
-            #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
-            #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
-            fname <- theFiles[3]
-            if(debug) message(sprintf('%s: %s', 'fofc', fname))
-            event <- readBin(fname, what = 'raw', file.info(fname)$size)
-            event <- base64encode(event, size=NA, endian=.Platform$endian)
-            session$sendCustomMessage(type="addEvent", 
-                message=list(
-                    event, 
-                    as.character(input$isofofc), 
-                    as.character('lightgreen'), 
-                    as.character('false'), 
-                    as.character(getExt(fname)),
-                    as.character(input$boxsize)
+            }
+            incProgress(.3, details='Load fofc Map')
+            if(input$fofcMap){
+                #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
+                #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
+                fname <- theFiles[3]
+                if(debug) message(sprintf('%s: %s', 'fofc', fname))
+                event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                event <- base64encode(event, size=NA, endian=.Platform$endian)
+                session$sendCustomMessage(type="addEvent", 
+                    message=list(
+                        event, 
+                        as.character(input$isofofc), 
+                        as.character('lightgreen'), 
+                        as.character('false'), 
+                        as.character(getExt(fname)),
+                        as.character(input$boxsize)
+                    )
                 )
-            )
-            session$sendCustomMessage(type="addEvent", 
-                message=list(
-                    event, 
-                    as.character(input$isofofc), 
-                    as.character('tomato'), 
-                    as.character('true'), 
-                    as.character(getExt(fname)),
-                    as.character(input$boxsize)
+                session$sendCustomMessage(type="addEvent", 
+                    message=list(
+                        event, 
+                        as.character(input$isofofc), 
+                        as.character('tomato'), 
+                        as.character('true'), 
+                        as.character(getExt(fname)),
+                        as.character(input$boxsize)
+                    )
                 )
-            )
-        }
+            }
+            setProgress(1)
+        })
     }
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
-        # Retry everything to ensure that view loads after stage load...
-        choice = input$Xtal
-        filepath <- dbdat[choice,'Latest.PDB']
-        XtalRoot <- try(getRootFP(filepath), silent=T)
-        defaultPdbID <- filepath
-        defaultShell <- XtalRoot
-        tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-        if(inherits(tryAddPDB, 'try-error')){
-            defaultPdbID <- ''
-            defaultShell <- ''
-            session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        } else {
-            if(!inherits(XtalRoot, 'try-error')){
-                tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
-                if(inherits(tryAddEvent, 'try-error')){
-                    defaultShell <- ''
-                    session$sendCustomMessage(type="removeAllRepresentations", message=list())
+        withProgress(message = 'Loading Crystal', style='notification', value=.1,{
+            # Retry everything to ensure that view loads after stage load...
+            choice = input$Xtal
+            filepath <- dbdat[choice,'Latest.PDB']
+            XtalRoot <- try(getRootFP(filepath), silent=T)
+            defaultPdbID <- filepath
+            defaultShell <- XtalRoot
+            tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+            incProgress(.5, detail = 'Attempting to load maps')
+            if(inherits(tryAddPDB, 'try-error')){
+                defaultPdbID <- ''
+                defaultShell <- ''
+                session$sendCustomMessage(type="removeAllRepresentations", message=list())
+            } else {
+                if(!inherits(XtalRoot, 'try-error')){
+                    tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+                    if(inherits(tryAddEvent, 'try-error')){
+                        defaultShell <- ''
+                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                    }
                 }
             }
-        }
+            setProgress(1)
+        })
+
     })
 
     # Go back to main Panel, do a refresh for good measure.
