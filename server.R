@@ -449,8 +449,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             output$spiderPlot <- renderImage({
                 list(src = tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1),
                 contentType = 'image/png',
-                width=400,
-                height=400)
+                width=200,
+                height=200)
             }, deleteFile=FALSE)
 
             tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
