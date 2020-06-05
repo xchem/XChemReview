@@ -323,7 +323,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             )
 #            setProgress(1)
-        })
+#        })
     }
 
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
@@ -460,7 +460,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }
 #            setProgress(1)
-        })
+#        })
 
     })
 
