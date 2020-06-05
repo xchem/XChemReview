@@ -305,13 +305,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
   
     # Load structure and event to NGL stage!
     uploadPDB <- function(filepath, input){
-        withProgress(message = 'Uploading PDB', style='notification', detail = 'Finding File', value = 0, {
+#        withProgress(message = 'Uploading PDB', style='notification', detail = 'Finding File', value = 0, {
             syscall <- sprintf('cat %s', filepath)
             if(debug) message(syscall)
-            incProgress(.25, detail = 'Reading File')
+#            incProgress(.25, detail = 'Reading File')
             pdbstrings <- system(syscall, intern = TRUE)
             choice <- paste0(pdbstrings, collapse='\n')
-            incProgress(.25, detail = 'Sending File to stage')
+#            incProgress(.25, detail = 'Sending File to stage')
             session$sendCustomMessage(
                 type="setPDB2", 
                 message=list(choice, 
@@ -322,7 +322,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     as.character(input$fogging[2])
                 )
             )
-            setProgress(1)
+#            setProgress(1)
         })
     }
 
@@ -356,10 +356,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadEMaps <- function(XtalRoot, input){
-        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
+#        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             if(debug) print(dir(XtalRoot))
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
-            incProgress(.1, details='Load Event Map')
+#            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
             fname <- theFiles[1]
@@ -383,7 +383,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            incProgress(.3, details='Load 2fofc Map')
+#            incProgress(.3, details='Load 2fofc Map')
             if(input$twofofcMap){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
@@ -402,7 +402,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            incProgress(.3, details='Load fofc Map')
+#            incProgress(.3, details='Load fofc Map')
             if(input$fofcMap){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
@@ -431,13 +431,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            setProgress(1)
-        })
+#            setProgress(1)
+#        })
     }
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
-        withProgress(message = 'Loading Crystal', style='notification', value=.1,{
+#        withProgress(message = 'Loading Crystal', style='notification', value=.1,{
             # Retry everything to ensure that view loads after stage load...
             choice = input$Xtal
             filepath <- dbdat[choice,'Latest.PDB']
@@ -445,7 +445,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             defaultPdbID <- filepath
             defaultShell <- XtalRoot
             tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-            incProgress(.5, detail = 'Attempting to load maps')
+#            incProgress(.5, detail = 'Attempting to load maps')
             if(inherits(tryAddPDB, 'try-error')){
                 defaultPdbID <- ''
                 defaultShell <- ''
@@ -459,7 +459,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     }
                 }
             }
-            setProgress(1)
+#            setProgress(1)
         })
 
     })
