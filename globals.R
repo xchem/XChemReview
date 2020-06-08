@@ -120,10 +120,14 @@ defaultColorScheme <- "chainIndex"
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
 possAns <- possAns2 <- c('Select Decision')
 
+if(nrow(response_data) < 1){
+    possRes <- list()
+} else {
 possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
                     function(x){
                         unique(unlist(strsplit(x, '; ')))
                         })
+}
 
 possRes[['Release']] <- c(possRes[['Release']], 'Everything is Wonderful')
 possRes[['Release (notify)']] <- c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality')
