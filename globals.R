@@ -120,14 +120,10 @@ defaultColorScheme <- "chainIndex"
 possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
 possAns <- possAns2 <- c('Select Decision')
 
-if(length(unique(response_data$reason)) < 2) {
-    possRes <- list() # Crude force and won't populate custom responses until this has been met...
-} else {
-    possRes <- as.list(tapply(X=response_data$reason, INDEX=response_data$decision_str,
+possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
                     function(x){
                         unique(unlist(strsplit(x, '; ')))
-                        }))
-}
+                    })
 
 possRes[['Release']] <- c(possRes[['Release']], 'Everything is Wonderful')
 possRes[['Release (notify)']] <- c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality')
