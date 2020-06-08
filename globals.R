@@ -123,10 +123,10 @@ possAns <- possAns2 <- c('Select Decision')
 if(length(unique(response_data$reason)) < 2) {
     possRes <- list() # Crude force and won't populate custom responses until this has been met...
 } else {
-possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
+    possRes <- as.list(tapply(X=response_data$reason, INDEX=response_data$decision_str,
                     function(x){
                         unique(unlist(strsplit(x, '; ')))
-                        })
+                        }))
 }
 
 possRes[['Release']] <- c(possRes[['Release']], 'Everything is Wonderful')

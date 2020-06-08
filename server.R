@@ -177,14 +177,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
     dbDisconnect(con)
 
-    if(length(unique(response_data$reason)) < 2) {
+#    if(length(unique(response_data$reason)) < 2) {
         possRes <- list() # Crude force and won't populate custom responses until this has been met...
-    } else {
-        possRes <- as.list(tapply(X=response_data$reason, INDEX=response_data$decision_str,
-                        function(x){
-                            unique(unlist(strsplit(x, '; ')))
-                        }))
-    }
+ #   } else {
+ #       possRes <- as.list(tapply(X=response_data$reason, INDEX=response_data$decision_str,
+ #                       function(x){
+ #                           unique(unlist(strsplit(x, '; ')))
+ #                       }))
+#    }
     possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
     possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
     possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
