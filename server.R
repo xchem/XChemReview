@@ -103,7 +103,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
         xtalname <- data[2]
-        data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- c(dbdat[data[2], 'xId'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
         data[,1] <- as.integer(data[,1])
@@ -151,7 +151,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         dbdat$Reason <- ''
 
         # Get most Recent Response per xtal
-        rownames(dbdat) <- as.character(dbdat$Id)
+        rownames(dbdat) <- as.character(dbdat$xId)
         if(nrow(response_data) > 0){
             tofill <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
             rownames(tofill) <- as.character(tofill$crystal_id)
@@ -227,13 +227,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Connect to DB and get most recent time...        
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
         selrow <- rownames(rdat) 
-        cId <- dbdat[selrow, 'Id']        
+        xId <- dbdat[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
-        if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
-            displayModalWhoUpdated(id=cId)
+            displayModalWhoUpdated(id=xId)
         }
     })
 
@@ -269,12 +269,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             ))
         } else {
              # Get ID...
-            cId <- fData[ ,'crystal_id']
-            if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+            xId <- fData[ ,'crystal_id']
+            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
                 saveData(fData, xtaln)
                 resetForm()
             } else {
-                displayModalWhoUpdated(id=cId)
+                displayModalWhoUpdated(id=xId)
             }
         }
 
@@ -445,12 +445,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
             defaultPdbID <- filepath
             defaultShell <- XtalRoot
 
-            print(tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1))
+            spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
             output$spiderPlot <- renderImage({
-                list(src = tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1),
-                contentType = 'image/png',
-                width=200,
-                height=200)
+                if(length(spfile) == 1){
+                    list(src = spfile,
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
+                } else { 
+                    NULL
+                }
             }, deleteFile=FALSE)
 
             tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
