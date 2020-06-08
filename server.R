@@ -241,7 +241,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
   
     observeEvent(input$updateView,{
-        session$sendCustomMessage(type="fit", message=list())
+        session$sendCustomMessage(type="updateParams", message=list())
     })
 
     resetForm <- function(){
@@ -451,7 +451,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     width=200,
                     height=200)
                 } else { 
-                    NULL
+                    list(src = '',
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
                 }
             }, deleteFile=FALSE)
 
@@ -551,7 +554,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$isoEventSlider <- renderUI({
         if(input$eventMap){
-        sliderInput("isoEvent", "",
+            sliderInput("isoEvent", "",
                     min = 0, max = 10,
                     value = 1, step = 0.1)
         } else {
@@ -561,7 +564,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$iso2fofcSlider <- renderUI({
         if(input$twofofcMap){
-        sliderInput("iso2fofc", "",
+            sliderInput("iso2fofc", "",
                     min = 0, max = 10,
                     value = 1.5, step = 0.1)
         } else {
@@ -579,6 +582,37 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
+    controlPanel = TRUE
+    output$controlRow <- renderUI({
+        if(TRUE){
+            fluidRow(
+                    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
+                    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                    )
+        } else {
+            NULL
+        }
+    })
+
+    output$controlFog <- renderUI({
+        if(controlPanel){
+            sliderInput("fogging", "Fogging:", min = 0, max = 100, value = c(45,58))
+        } else {
+            NULL
+        }
+    })
+
+
+    output$controlClip <- renderUI({
+        if(controlPanel){
+            sliderInput("clipping", "Clipping:", min = 0, max = 100, value = c(47,100))
+        } else {
+            NULL
+        }
+    })
 
 
 } # Server
+
+
+                    
