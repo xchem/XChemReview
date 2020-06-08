@@ -289,10 +289,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
         session$sendCustomMessage(type="fit", message=list())
     })
 
-    observeEvent(input$updateView,{
+    #observeEvent(input$updateView,{
+    #    session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+    #        input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    #})
+
+    observeEvent(input$clipping, {
         session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
             input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
     })
+
+    observeEvent(input$fogging, {
+        session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+            input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    })
+
+    observeEvent(input$clipDist, {
+        session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+            input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    })
+
 
     # Upon pressing Clear, Remove Everything
     observeEvent(input$clearRepresentationsButton, {
