@@ -177,12 +177,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
     dbDisconnect(con)
 
-    possRes <- tapply(  X = response_data$reason, 
-                        INDEX = response_data$decision_str,
-                        function(x){
-                            unique(unlist(strsplit(x, '; ')))
-                        })
-
+    if(nrow(response_data) < 1){
+        possRes <- list()
+    } else {
+        possRes <- tapply(  X = response_data$reason, 
+                            INDEX = response_data$decision_str,
+                            function(x){
+                                unique(unlist(strsplit(x, '; ')))
+                            })
+    }
     possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
     possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
     possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
