@@ -286,7 +286,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Upon pressing Fit, Fit structure in window
     observeEvent(input$fitButton, {
-        session$sendCustomMessage(type="fit", message=list())
+        session$sendCustomMessage(type="ligfit", message=list())
     })
 
     #observeEvent(input$updateView,{
