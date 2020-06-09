@@ -369,6 +369,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(c(eventmapFile, fofc2File, fofcFile))
     }
 
+    updateVisabilities <- function(event, twofofc, fofc){
+        session$sendCustomMessage(type='updateVisabilities',
+            list(
+                tolower(as.character(as.logical(event))),
+                tolower(as.character(as.logical(twofofc))),
+                tolower(as.character(as.logical(fofc))),
+                tolower(as.character(as.logical(fofc)))
+                )
+        )
+    }
+
+    updateVisabilities(event=, twofofc=, fofc=)
+
+
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             if(debug) print(dir(XtalRoot))
@@ -397,13 +411,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
+
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+
 #            incProgress(.3, details='Load 2fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
@@ -423,13 +433,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)  
 #            incProgress(.3, details='Load fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
@@ -459,43 +463,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
 
 
 
     observeEvent(input$eventMap, {
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
-   })
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+    })
     observeEvent(input$twofofcMap, {
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     })
     observeEvent(input$fofcMap, {
-            session$sendCustomMessage(type='updateVisabilities',
-                list(as.character(as.logical(input$eventMap)),
-                     as.character(as.logical(input$twofofcMap)),
-                     as.character(as.logical(input$fofcMap)),
-                     as.character(as.logical(input$fofcMap))
-                )
-            )
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     })
 
     observeEvent(input$boxsize,{
