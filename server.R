@@ -35,6 +35,7 @@ With these additional comments:
 
 %s
 
+-------------------------------
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
 
@@ -215,7 +216,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
-    output$table <- DT::renderDataTable({r1()}, options= list(pageLength=20),selection = 'single')
+    output$table <- DT::renderDataTable({r1()},
+                                        selection = 'single', 
+                                        options = list(
+                                            pageLength = 20, 
+                                            drawCallback = I("function( settings ) {document.getElementById('table').style.width = '600px';}")
+                                            )
+                                        )
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
