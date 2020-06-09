@@ -22,7 +22,7 @@ server <- function(input, output, session) {
         data
     }
 
-    sendEmail <- function(structure, user, decision, reason){
+    sendEmail <- function(structure, user, decision, reason, comments){
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
@@ -30,6 +30,10 @@ server <- function(input, output, session) {
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
+
+With these additional comments:
+
+%s
 
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
@@ -41,7 +45,7 @@ If you disagree with this decision please discuss and change the outcome by subm
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, structure, protein),
+            structure, decision, user, reason, comments, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -60,7 +64,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
-            sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'])
+            sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], input$comments)
         }
     }
 
