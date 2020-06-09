@@ -380,9 +380,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    updateVisabilities(event=, twofofc=, fofc=)
-
-
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             if(debug) print(dir(XtalRoot))
