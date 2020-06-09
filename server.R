@@ -219,8 +219,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$table <- DT::renderDataTable({r1()},
                                         selection = 'single', 
                                         options = list(
-                                            pageLength = 20, 
-                                            drawCallback = I("function( settings ) {document.getElementById('table').style.width = '600px';}")
+                                            pageLength = 20#, 
+                                            #drawCallback = I("function( settings ) {document.getElementById('table').style.width = '300px';}")
                                             )
                                         )
 
