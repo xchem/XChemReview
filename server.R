@@ -405,7 +405,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(debug) message(sprintf('%s: %s', '2fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="add2fofc", 
                     message=list(
                         event, 
                         as.character(input$iso2fofc), 
@@ -424,7 +424,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(debug) message(sprintf('%s: %s', 'fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="addfofc", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -434,7 +434,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character(input$boxsize)
                     )
                 )
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="addfofc_negative", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -448,6 +448,27 @@ If you believe you have been sent this message in error, please email tyler.gorr
 #            setProgress(1)
 #        })
     }
+
+
+    observeEvent(input$boxsize,{
+        if(input$eventMap)  sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+        if(input$twofofcMap)sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+        if(input$fofcMap)   sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$fofcMap)   sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+    })
+    
+    observeEvent(input$isoEvent,{
+        sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+    })
+
+    observeEvent(input$iso2fofc,{
+        sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+    })
+
+    observeEvent(input$isofofc,{
+        sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+    })
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
