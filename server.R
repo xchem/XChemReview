@@ -468,6 +468,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             )
     }
 
+
+
     observeEvent(input$eventMap, {
             session$sendCustomMessage(type='updateVisabilities',
                 list(as.character(as.logical(input$eventMap)),
@@ -476,7 +478,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                      as.character(as.logical(input$fofcMap))
                 )
             )
-        )
    })
     observeEvent(input$twofofcMap, {
             session$sendCustomMessage(type='updateVisabilities',
