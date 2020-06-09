@@ -379,7 +379,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fname <- theFiles[1]
             if(debug) message(sprintf('%s: %s', 'event Map', fname))
 
-            if(input$eventMap){   
+            if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 # addEvent requires:
@@ -398,7 +398,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 #            incProgress(.3, details='Load 2fofc Map')
-            if(input$twofofcMap){
+            if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
@@ -417,7 +417,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 #            incProgress(.3, details='Load fofc Map')
-            if(input$fofcMap){
+            if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
@@ -445,10 +445,42 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-#            setProgress(1)
-#        })
+            session$sendCustomMessage(type='updateVisabilities',
+                list(as.character(input$eventMap),
+                     as.character(input$twofofcMap),
+                     as.character(input$fofcMap),
+                     as.character(input$fofcMap)
+                )
+            )
     }
 
+    observeEvent(input$eventMap, {
+        session$sendCustomMessage(type='updateVisabilities',
+            list(as.character(input$eventMap),
+                as.character(input$twofofcMap),
+                as.character(input$fofcMap),
+                as.character(input$fofcMap)
+            )
+        )
+    })
+    observeEvent(input$twofofcMap, {
+        session$sendCustomMessage(type='updateVisabilities',
+            list(as.character(input$eventMap),
+                as.character(input$twofofcMap),
+                as.character(input$fofcMap),
+                as.character(input$fofcMap)
+            )
+        )
+    })
+    observeEvent(input$fofcMap, {
+        session$sendCustomMessage(type='updateVisabilities',
+            list(as.character(input$eventMap),
+                as.character(input$twofofcMap),
+                as.character(input$fofcMap),
+                as.character(input$fofcMap)
+            )
+        )
+    })
 
     observeEvent(input$boxsize,{
         if(input$eventMap)  session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
