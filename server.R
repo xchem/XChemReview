@@ -451,23 +451,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
 
     observeEvent(input$boxsize,{
-        if(input$eventMap)  sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
-        if(input$twofofcMap)sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
-        if(input$fofcMap)   sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
-        if(input$fofcMap)   sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$eventMap)  session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+        if(input$twofofcMap)session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
     })
-    
+
     observeEvent(input$isoEvent,{
-        sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
     })
 
     observeEvent(input$iso2fofc,{
-        sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
     })
 
     observeEvent(input$isofofc,{
-        sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
-        sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
     })
 
     # Really need to sort this logic ball out...
