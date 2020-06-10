@@ -401,12 +401,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
-            if(debug) print(dir(XtalRoot))
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+            if(debug) print(theFiles)
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
                 missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
-                if(debug) print(thefiles)
                 if(debug) print(missfiles)
                 output$missingFiles <- renderText({
                     sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
