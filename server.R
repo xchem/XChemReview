@@ -125,7 +125,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     getData <- function(db, host_db, db_port, db_user, db_password){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
+        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, spacegroup, outcome, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5 OR outcome=6")
         crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
         target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
         compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
@@ -144,7 +144,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         jd$Protein <- targs[as.character(jd$target_id)]
 
         dbdat <- jd
-        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 
+            'RMSD_bonds', 'lig_confidence', 'Space_Group', 'XCEoutcome', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 
+            'cId', 'tID', 'Smiles', 'Protein')
         gc()
     
         # Main Table Output Handler
@@ -208,12 +210,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     if(debug) print('Data Reactivised')
     r1 <- reactive({
+        rowidx <- rep(FALSE, nrow(inputData()))
+        outcome <- inputData()$XCEoutcome
+        if(input$out4) rowidx[outcome==4] <- TRUE
+        if(input$out5) rowidx[outcome==5] <- TRUE
+        if(input$out6) rowidx[outcome==6] <- TRUE
         if(debug) print('Subsetting Table') # Based on input$protein and input$columns?
         # Subset data
-        if(is.null(input$protein) & is.null(input$columns)) inputData()
-        else if(is.null(input$columns) & !is.null(input$protein)) inputData()[inputData()$Protein %in% input$protein, ]
-        else if(!is.null(input$columns) & is.null(input$protein)) inputData()[ ,input$columns]
-        else inputData()[inputData()$Protein %in% input$protein, input$columns]
+        if(is.null(input$protein) & is.null(input$columns)) inputData()[rowidx, ]
+        else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
+        else if(!is.null(input$columns) & is.null(input$protein)) inputData()[rowidx,input$columns]
+        else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
     })
   
     output$table <- DT::renderDataTable({r1()},
