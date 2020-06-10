@@ -427,7 +427,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 
-            updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
+            #updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
 
 #            incProgress(.3, details='Load 2fofc Map')
             if(TRUE){
@@ -448,7 +448,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
+            #updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
 #            incProgress(.3, details='Load fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
@@ -457,7 +457,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(debug) message(sprintf('%s: %s', 'fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addfofc", 
+                session$sendCustomMessage(type="addfofc_positive", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -497,8 +497,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$boxsize,{
         if(input$eventMap)  session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
         if(input$twofofcMap)session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
-        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
-        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_positive',  list(as.character(input$isofofc), as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc), as.character(input$boxsize)))
     })
 
     observeEvent(input$isoEvent,{
@@ -510,7 +510,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$isofofc,{
-        session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddlefofc_positive',  list(as.character(input$isofofc),as.character(input$boxsize)))
         session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
     })
 
