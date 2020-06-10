@@ -22,7 +22,7 @@ server <- function(input, output, session) {
         data
     }
 
-    sendEmail <- function(structure, user, decision, reason){
+    sendEmail <- function(structure, user, decision, reason, comments){
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
@@ -31,6 +31,11 @@ server <- function(input, output, session) {
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
 
+With these additional comments:
+
+%s
+
+-------------------------------
 If you wish to review this change please go to xchemreview.diamond.ac.uk while 
 connected to the diamond VPN or via NX.
 
@@ -41,7 +46,7 @@ If you disagree with this decision please discuss and change the outcome by subm
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, structure, protein),
+            structure, decision, user, reason, comments, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -60,7 +65,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
-            sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'])
+            sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], input$comments)
         }
     }
 
@@ -103,7 +108,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
         xtalname <- data[2]
-        data <- c(dbdat[data[2], 'Id'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- c(dbdat[data[2], 'xId'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
         data[,1] <- as.integer(data[,1])
@@ -151,7 +156,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         dbdat$Reason <- ''
 
         # Get most Recent Response per xtal
-        rownames(dbdat) <- as.character(dbdat$Id)
+        rownames(dbdat) <- as.character(dbdat$xId)
         if(nrow(response_data) > 0){
             tofill <- as.data.frame(t(sapply(split(response_data, response_data$crystal_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
             rownames(tofill) <- as.character(tofill$crystal_id)
@@ -177,12 +182,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
     dbDisconnect(con)
 
-    possRes <- tapply(  X = response_data$reason, 
-                        INDEX = response_data$decision_str,
+    possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
                         function(x){
                             unique(unlist(strsplit(x, '; ')))
                         })
-
     possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
     possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
     possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
@@ -213,7 +216,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else inputData()[inputData()$Protein %in% input$protein, input$columns]
     })
   
-    output$table <- DT::renderDataTable({r1()}, options= list(pageLength=20),selection = 'single')
+    output$table <- DT::renderDataTable({r1()},
+                                        selection = 'single', 
+                                        options = list(
+                                            pageLength = 20#, 
+                                            #drawCallback = I("function( settings ) {document.getElementById('table').style.width = '300px';}")
+                                            )
+                                        )
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'})  
@@ -227,13 +236,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Connect to DB and get most recent time...        
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
         selrow <- rownames(rdat) 
-        cId <- dbdat[selrow, 'Id']        
+        xId <- dbdat[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
-        if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
-            displayModalWhoUpdated(id=cId)
+            displayModalWhoUpdated(id=xId)
         }
     })
 
@@ -243,7 +252,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
   
     observeEvent(input$updateView,{
-        session$sendCustomMessage(type="fit", message=list())
+        session$sendCustomMessage(type="updateParams", message=list())
     })
 
     resetForm <- function(){
@@ -269,12 +278,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             ))
         } else {
              # Get ID...
-            cId <- fData[ ,'crystal_id']
-            if(sessionGreaterThanMostRecentResponse(id=cId, sessionTime=sessionTime)){
+            xId <- fData[ ,'crystal_id']
+            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
                 saveData(fData, xtaln)
                 resetForm()
             } else {
-                displayModalWhoUpdated(id=cId)
+                displayModalWhoUpdated(id=xId)
             }
         }
 
@@ -288,13 +297,29 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Upon pressing Fit, Fit structure in window
     observeEvent(input$fitButton, {
-        session$sendCustomMessage(type="fit", message=list())
+        session$sendCustomMessage(type="ligfit", message=list())
     })
 
-    observeEvent(input$updateView,{
+    #observeEvent(input$updateView,{
+    #    session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+    #        input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    #})
+
+    observeEvent(input$clipping, {
         session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
             input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
     })
+
+    observeEvent(input$fogging, {
+        session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+            input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    })
+
+    observeEvent(input$clipDist, {
+        session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
+            input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
+    })
+
 
     # Upon pressing Clear, Remove Everything
     observeEvent(input$clearRepresentationsButton, {
@@ -355,6 +380,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(c(eventmapFile, fofc2File, fofcFile))
     }
 
+    updateVisabilities <- function(event, twofofc, fofc){
+        session$sendCustomMessage(type='updateVisabilities',
+            list(
+                tolower(as.character(as.logical(event))),
+                tolower(as.character(as.logical(twofofc))),
+                tolower(as.character(as.logical(fofc))),
+                tolower(as.character(as.logical(fofc)))
+                )
+        )
+    }
+
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             if(debug) print(dir(XtalRoot))
@@ -365,7 +401,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fname <- theFiles[1]
             if(debug) message(sprintf('%s: %s', 'event Map', fname))
 
-            if(input$eventMap){   
+            if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 # addEvent requires:
@@ -383,15 +419,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
+
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+
 #            incProgress(.3, details='Load 2fofc Map')
-            if(input$twofofcMap){
+            if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
                 if(debug) message(sprintf('%s: %s', '2fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="add2fofc", 
                     message=list(
                         event, 
                         as.character(input$iso2fofc), 
@@ -402,15 +441,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)  
 #            incProgress(.3, details='Load fofc Map')
-            if(input$fofcMap){
+            if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
                 if(debug) message(sprintf('%s: %s', 'fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="addfofc", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -420,7 +460,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character(input$boxsize)
                     )
                 )
-                session$sendCustomMessage(type="addEvent", 
+                session$sendCustomMessage(type="addfofc_negative", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -431,9 +471,40 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-#            setProgress(1)
-#        })
+            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
+
+
+
+    observeEvent(input$eventMap, {
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+    })
+    observeEvent(input$twofofcMap, {
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+    })
+    observeEvent(input$fofcMap, {
+        updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+    })
+
+    observeEvent(input$boxsize,{
+        if(input$eventMap)  session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+        if(input$twofofcMap)session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+    })
+
+    observeEvent(input$isoEvent,{
+        session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
+    })
+
+    observeEvent(input$iso2fofc,{
+        session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
+    })
+
+    observeEvent(input$isofofc,{
+        session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+    })
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
@@ -445,12 +516,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
             defaultPdbID <- filepath
             defaultShell <- XtalRoot
 
-            print(tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1))
+            spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
             output$spiderPlot <- renderImage({
-                list(src = tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1),
-                contentType = 'image/png',
-                width=200,
-                height=200)
+                if(length(spfile) == 1){
+                    list(src = spfile,
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
+                } else { 
+                    list(src = '',
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
+                }
             }, deleteFile=FALSE)
 
             tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
@@ -549,7 +627,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$isoEventSlider <- renderUI({
         if(input$eventMap){
-        sliderInput("isoEvent", "",
+            sliderInput("isoEvent", "",
                     min = 0, max = 10,
                     value = 1, step = 0.1)
         } else {
@@ -559,7 +637,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$iso2fofcSlider <- renderUI({
         if(input$twofofcMap){
-        sliderInput("iso2fofc", "",
+            sliderInput("iso2fofc", "",
                     min = 0, max = 10,
                     value = 1.5, step = 0.1)
         } else {
@@ -577,6 +655,37 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
+    controlPanel = TRUE
+    output$controlRow <- renderUI({
+        if(TRUE){
+            fluidRow(
+                    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
+                    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                    )
+        } else {
+            NULL
+        }
+    })
+
+    output$controlFog <- renderUI({
+        if(controlPanel){
+            sliderInput("fogging", "Fogging:", min = 0, max = 100, value = c(45,58))
+        } else {
+            NULL
+        }
+    })
+
+
+    output$controlClip <- renderUI({
+        if(controlPanel){
+            sliderInput("clipping", "Clipping:", min = 0, max = 100, value = c(47,100))
+        } else {
+            NULL
+        }
+    })
 
 
 } # Server
+
+
+                    
