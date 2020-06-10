@@ -22,14 +22,13 @@ ui <- navbarPage("XChem Review", id='beep',
                         actionButton('clear', 'Clear', class = 'btn-primary'),
                         selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                     ),
-                    imageOutput('spiderPlot'),
                     fluidRow(
                         column(4, checkboxInput('out4', 'Structures in Refinement', value = TRUE)),
                         column(4, checkboxInput('out5', 'CompChem Ready Structures', value = TRUE)),
                         column(4, checkboxInput('out6', 'Deposited Structures', value = FALSE))
                     ),
-                    textOutput('missingFiles')
-                    #uiOutput('spiderPlot')
+                    textOutput('missingFiles'),
+                    imageOutput('spiderPlot')
                 ), #sidebarpanel
                 mainPanel(
                     absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,

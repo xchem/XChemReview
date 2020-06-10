@@ -395,7 +395,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 tolower(as.character(as.logical(twofofc))),
                 tolower(as.character(as.logical(fofc))),
                 tolower(as.character(as.logical(fofc)))
-                )
+            )
         )
     }
 
@@ -406,9 +406,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
                 missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
+                if(debug) message(thefiles)
+                if(debug) message(missfiles)
                 output$missingFiles <- renderText({
-                sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
+                    sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
                 }) 
+            } else {
+                output$missingFiles <- renderText({''})
             }
 #            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
