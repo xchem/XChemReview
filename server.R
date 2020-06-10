@@ -232,7 +232,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                                         )
 
     # Generic Output Messages.
-    output$msg <- renderText({'Please click once'})  
+    output$msg <- renderText({'Please click once'}) 
+    output$missingFiles <- renderText({''}) 
     output$msg3 <- renderText({'NGL Viewer Controls'})
 
     # Observers, behaviour will be described as best as possible
@@ -402,6 +403,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             if(debug) print(dir(XtalRoot))
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+            if(any(is.na(theFiles))){
+                maptype <- c('event', '2fofc', 'fofc')
+                missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
+                output$missingFiles <- renderText({
+                sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
+                }) 
+            }
 #            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
