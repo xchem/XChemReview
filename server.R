@@ -479,6 +479,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
             updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
+            Sys.sleep(.5)
             updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
 

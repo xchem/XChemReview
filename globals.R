@@ -80,6 +80,8 @@ colss <- c(
     'RMSD_Angles', 
     'RMSD_bonds',  
     'Ramachandran.Outliers', 
+    'Space_Group',
+    'XCEoutcome',
     'CIF',
     'Latest.PDB',
     'Latest.MTZ',
