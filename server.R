@@ -427,8 +427,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 
-            #updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
-
 #            incProgress(.3, details='Load 2fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
@@ -448,7 +446,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            #updateVisabilities(event=FALSE, twofofc=FALSE, fofc=FALSE)
 #            incProgress(.3, details='Load fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
@@ -480,8 +477,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
             updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
-
-
 
     observeEvent(input$eventMap, {
         updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
