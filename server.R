@@ -406,8 +406,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
                 missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
-                if(debug) message(thefiles)
-                if(debug) message(missfiles)
+                if(debug) print(thefiles)
+                if(debug) print(missfiles)
                 output$missingFiles <- renderText({
                     sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
                 }) 
