@@ -377,7 +377,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     findFiles <- function(fp){
-        eventmapStrings <- c('_event.ccp4', 'event_map.map')
+        eventmapStrings <- c('_map.native.ccp4', '_event.ccp4', 'event_map.map')
         fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
         fofcStrings <- c('_fofc.ccp4', '^fofc.map')
 
