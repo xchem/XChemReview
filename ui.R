@@ -7,9 +7,8 @@ ui <- navbarPage("XChem Review", id='beep',
                 tags$style("#panel1 {position: fixed;}"),
                 tags$style("#panel2 {overflow: auto;}")
             ),
-            absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
-            fluidRow(
-			    column(2,
+            sidebarLayout(
+                sidebarPanel(width=2,
                     uiOutput('proteinselect'),
                     div(
                         id = "form",
@@ -23,54 +22,49 @@ ui <- navbarPage("XChem Review", id='beep',
                         actionButton('clear', 'Clear', class = 'btn-primary'),
                         selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                     ),
-                    imageOutput('spiderPlot')
-                    #uiOutput('spiderPlot')
-			    ),
-			    column(8,
-				    nglShinyOutput('nglShiny', height='600px')
-			    ),
-			    column(2,
-                    textOutput('msg3'),
-                    actionButton("fitButton", "Fit to Ligand"),
-                    actionButton("defaultViewButton", "Restart Viewer"),
-                    #actionButton("updateView", "Update Parameters"),
-                    #actionButton("clearRepresentationsButton", "Clear Representations"),
-                    hr(),          
-                    checkboxInput('eventMap', 'Event map', value = TRUE),
-                    uiOutput('isoEventSlider'), 
-                    checkboxInput('twofofcMap', '2fofc map', value = FALSE),
-                    uiOutput('iso2fofcSlider'),
-                    checkboxInput('fofcMap', 'fofc Map', value = FALSE),
-                    uiOutput('isofofcSlider'),
-                    hr(),
-                    #checkboxInput('controlPanel', 'NGL Controls', value = FALSE),
-                    #uiOutput('controlRow'),
-                    #uiOutput('controlFog'),
-                    #uiOutput('controlClip'),
                     fluidRow(
-                        column(6,
-                            numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
-                        column(6,
-                            numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                        column(4, checkboxInput('out4', 'Comp Chem Ready', value = TRUE)),
+                        column(4, checkboxInput('out5', 'Deposition Ready', value = TRUE)),
+                        column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    sliderInput("fogging", "Fogging:",
-                        min = 0, max = 100,
-                        value = c(45,58)),
-                    sliderInput("clipping", "Clipping:",
-                        min = 0, max = 100,
-                        value = c(47,100)),  
-                    hr()      
-			    )
-		    )), # Fluid row
-            absolutePanel(id = 'panel2', top='70%', bottom='0%', fixed=T,
-                fluidRow(
-                    column(2),
-                    column(8, 
-                        DT::dataTableOutput("table")
+                    textOutput('missingFiles'),
+                    imageOutput('spiderPlot')
+                ), #sidebarpanel
+                mainPanel(
+                    absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
+                        fluidRow(
+                            column(8,nglShinyOutput('nglShiny', height='600px')),
+                            column(2,
+                                textOutput('msg3'),
+                                actionButton("fitButton", "Fit to Ligand"),
+                                actionButton("defaultViewButton", "Restart Viewer"),
+                                hr(),          
+                                checkboxInput('eventMap', 'Event map', value = TRUE),
+                                uiOutput('isoEventSlider'), 
+                                checkboxInput('twofofcMap', '2fofc map', value = FALSE),
+                                uiOutput('iso2fofcSlider'),
+                                checkboxInput('fofcMap', 'fofc Map', value = FALSE),
+                                uiOutput('isofofcSlider'),
+                                hr(),
+                                fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
+                                        column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                                ),
+                                sliderInput("fogging", "Fogging:",
+                                    min = 0, max = 100,
+                                    value = c(45,58)),
+                                sliderInput("clipping", "Clipping:",
+                                    min = 0, max = 100,
+                                    value = c(47,100)),  
+                                hr()      
+                            ) # column
+                        ) # Fluid row
+                    ), 
+                    absolutePanel(id = 'panel2', top='70%', bottom='0%', fixed=T,
+                        fluidRow(column(8, DT::dataTableOutput("table")), column(2))
                     )
-                )
-            )
-	   )
+                ), # main panel
+            ) # sidebarlayout
+        ) # Fluid Page
     ), # Tab Panel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))

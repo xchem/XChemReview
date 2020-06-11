@@ -125,7 +125,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     getData <- function(db, host_db, db_port, db_user, db_password){
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5")
+        refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, spacegroup, outcome, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5 OR outcome=6")
         crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
         target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(crystal_data[,'target_id'], collapse=',')))
         compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(crystal_data[,'compound_id'], collapse=',')))
@@ -144,7 +144,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         jd$Protein <- targs[as.character(jd$target_id)]
 
         dbdat <- jd
-        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 'RMSD_bonds', 'lig_confidence', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 'cId', 'tID', 'Smiles', 'Protein')
+        colnames(dbdat) <- c('Id', 'xId', 'RFree', 'Rwork', 'Ramachandran.Outliers', 'Resolution', 'RMSD_Angles', 
+            'RMSD_bonds', 'lig_confidence', 'Space_Group', 'XCEoutcome', 'CIF', 'Latest.PDB', 'Latest.MTZ', 'Xtal', 
+            'cId', 'tID', 'Smiles', 'Protein')
         gc()
     
         # Main Table Output Handler
@@ -208,12 +210,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     if(debug) print('Data Reactivised')
     r1 <- reactive({
+        rowidx <- rep(FALSE, nrow(inputData()))
+        outcome <- inputData()$XCEoutcome
+        if(input$out4) rowidx[outcome==4] <- TRUE
+        if(input$out5) rowidx[outcome==5] <- TRUE
+        if(input$out6) rowidx[outcome==6] <- TRUE
         if(debug) print('Subsetting Table') # Based on input$protein and input$columns?
         # Subset data
-        if(is.null(input$protein) & is.null(input$columns)) inputData()
-        else if(is.null(input$columns) & !is.null(input$protein)) inputData()[inputData()$Protein %in% input$protein, ]
-        else if(!is.null(input$columns) & is.null(input$protein)) inputData()[ ,input$columns]
-        else inputData()[inputData()$Protein %in% input$protein, input$columns]
+        if(is.null(input$protein) & is.null(input$columns)) inputData()[rowidx, ]
+        else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
+        else if(!is.null(input$columns) & is.null(input$protein)) inputData()[rowidx,input$columns]
+        else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
     })
   
     output$table <- DT::renderDataTable({r1()},
@@ -225,7 +232,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                                         )
 
     # Generic Output Messages.
-    output$msg <- renderText({'Please click once'})  
+    output$msg <- renderText({'Please click once'}) 
+    output$missingFiles <- renderText({''}) 
     output$msg3 <- renderText({'NGL Viewer Controls'})
 
     # Observers, behaviour will be described as best as possible
@@ -369,7 +377,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     findFiles <- function(fp){
-        eventmapStrings <- c('_event.ccp4', 'event_map.map')
+        eventmapStrings <- c('_map.native.ccp4', '_event.ccp4', 'event_map.map')
         fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
         fofcStrings <- c('_fofc.ccp4', '^fofc.map')
 
@@ -387,14 +395,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 tolower(as.character(as.logical(twofofc))),
                 tolower(as.character(as.logical(fofc))),
                 tolower(as.character(as.logical(fofc)))
-                )
+            )
         )
     }
 
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
-            if(debug) print(dir(XtalRoot))
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+            if(debug) print(theFiles)
+            if(any(is.na(theFiles))){
+                maptype <- c('event', '2fofc', 'fofc')
+                missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
+                if(debug) print(missfiles)
+                output$missingFiles <- renderText({
+                    sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
+                }) 
+            } else {
+                output$missingFiles <- renderText({''})
+            }
 #            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
@@ -420,8 +438,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 
-            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
-
 #            incProgress(.3, details='Load 2fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
@@ -441,7 +457,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)  
 #            incProgress(.3, details='Load fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
@@ -450,7 +465,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(debug) message(sprintf('%s: %s', 'fofc', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                session$sendCustomMessage(type="addfofc", 
+                session$sendCustomMessage(type="addfofc_positive", 
                     message=list(
                         event, 
                         as.character(input$isofofc), 
@@ -474,8 +489,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
 
-
-
     observeEvent(input$eventMap, {
         updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     })
@@ -489,8 +502,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$boxsize,{
         if(input$eventMap)  session$sendCustomMessage(type='twiddleEvent',          list(as.character(input$isoEvent),as.character(input$boxsize)))
         if(input$twofofcMap)session$sendCustomMessage(type='twiddle2fofc',          list(as.character(input$iso2fofc),as.character(input$boxsize)))
-        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
-        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_positive',  list(as.character(input$isofofc), as.character(input$boxsize)))
+        if(input$fofcMap)   session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc), as.character(input$boxsize)))
     })
 
     observeEvent(input$isoEvent,{
@@ -502,7 +515,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$isofofc,{
-        session$sendCustomMessage(type='twiddlefofc',           list(as.character(input$isofofc),as.character(input$boxsize)))
+        session$sendCustomMessage(type='twiddlefofc_positive',  list(as.character(input$isofofc),as.character(input$boxsize)))
         session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
     })
 
