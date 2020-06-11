@@ -23,9 +23,9 @@ ui <- navbarPage("XChem Review", id='beep',
                         selectInput('columns', 'Select Columns to View? (delete/add more values as needed)', choices=colss, selected= defOrder, multiple = TRUE)
                     ),
                     fluidRow(
-                        column(4, checkboxInput('out4', 'Structures in Refinement', value = TRUE)),
-                        column(4, checkboxInput('out5', 'CompChem Ready Structures', value = TRUE)),
-                        column(4, checkboxInput('out6', 'Deposited Structures', value = FALSE))
+                        column(4, checkboxInput('out4', 'Comp Chem Ready', value = TRUE)),
+                        column(4, checkboxInput('out5', 'Deposition Ready', value = TRUE)),
+                        column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
                     textOutput('missingFiles'),
                     imageOutput('spiderPlot')
