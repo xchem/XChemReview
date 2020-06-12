@@ -536,7 +536,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         defaultShell <- ''
                         session$sendCustomMessage(type="removeAllRepresentations", message=list())
                     }
-                    output$progtext <- renderText({'Uploading map files... completed '}) 
+                    output$progtext <- renderText({sprintf('Currently Viewing: %s', input$Xtal)}) 
                 }
             }
 
@@ -555,7 +555,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }, deleteFile=FALSE)
 
-            ligfile <- tail(dir(sprintf('%s/compound', XtalRoot, pattern = '.png', full.names=T)),1)
+            ligfile <- tail(dir(sprintf('%s/compound', XtalRoot), pattern = '.png', full.names=T),1)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,
