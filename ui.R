@@ -42,7 +42,7 @@ ui <- navbarPage("XChem Review", id='beep',
                                 textOutput('msg3'),
                                 actionButton("fitButton", "Fit to Ligand"),
                                 actionButton("defaultViewButton", "Restart Viewer"), 
-                                selectInput('assembly', 'Assembly', choices=c('UNITCELL', 'SUPERCELL', 'AU'), selected='AU', multiple=FALSE)       
+                                selectInput('assembly', 'Assembly', choices=c('UNITCELL', 'SUPERCELL', 'AU'), selected='AU', multiple=FALSE),       
                                 checkboxInput('eventMap', 'Event map', value = TRUE),
                                 uiOutput('isoEventSlider'), 
                                 checkboxInput('twofofcMap', '2fofc map', value = FALSE),
