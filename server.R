@@ -514,6 +514,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         session$sendCustomMessage(type='twiddlefofc_negative',  list(as.character(input$isofofc),as.character(input$boxsize)))
     })
 
+    observeEvent(input$assembly2,{
+        session$sendCustomMessage(type='updateAssembly', list(as.character(input$assembly2)))
+    })
+
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
             choice = input$Xtal
