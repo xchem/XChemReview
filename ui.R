@@ -12,7 +12,7 @@ ui <- navbarPage("XChem Review", id='beep',
                     uiOutput('proteinselect'),
                     div(
                         id = "form",
-                        textInput("name", "FedID", ""),
+                        textInput("name", "Name/FedID", ""),
                         uiOutput('xtalselect'),
                         selectInput("decision", "Decision", choices = possDec),
                         selectizeInput("reason", "Reason(s)", list(), multiple=TRUE, options= list(create=TRUE)),
