@@ -197,6 +197,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
 
     inputData <- reactive({dbdat})
+    output$progtext <- renderText({'Table Loaded'}) 
 
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
@@ -235,7 +236,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$msg <- renderText({'Please click once'}) 
     output$missingFiles <- renderText({''}) 
     output$msg3 <- renderText({'NGL Viewer Controls'})
-
+    output$progtext <- renderText({''}) # User Feedback...
     # Observers, behaviour will be described as best as possible
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
@@ -308,11 +309,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         session$sendCustomMessage(type="ligfit", message=list())
     })
 
-    #observeEvent(input$updateView,{
-    #    session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
-    #        input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
-    #})
-
     observeEvent(input$clipping, {
         session$sendCustomMessage(type="updateParams", message=list(input$clipDist, 
             input$clipping[1], input$clipping[2], input$fogging[1], input$fogging[2]))
@@ -332,8 +328,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Upon pressing Clear, Remove Everything
     observeEvent(input$clearRepresentationsButton, {
         session$sendCustomMessage(type="removeAllRepresentations", message=list())
-        #updateSelectInput(session, "representationSelector", label=NULL, choices=NULL,  selected=defaultRepresentation)
-        #updateSelectInput(session, "colorSchemeSelector", label=NULL, choices=NULL,  selected=defaultColorScheme)
     })
   
     # Load structure and event to NGL stage!
@@ -377,7 +371,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     findFiles <- function(fp){
-        eventmapStrings <- c('_map.native.ccp4', '_event.ccp4', 'event_map.map')
+        eventmapStrings <- c('_event.ccp4', 'event_map.map', '_map.native.ccp4')
         fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
         fofcStrings <- c('_fofc.ccp4', '^fofc.map')
 
@@ -418,7 +412,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
             fname <- theFiles[1]
             if(debug) message(sprintf('%s: %s', 'event Map', fname))
-
+            output$progtext <- renderText({'Uploading map files... event map...'}) 
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
@@ -438,7 +432,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             }
 
-#            incProgress(.3, details='Load 2fofc Map')
+            output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
@@ -457,7 +451,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     )
                 )
             }
-#            incProgress(.3, details='Load fofc Map')
+
+            output$progtext <- renderText({'Uploading map files... fofc map...'}) 
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
@@ -521,13 +516,29 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
-#        withProgress(message = 'Loading Crystal', style='notification', value=.1,{
-            # Retry everything to ensure that view loads after stage load...
             choice = input$Xtal
             filepath <- dbdat[choice,'Latest.PDB']
             XtalRoot <- try(getRootFP(filepath), silent=T)
             defaultPdbID <- filepath
             defaultShell <- XtalRoot
+            output$progtext <- renderText({'Uploading PDB File...'}) 
+            tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+            output$progtext <- renderText({'Uploading PDB File... Done'}) 
+            if(inherits(tryAddPDB, 'try-error')){
+                defaultPdbID <- ''
+                defaultShell <- ''
+                session$sendCustomMessage(type="removeAllRepresentations", message=list())
+            } else {
+                if(!inherits(XtalRoot, 'try-error')){
+                    output$progtext <- renderText({'Uploading map files... '}) 
+                    tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+                    if(inherits(tryAddEvent, 'try-error')){
+                        defaultShell <- ''
+                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                    }
+                    output$progtext <- renderText({'Uploading map files... completed '}) 
+                }
+            }
 
             spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
             output$spiderPlot <- renderImage({
@@ -544,23 +555,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }, deleteFile=FALSE)
 
-            tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-#            incProgress(.5, detail = 'Attempting to load maps')
-            if(inherits(tryAddPDB, 'try-error')){
-                defaultPdbID <- ''
-                defaultShell <- ''
-                session$sendCustomMessage(type="removeAllRepresentations", message=list())
-            } else {
-                if(!inherits(XtalRoot, 'try-error')){
-                    tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
-                    if(inherits(tryAddEvent, 'try-error')){
-                        defaultShell <- ''
-                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
-                    }
+            ligfile <- tail(dir(sprintf('%s/compound', XtalRoot, pattern = '.png', full.names=T)),1)
+            output$ligimage <- renderImage({
+                if(length(ligfile) == 1){
+                    list(src = ligfile,
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
+                } else { 
+                    list(src = '',
+                    contentType = 'image/png',
+                    width=200,
+                    height=200)
                 }
-            }
-#            setProgress(1)
-#        })
+            }, deleteFile=FALSE)
 
     })
 
