@@ -41,15 +41,14 @@ ui <- navbarPage("XChem Review", id='beep',
                             column(2,
                                 textOutput('msg3'),
                                 actionButton("fitButton", "Fit to Ligand"),
-                                actionButton("defaultViewButton", "Restart Viewer"),
-                                hr(),          
+                                actionButton("defaultViewButton", "Restart Viewer"), 
+                                selectInput('assembly', 'Assembly', choices=c('UNITCELL', 'SUPERCELL', 'AU'), selected='AU', multiple=FALSE)       
                                 checkboxInput('eventMap', 'Event map', value = TRUE),
                                 uiOutput('isoEventSlider'), 
                                 checkboxInput('twofofcMap', '2fofc map', value = FALSE),
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
                                 uiOutput('isofofcSlider'),
-                                hr(),
                                 fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
                                         column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
                                 ),
@@ -58,8 +57,7 @@ ui <- navbarPage("XChem Review", id='beep',
                                     value = c(45,58)),
                                 sliderInput("clipping", "Clipping:",
                                     min = 0, max = 100,
-                                    value = c(47,100)),  
-                                hr()      
+                                    value = c(47,100)),       
                             ) # column
                         ) # Fluid row
                     ), 
