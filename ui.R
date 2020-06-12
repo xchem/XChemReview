@@ -27,15 +27,15 @@ ui <- navbarPage("XChem Review", id='beep',
                         column(4, checkboxInput('out5', 'Deposition Ready', value = TRUE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    textOutput('missingFiles'),
                     imageOutput('spiderPlot'),
-                    imageOutput('ligimages')
+                    imageOutput('ligimage')
                 ), #sidebarpanel
                 mainPanel(
                     absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
                         fluidRow(
                             column(8,
                                 textOutput('progtext'),
+                                textOutput('missingFiles'),
                                 nglShinyOutput('nglShiny', height='600px')
                                 ),
                             column(2,
