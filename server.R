@@ -520,6 +520,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
+            starttime <- Sys.time()
             choice = input$Xtal
             filepath <- dbdat[choice,'Latest.PDB']
             XtalRoot <- try(getRootFP(filepath), silent=T)
@@ -540,7 +541,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         defaultShell <- ''
                         session$sendCustomMessage(type="removeAllRepresentations", message=list())
                     }
-                    output$progtext <- renderText({sprintf('Currently Viewing: %s', input$Xtal)}) 
+                    endtime <- Sys.time()
+                    output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                 }
             }
 
