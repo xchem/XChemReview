@@ -405,7 +405,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
                 }) 
             } else {
-                output$missingFiles <- renderText({''})
+                output$missingFiles <- renderText({sprintf('Using: event: %s, 2fofc: %s, fofc: %s', basename(theFiles[1]), basename(theFiles[2]), basename(theFiles[3]))})
             }
 #            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
