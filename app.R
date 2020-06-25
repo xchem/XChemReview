@@ -2,7 +2,7 @@
 # TODO: Scrub out filepaths add as command line options...
 
 debug = TRUE
-local = TRUE # Binding for testing on a local machine bodes no use other than me...
+local = FALSE # Binding for testing on a local machine bodes no use other than me...
 
 # Set Path: May need to add something later for files on /dls
 
@@ -37,10 +37,11 @@ if(local){
     install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
     library(sendmailR, lib.loc = "/dls/science/users/mly94721/R/")
     install.packages('future', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
-    library(future)
+    library(future, lib.loc = '/dls/science/users/mly94721/R/')
     library(promises) # Is provided
 }
-plan(multisession)
+#plan('multiprocess')
+plan('sequential')
 # Source the rest of the code
 if(local){
     source('./globals.R')

@@ -5,9 +5,8 @@
 server <- function(input, output, session) {
     defaultPdbID <- ""
     defaultShell <- ""
-    if(debug) message('Server Init')
-    session$allowReconnect('force')
-	sessionDisconnect <- function() debugMessage(sID=sID, text = 'Disonnected')
+    session$allowReconnect(TRUE)
+    sessionDisconnect <- function() debugMessage(sID=sID, text = 'Disonnected')
     session$onSessionEnded(sessionDisconnect)
     sessionTime <- epochTime()
     sID <- sample(1:100000, 1)
