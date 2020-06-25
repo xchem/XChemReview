@@ -2,7 +2,7 @@
 # TODO: Scrub out filepaths add as command line options...
 
 debug = TRUE
-local = FALSE # Binding for testing on a local machine bodes no use other than me...
+local = TRUE # Binding for testing on a local machine bodes no use other than me...
 
 # Set Path: May need to add something later for files on /dls
 
@@ -25,14 +25,22 @@ if(local){
     source('./db_config.R')
     install.packages('~/nglshiny', repos=NULL, type='source')
     library(nglShiny)
+    install.packages('sendmailR', repos = 'http://cran.rstudio.com/')
+    library(sendmailR)
+    install.packages('future', repos = 'http://cran.rstudio.com/')
+    library(future)
+    library(promises)
 } else {
     install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
     library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
-    # Move this to docker...
+    # These need to be moved to the docker
     install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
     library(sendmailR, lib.loc = "/dls/science/users/mly94721/R/")
+    install.packages('future', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
+    library(future)
+    library(promises) # Is provided
 }
-
+plan(multisession)
 # Source the rest of the code
 if(local){
     source('./globals.R')

@@ -7,9 +7,16 @@ server <- function(input, output, session) {
     defaultShell <- ""
     if(debug) message('Server Init')
     session$allowReconnect('force')
-	sessionDisconnect <- function() message('User Disconnected')
+	sessionDisconnect <- function() debugMessage(sID=sID, text = 'Disonnected')
     session$onSessionEnded(sessionDisconnect)
     sessionTime <- epochTime()
+    sID <- sample(1:100000, 1)
+
+    debugMessage <- function(sID, text){
+        message(sprintf('sid: %s | %s | %s', sID, text, Sys.time()))
+    }
+
+    if(debug) debugMessage(sID=sID, text = 'Connected')
     options <- list(pdbID="")
 
     # Functions
@@ -108,7 +115,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
         xtalname <- data[2]
-        data <- c(dbdat[data[2], 'xId'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
+        data <- c(inputData()[data[2], 'xId'], data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime())
         data <- data.frame(t(data), stringsAsFactors=F)
         # Force Coercion
         data[,1] <- as.integer(data[,1])
@@ -124,6 +131,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     if(!local) source('/dls/science/users/mly94721/xchemreview/db_config.R') # Config file...
 
     getData <- function(db, host_db, db_port, db_user, db_password){
+        library(DBI) # Really? This works?
         con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
         refinement_data <- dbGetQuery(con, "SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, spacegroup, outcome, cif, pdb_latest, mtz_latest FROM refinement WHERE outcome=4 OR outcome=5 OR outcome=6")
         crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", paste(refinement_data[,'crystal_name_id'], collapse=',')))
@@ -176,9 +184,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(dbdat)
     }
 
-    dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-                    db_user=db_user, db_password=db_password)
-    if(debug) print('Data Loaded')
+    inputData <- reactive({
+        value(future(getData(db=db, host_db=host_db, db_port=db_port, 
+                    db_user=db_user, db_password=db_password)))
+    })
+    if(debug) debugMessage(sID=sID, text = 'Data Loaded')
 
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
@@ -196,7 +206,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
 
-    inputData <- reactive({dbdat})
+
     output$progtext <- renderText({'Table Loaded'}) 
 
     # NGL Viewer
@@ -205,13 +215,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
     )
 
     observeEvent(input$decision,{
-        if(debug) message('Updating Decision')
+        if(debug) debugMessage(sID=sID, text = sprintf('Updating Decision to %s', input$decision))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
     })
 
-    if(debug) print('Data Reactivised')
+
     r1 <- reactive({
-        rowidx <- rep(FALSE, nrow(inputData()))
+
+        rowidx <- rep(FALSE, nrow(inputData())) 
         outcome <- inputData()$XCEoutcome
         if(input$out4) rowidx[outcome==4] <- TRUE
         if(input$out5) rowidx[outcome==5] <- TRUE
@@ -221,9 +232,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(is.null(input$protein) & is.null(input$columns)) inputData()[rowidx, ]
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
         else if(!is.null(input$columns) & is.null(input$protein)) inputData()[rowidx,input$columns]
-        else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
+        else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]    
     })
-  
+    if(debug) debugMessage(sID=sID, text = 'Data Reactivised')
     output$table <- DT::renderDataTable({r1()},
                                         selection = 'single', 
                                         options = list(
@@ -240,23 +251,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Observers, behaviour will be described as best as possible
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
-        if(debug) print('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
         selrow <- rownames(rdat) 
-        xId <- dbdat[selrow, 'xId']        
+        if(debug) debugMessage(sID=sID, text = sprintf('Row Click: %s', selrow))
+        xId <- inputData()[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
         if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
             # Update Form window (weird bug with changing decision reupdates form...)
-            updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
+            updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames(inputData())))
         } else {
             displayModalWhoUpdated(id=xId)
         }
     })
 
     observeEvent(input$ok, {
-        if(debug) print('Reload Session')
+        if(debug) debugMessage(sID=sID, text = sprintf('Reloading Session'))
         session$reload()
     })
   
@@ -265,13 +276,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     resetForm <- function(){
-        if(debug) print('Reset Form')
-        updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
+        if(debug) debugMessage(sID=sID, text = sprintf('Resetting Form'))
+        updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData())))
         session$reload()
-        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-        #                db_user=db_user, db_password=db_password)
-        #inputData <- reactive({dbdat})
-        #sessionTime <- epochTime()
     }
 
     # Upon Main Page Submit
@@ -332,6 +339,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
   
     # Load structure and event to NGL stage!
     uploadPDB <- function(filepath, input){
+        if(debug) debugMessage(sID=sID, text = sprintf('Uploading PDB: %s', filepath))
 #        withProgress(message = 'Uploading PDB', style='notification', detail = 'Finding File', value = 0, {
             syscall <- sprintf('cat %s', filepath)
             if(debug) message(syscall)
@@ -396,6 +404,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
+            if(debug) debugMessage(sID=sID, text = sprintf('Uploading Event Maps'))
             if(debug) print(theFiles)
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
@@ -413,7 +422,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fname <- theFiles[1]
             if(debug) message(sprintf('%s: %s', 'event Map', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
-            if(TRUE){   
+            #if(TRUE){
+            promise_emap <- future({   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 # addEvent requires:
@@ -427,13 +437,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('orange'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$eventMap)))
                     )
                 )
-            }
+            })
 
             output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
-            if(TRUE){
+            #if(TRUE){
+            promise_2fofc <- future({
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
@@ -447,13 +459,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('blue'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$twofofcMap)))
                     )
                 )
-            }
+            })
 
             output$progtext <- renderText({'Uploading map files... fofc map...'}) 
-            if(TRUE){
+            promise_fofcpos <- future({
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
@@ -467,9 +480,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('lightgreen'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
+            })
+            promise_fofcneg <- future({
                 session$sendCustomMessage(type="addfofc_negative", 
                     message=list(
                         event, 
@@ -477,12 +493,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('tomato'), 
                         as.character('true'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
-            }
-            updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
-    }
+            })
+            #updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
+        }
 
     observeEvent(input$eventMap, {
         updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
@@ -522,7 +539,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$Xtal, {
             starttime <- Sys.time()
             choice = input$Xtal
-            filepath <- dbdat[choice,'Latest.PDB']
+            filepath <- inputData()[choice,'Latest.PDB']
             XtalRoot <- try(getRootFP(filepath), silent=T)
             defaultPdbID <- filepath
             defaultShell <- XtalRoot
@@ -587,7 +604,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$defaultViewButton, {
         #try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
         choice = input$Xtal
-        filepath <- dbdat[choice,'Latest.PDB']
+        filepath <- inputData()[choice,'Latest.PDB']
         XtalRoot <- try(getRootFP(filepath), silent=T)
         defaultPdbID <- filepath
         defaultShell <- XtalRoot
