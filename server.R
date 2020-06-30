@@ -16,6 +16,8 @@ server <- function(input, output, session) {
     sessionTime <- epochTime()
     options <- list(pdbID="")
 
+    # Page 1
+
     # Functions
     # Read-in Responses Form Data
     loadData <- function() {
@@ -206,7 +208,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
-        nglShiny(list(), width=NULL, height=100)
+        nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
     observeEvent(input$decision,{
@@ -654,9 +656,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$xtalselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if(!is.null(query[['xtal']])){
-            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = query[['xtal']], multiple = FALSE)
+            selectizeInput('Xtal', 'Which Structure?', choices = c('', xtalList), selected = query[['xtal']], multiple = FALSE)
         } else {
-            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = list(), multiple = FALSE)
+            selectizeInput('Xtal', 'Which Structure?', choices = c('', xtalList), multiple = FALSE)
         }
     })
 
@@ -718,6 +720,49 @@ If you believe you have been sent this message in error, please email tyler.gorr
             NULL
         }
     })
+
+    # Frag View
+    output$FragViewnglShiny <- renderNglShiny(
+        nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
+    )
+
+    uploadPDB2 <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="setapoPDB", 
+                message=list(choice))
+    }
+
+    uploadMol <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="addMol", 
+                message=list(choice))
+    }
+ 
+    observeEvent(input$fragSelect,{
+        if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
+        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+        apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
+        molfiles <- dir(folderPath, rec=T, pattern='.mol', full.names=TRUE)
+        tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
+        molout <- sapply(molfiles, uploadMol)
+    })
+
+    observeEvent(input$restartViewer, {
+        try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
+    })
+
+
+
+
+    # Frag Chat
 
 
 } # Server

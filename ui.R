@@ -48,7 +48,7 @@ ui <- navbarPage("XChem Review", id='beep',
                                 checkboxInput('twofofcMap', '2fofc map', value = FALSE),
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
-                                uiOutput('isofofcSlider'),
+                                uiOutput('isofofcSlider'), 
                                 fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
                                          column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
                                 ),
@@ -57,7 +57,8 @@ ui <- navbarPage("XChem Review", id='beep',
                                     value = c(45,58)),
                                 sliderInput("clipping", "Clipping:",
                                     min = 0, max = 100,
-                                    value = c(47,100)),       
+                                    value = c(47,100)
+                                    )       
                             ) # column
                         ) # Fluid row
                     ), 
@@ -68,6 +69,31 @@ ui <- navbarPage("XChem Review", id='beep',
             ) # sidebarlayout
         ) # Fluid Page
     ), # Tab Panel
+    tabPanel('FragView',
+        tabPanel('Main',
+            sidebarLayout(
+                sidebarPanel(
+                    actionButton("restartViewer", "Restart Viewer"),
+                    selectInput('fragSelect', 'Project Select', choices=c('', fragfolders))
+                ), # sidebarpanel
+                mainPanel(
+                    nglShinyOutput('FragViewnglShiny', height='600px')
+                ) # Main Panel
+            ) # sidebar layout
+        ) # mainPanel
+    ), # tabPanel
+    tabPanel('FragChat',
+        tabPanel('Main',
+            sidebarLayout(
+                sidebarPanel(
+
+                ), # sidebarpanel
+                mainPanel('Coming Soon...'
+
+                ) # Main Panel
+            ) # sidebar layout
+        ) # mainPanel
+    ), # tabPanel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
 	) # Tab Panel

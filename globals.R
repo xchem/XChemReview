@@ -23,19 +23,6 @@ message <- function (..., domain = NULL, appendLF = TRUE) {
 epochTime <- function() as.integer(Sys.time())
 humanTime <- function() format(Sys.time(), "%Y%m%d-%H%M%OS")
 
-nglShiny <- function(options, width = NULL, height = NULL, elementId = NULL)
-{
-  sprintf("--- ~/github/nglShiny/R/nglShiny ctor"); 
-  htmlwidgets::createWidget(
-    name = 'nglShiny',
-    options,
-    width = width,
-    height = height,
-    package = 'nglShiny',
-    elementId = elementId
-  )
-} 
-
 getRootFP <- function(pdbpath){
     splits <- strsplit(pdbpath, split ='/')[[1]]
     n <- length(splits)
@@ -134,3 +121,5 @@ possRes[['Reject']] <- c(possRes[['Reject']], 'Density too weak', 'Insubstantial
 possDec_int <- 1:4
 names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
+
+fragfolders <- dir('/dls/science/groups/i04-1/fragprep/staging/')
