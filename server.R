@@ -229,13 +229,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
     })
   
-    output$table <- DT::renderDataTable({r1()},
-                                        selection = 'single', 
-                                        options = list(
-                                            pageLength = 20#, 
-                                            #drawCallback = I("function( settings ) {document.getElementById('table').style.width = '300px';}")
-                                            )
-                                        )
+    output$table <- DT::renderDataTable(
+        #{r1()},
+        {datatable(r1(), selection = 'single', options = list(
+            pageLength = 20
+        )) %>% formatStyle(
+        'Decision',
+        target = 'row',
+        backgroundColor = styleEqual(c('Release', 'More Work', 'Reject'), c('#8D86FF', '#FFC107', '#F56360'))
+        )}  
+    )
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'}) 
@@ -660,7 +663,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$isoEventSlider <- renderUI({
         if(input$eventMap){
             sliderInput("isoEvent", "",
-                    min = 0, max = 10,
+                    min = 0, max = 3,
                     value = 1, step = 0.1)
         } else {
             NULL
@@ -670,7 +673,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$iso2fofcSlider <- renderUI({
         if(input$twofofcMap){
             sliderInput("iso2fofc", "",
-                    min = 0, max = 10,
+                    min = 0, max = 3,
                     value = 1.5, step = 0.1)
         } else {
             NULL
@@ -680,7 +683,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$isofofcSlider <- renderUI({
         if(input$fofcMap){
             sliderInput("isofofc", "",
-                min = 0, max = 10,
+                min = 0, max = 3,
                 value = 3, step = 0.1)
         } else {
             NULL
