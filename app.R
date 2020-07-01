@@ -26,7 +26,7 @@ if(local){
     library(nglShiny)
 } else {
     gpath <- '/srv/shiny-server/'
-    #install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
+    install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
     library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
     # Move this to docker...
     #install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
