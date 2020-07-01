@@ -123,3 +123,4 @@ names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
 
 
 fragfolders <- dir('/dls/science/groups/i04-1/fragprep/staging/')
+fragfolders <- fragfolders[!fragfolders %in% c('~', 'tmp')]

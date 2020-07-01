@@ -745,15 +745,54 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 type="addMol", 
                 message=list(choice))
     }
+
+    uploadMol2 <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="addMolandfocus", 
+                message=list(choice))
+    }
  
+    getMolFiles <- function(folderName){
+        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', folderName)
+        molfiles <- dir(folderPath, rec=T, pattern='.mol', full.names=TRUE)
+        names(molfiles) <- basename(molfiles)
+        return(molfiles)
+    }
+
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
-        molfiles <- dir(folderPath, rec=T, pattern='.mol', full.names=TRUE)
+        molfiles <- getMolFiles(input$fragSelect)
+        molfil <- names(molfiles)
+        updateSelectizeInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
-        molout <- sapply(molfiles, uploadMol)
+        molout <- try(sapply(molfiles, uploadMol), silent=T)
     })
+
+    observeEvent(input$gonext, {
+        molfiles <- getMolFiles(input$fragSelect)
+        # Cycle along to next ligand in molfil
+        if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
+        gogogo <- try(uploadMol2(molfiles[input$goto]), silent=T)
+
+    })
+
+    observeEvent(input$goto, {
+        molfiles <- getMolFiles(input$fragSelect)
+        # Go to specific ligand do not edit go next loop
+        if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
+        if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
+        gogogo <- try(uploadMol2(molfiles[input$goto]), silent=T)
+
+    })
+
+    #selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
+
 
     observeEvent(input$restartViewer, {
         try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)

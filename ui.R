@@ -74,7 +74,10 @@ ui <- navbarPage("XChem Review", id='beep',
             sidebarLayout(
                 sidebarPanel(
                     actionButton("restartViewer", "Restart Viewer"),
-                    selectInput('fragSelect', 'Project Select', choices=c('', fragfolders))
+                    selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
+                    ##actionButton('gonext', 'Next Ligand'),
+                    selectizeInput('goto', 'Go to Ligand', list(), multiple=FALSE, options= list(create=FALSE)),
+                    selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
                 ), # sidebarpanel
                 mainPanel(
                     nglShinyOutput('FragViewnglShiny', height='600px')
