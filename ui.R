@@ -75,7 +75,8 @@ ui <- navbarPage("XChem Review", id='beep',
                 sidebarPanel(
                     actionButton("restartViewer", "Restart Viewer"),
                     selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
-                    ##actionButton('gonext', 'Next Ligand'),
+                    actionButton('gonext', 'Next Ligand'),
+                    actionButton('goback', 'Prev Ligand'),
                     selectizeInput('goto', 'Go to Ligand', list(), multiple=FALSE, options= list(create=FALSE)),
                     selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
                 ), # sidebarpanel
