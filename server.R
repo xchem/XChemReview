@@ -769,33 +769,33 @@ If you believe you have been sent this message in error, please email tyler.gorr
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
-        updateSelectizeInput(session, 'goto', choices = molfil)
+        updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
     })
 
     observeEvent(input$gonext, {
         molfiles <- getMolFiles(input$fragSelect)
+	molbase <- names(molfiles)
         nmol <- length(molfiles)
-        id <- which(names(mofiles) == input$goto)
+        id <- which(molbase == input$goto)
         next_id <- id + 1
         if(next_id > nmol) next_id <- 1 # Overflow back to start of list
         # Cycle along to next ligand in molfil
 
-        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molfiles[next_id]))
-        updateSelectizeInput(session, 'goto', selected = molfiles[next_id])
-        #gogogo <- try(uploadMol2(molfiles[input$goto]), silent=T)
-
+        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molbase[next_id]))
+        updateSelectInput(session, 'goto', selected = molbase[next_id], choices=molbase)
     })
 
     observeEvent(input$goback, {
         molfiles <- getMolFiles(input$fragSelect)
+	molbase <- names(molfiles)
         nmol <- length(molfiles)
-        id <- which(names(mofiles) == input$goto)
+        id <- which(molbase == input$goto)
         next_id <- id - 1
         if(next_id < 1) next_id <- nmol # Underflow to end of list
-        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molfiles[next_id]))
-        updateSelectizeInput(session, 'goto', selected = molfiles[next_id])
+        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molbase[next_id]))
+        updateSelectInput(session, 'goto', selected = molbase[next_id], choices=molbase)
     })
 
     observeEvent(input$goto, {
