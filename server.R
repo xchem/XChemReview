@@ -769,16 +769,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(files)
     }
 
-    showCurrentMetaData <- function(protein){
-        files <- getMetaFiles(protein)
+    showCurrentMetaData <- function(){
+        files <- getMetaFiles(input$fragSelect)
         output <- do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
         #colnames(output) <- c('crystal_name', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
         return(output)
     }
 
-    metadata <- showCurrentMetaData(input$fragSelect)
+    metadata <- reactive({ showCurrentMetaData() })
 
-    output$therow <-  DT::renderDataTable({datatable(metadata, selection = 'single', options = list(
+    output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
         pageLength = 100
     ))})
 
@@ -788,7 +788,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
-        updateSelectizeInput(session, 'site_name', choices = metadata[,5])
+        updateSelectizeInput(session, 'site_name', choices = metadata()[,5])
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
@@ -860,8 +860,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
-        metadata <- showCurrentMetaData(input$fragSelect)
-        output$therow <-  DT::renderDataTable({datatable(metadata, selection = 'single', options = list(
+        metadata <- reactive({ showCurrentMetaData() })
+        output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
         pageLength = 100
         ))})
     })
@@ -870,7 +870,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$therow_rows_selected, {
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
-        choice <- metadata[input$therow_rows_selected,1]
+        choice <- metadata()[input$therow_rows_selected,1]
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', choice), choices=molbase)
     })
 
