@@ -788,7 +788,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
-        updateSelectizeInput(session, 'site_name', choices = metadata()[,5])
+        updateSelectizeInput(session, 'site_name', choices = metadata[,5])
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
@@ -870,7 +870,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$therow_rows_selected, {
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
-        choice <- metadata()[input$therow_rows_selected,1]
+        choice <- metadata[input$therow_rows_selected,1]
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', choice), choices=molbase)
     })
 
