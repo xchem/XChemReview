@@ -860,7 +860,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         #output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
         #    pageLength = 100
-        ))})
+        #))})
 
     })
 
