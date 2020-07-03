@@ -802,7 +802,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         molfiles <- getMolFiles(input$fragSelect)
         folder <- dirname(molfiles[input$goto])
         # Fill as it is seen:
-        files <- dir(pattern='.csv')
+        files <- dir(folder, pattern='.csv', full.names=T)
         if(length(files) > 0){
             dat <- read.csv(files)[1,]
             updateTextInput(session, 'smiles', value = dat[2])
