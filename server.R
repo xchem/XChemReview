@@ -763,6 +763,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(molfiles)
     }
 
+    getMetaFiles <- function(folderName){
+        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', folderName)
+        files <- dir(folderPath, rec=T, pattern='meta.csv', full.names=TRUE)
+        return(files)
+    }
+
+    showCurrentMetaData <- function(){
+        files <- getMetaFiles(input$fragSelect)
+        do.call('rbind', lapply(files, read.csv, stringsAsFactors=F))
+    }
+
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
@@ -772,6 +783,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
+
+        output$therow <-  DT::renderDataTable({datatable(showCurrentMetaData(), selection = 'single', options = list(
+            pageLength = 100
+        ))})
     })
 
     observeEvent(input$gonext, {
@@ -804,12 +819,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Fill as it is seen:
         files <- dir(folder, pattern='.csv', full.names=T)
         if(length(files) > 0){
-            dat <- read.csv(files)[1,]
-            updateTextInput(session, 'smiles', value = dat[2])
-            updateTextInput(session, 'new_smiles', value = dat[3])
-            updateTextInput(session, 'alternate_name', value = dat[4])
-            updateSelectizeInput(session, 'site_name', select = dat[5])
-            updateTextInput(session, 'pdb_entry', value = dat[6])
+            dat <- read.csv(files,stringsAsFactors=F)
+            updateTextInput(session, 'smiles', value = dat[1, 2])
+            updateTextInput(session, 'new_smiles', value = dat[1, 3])
+            updateTextInput(session, 'alternate_name', value = dat[1, 4])
+            updateSelectizeInput(session, 'site_name', select = dat[1, 5])
+            updateTextInput(session, 'pdb_entry', value = dat[1, 6])
         } else {
             # The rest are blanks
             # move smiles to staging folder eventually, this will only work for mArh
@@ -841,7 +856,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
+        output$therow <-  DT::renderDataTable({datatable(showCurrentMetaData(), selection = 'single', options = list(
+            pageLength = 100
+        ))})
     })
+
 
     #selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
 
