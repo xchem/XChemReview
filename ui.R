@@ -78,11 +78,11 @@ ui <- navbarPage("XChem Review", id='beep',
                     actionButton('goback', 'Prev Ligand'),
                     actionButton('gonext', 'Next Ligand'),
                     selectInput('goto', 'Go to Ligand', choices=list()),
-                    selectizeInput('smiles', 'Smiles String', list(), multiple=FALSE, options=list(create=TRUE)),
-                    selectizeInput('new_smiles', 'New Smiles String', list(), multiple=FALSE, options=list(create=TRUE)),
-                    selectizeInput('alternate_name', 'Alternate Name', list(), multiple=FALSE, options=list(create=TRUE)),
+                    textInput('smiles', 'Smiles String', ''),
+                    textInput('new_smiles', 'New Smiles String', ''),
+                    textInput('alternate_name', 'Alternate Name', ''),
                     selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
-                    selectizeInput('pdb_entry', 'PDB Entry', list(), multiple=FALSE, options=list(create=TRUE)),
+                    textInput('pdb_entry', 'PDB Entry', ''),
                     actionButton('write', 'Write metadata')
                 ), # sidebarpanel
                 mainPanel(

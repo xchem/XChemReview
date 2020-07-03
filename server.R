@@ -805,22 +805,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
         files <- dir(pattern='.csv')
         if(length(files) > 0){
             dat <- read.csv(files)
-            updateSelectizeInput(session, 'smiles', select = dat[2])
-            updateSelectizeInput(session, 'new_smiles', select = dat[3])
-            updateSelectizeInput(session, 'alternate_name', select = dat[4])
+            updateTextInput(session, 'smiles', value = dat[2])
+            updateTextInput(session, 'new_smiles', value = dat[3])
+            updateTextInput(session, 'alternate_name', value = dat[4])
             updateSelectizeInput(session, 'site_name', select = dat[5])
-            updateSelectizeInput(session, 'pdb_entry', select = dat[6])
+            updateTextInput(session, 'pdb_entry', value = dat[6])
         } else {
             # The rest are blanks
             # move smiles to staging folder eventually, this will only work for mArh
             inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
             smilesfn <- strsplit(input$goto, split='_')[[1]][1]
             smilestr <- system(sprintf('cat %s/%s_smiles.txt', inputfolder,smilesfn), intern=T)
-            updateSelectizeInput(session, 'smiles', select = smilestr)
-            updateSelectizeInput(session, 'new_smiles', select = '')
-            updateSelectizeInput(session, 'alternate_name', select = '')
-            updateSelectizeInput(session, 'site_name', select = '')
-            updateSelectizeInput(session, 'pdb_entry', select = '')
+            updateTextInput(session, 'smiles', value = smilestr)
+            updateTextInput(session, 'new_smiles', value = '')
+            updateTextInput(session, 'alternate_name', value = '')
+            updateSelectizeInput(session, 'site_name', selected = '')
+            updateTextInput(session, 'pdb_entry', value = '')
         }
         # Go to specific ligand do not edit go next loop
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
@@ -839,7 +839,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$alternate_name, 
                     input$site_name, 
                     input$pdb_entry)
-        write.csv(output, filename= fn, quote=F)
+        write.csv(output, file = fn, quote = F)
     })
 
     #selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
