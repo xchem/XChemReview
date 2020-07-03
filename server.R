@@ -804,7 +804,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Fill as it is seen:
         files <- dir(pattern='.csv')
         if(length(files) > 0){
-            dat <- read.csv(files)
+            dat <- read.csv(files)[1,]
             updateTextInput(session, 'smiles', value = dat[2])
             updateTextInput(session, 'new_smiles', value = dat[3])
             updateTextInput(session, 'alternate_name', value = dat[4])
@@ -831,14 +831,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$write, {
         molfiles <- getMolFiles(input$fragSelect)
         folder <- dirname(molfiles[input$goto])
-        if(debug) debugMessage(sID=sID, sprintf('Writing %s to %s', input$sitelabel, input$goto))
-        fn <- file.path(folder, 'metarow.csv')
-        output <- c(gsub('.mol', '', input$goto), 
+        if(debug) debugMessage(sID=sID, sprintf('Writing %s to %s', input$site_name, input$goto))
+        fragname <- gsub('.mol', '', input$goto)
+        fn <- file.path(folder, sprintf('%s_meta.csv', fragname))
+        output <- t(c(fragname, 
                     input$smiles, 
                     input$new_smiles, 
                     input$alternate_name, 
                     input$site_name, 
-                    input$pdb_entry)
+                    input$pdb_entry))
         write.csv(output, file = fn, quote = F)
     })
 
