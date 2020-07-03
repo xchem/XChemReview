@@ -769,16 +769,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(files)
     }
 
-    showCurrentMetaData <- function(){
-        files <- getMetaFiles(input$fragSelect)
+    showCurrentMetaData <- function(protein){
+        files <- getMetaFiles(protein)
         output <- do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
         #colnames(output) <- c('crystal_name', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
         return(output)
     }
 
-    metadata <- reactive({ showCurrentMetaData() })
+    metadata <- showCurrentMetaData(input$fragSelect)
 
-    output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
+    output$therow <-  DT::renderDataTable({datatable(metadata, selection = 'single', options = list(
         pageLength = 100
     ))})
 
@@ -860,8 +860,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
-        metadata <- reactive({ showCurrentMetaData() })
-        output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
+        metadata <- showCurrentMetaData(input$fragSelect)
+        output$therow <-  DT::renderDataTable({datatable(metadata, selection = 'single', options = list(
         pageLength = 100
         ))})
     })
