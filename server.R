@@ -816,7 +816,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
             smilesfn <- strsplit(input$goto, split='_')[[1]][1]
             smilestr <- system(sprintf('cat %s_smiles.txt', smilesfn), intern=T)
-            updateSelectizeInput(session, 'smiles', select = dat[2])
+            updateSelectizeInput(session, 'smiles', select = smilestr)
             updateSelectizeInput(session, 'new_smiles', select = '')
             updateSelectizeInput(session, 'alternate_name', select = '')
             updateSelectizeInput(session, 'site_name', select = '')
