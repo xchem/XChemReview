@@ -72,7 +72,7 @@ ui <- navbarPage("XChem Review", id='beep',
     tabPanel('FragView',
         tabPanel('Main',
             sidebarLayout(
-                sidebarPanel(
+                sidebarPanel( width = 2,
                     actionButton("restartViewer", "Restart Viewer"),
                     selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
                     actionButton('goback', 'Prev Ligand'),

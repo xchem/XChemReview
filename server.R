@@ -771,7 +771,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     showCurrentMetaData <- function(){
         files <- getMetaFiles(input$fragSelect)
-        do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
+        output <- do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
+        colnames(output) <- c('crystal_name', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
+        return(output)
     }
 
     metadata <- reactive({ showCurrentMetaData() })
@@ -859,6 +861,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
         metadata <- reactive({ showCurrentMetaData() })
+        output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
+        pageLength = 100
+        ))})
+    })
+
+    # On Table Rowclick
+    observeEvent(input$therow_rows_selected, {
+        molfiles <- getMolFiles(input$fragSelect)
+        molbase <- names(molfiles)
+        choice <- metadata()[input$therow_rows_selected,1]
+        updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', choice), choices=molbase)
     })
 
 
