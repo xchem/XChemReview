@@ -786,6 +786,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
+        updateSelectizeInput(sesson, 'site_name', choices = metadata()[,5])
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
@@ -857,11 +858,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
-
-        #output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
-        #    pageLength = 100
-        #))})
-
+        metadata <- reactive({ showCurrentMetaData() })
     })
 
 
