@@ -776,7 +776,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$gonext, {
         molfiles <- getMolFiles(input$fragSelect)
-	molbase <- names(molfiles)
+	    molbase <- names(molfiles)
         nmol <- length(molfiles)
         id <- which(molbase == input$goto)
         next_id <- id + 1
@@ -813,7 +813,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             # The rest are blanks
             # move smiles to staging folder eventually, this will only work for mArh
-            inputfolder <- filepath('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
+            inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
             smilesfn <- strsplit(input$goto, split='_')[[1]][1]
             smilestr <- system(sprintf('cat %s_smiles.txt', smilesfn), intern=T)
             updateSelectizeInput(session, 'smiles', select = dat[2])
