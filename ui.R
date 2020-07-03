@@ -78,10 +78,16 @@ ui <- navbarPage("XChem Review", id='beep',
                     actionButton('goback', 'Prev Ligand'),
                     actionButton('gonext', 'Next Ligand'),
                     selectInput('goto', 'Go to Ligand', choices=list()),
-                    selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
+                    selectizeInput('smiles', 'Smiles String', list(), multiple=FALSE, options=list(create=TRUE))
+                    selectizeInput('new_smiles', 'New Smiles String', list(), multiple=FALSE, options=list(create=TRUE))
+                    selectizeInput('alternate_name', 'Alternate Name', list(), multiple=FALSE, options=list(create=TRUE))
+                    selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE))
+                    selectizeInput('pdb_entry', 'PDB Entry', list(), multiple=FALSE, options=list(create=TRUE))
+                    actionButton('write', 'Write metadata')
                 ), # sidebarpanel
                 mainPanel(
                     nglShinyOutput('FragViewnglShiny', height='600px')
+                    DT::dataTableOutput('therow')
                 ) # Main Panel
             ) # sidebar layout
         ) # mainPanel

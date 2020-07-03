@@ -789,7 +789,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$goback, {
         molfiles <- getMolFiles(input$fragSelect)
-	molbase <- names(molfiles)
+	    molbase <- names(molfiles)
         nmol <- length(molfiles)
         id <- which(molbase == input$goto)
         next_id <- id - 1
@@ -800,14 +800,42 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$goto, {
         molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        # Fill as it is seen:
+        files <- dir(pattern='.csv')
+        if(length(files) > 0){
+            dat <- read.csv(files)
+            updateSelectizeInput(session, 'smiles', select = dat[2])
+            updateSelectizeInput(session, 'new_smiles', select = dat[3])
+            updateSelectizeInput(session, 'alternate_name', select = dat[4])
+            updateSelectizeInput(session, 'site_name', select = dat[5])
+            updateSelectizeInput(session, 'pdb_entry', select = dat[6])
+        } else {
+            # The rest are blanks
+            # move smiles to staging folder eventually, this will only work for mArh
+            inputfolder <- filepath('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
+            smilesfn <- strsplit(input$goto, split='_')[[1]][1]
+            smilestr <- system(sprintf('cat %s_smiles.txt', smilesfn), intern=T)
+            updateSelectizeInput(session, 'smiles', select = dat[2])
+            updateSelectizeInput(session, 'new_smiles', select = '')
+            updateSelectizeInput(session, 'alternate_name', select = '')
+            updateSelectizeInput(session, 'site_name', select = '')
+            updateSelectizeInput(session, 'pdb_entry', select = '')
+        }
         # Go to specific ligand do not edit go next loop
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
         if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
         gogogo <- try(uploadMol2(molfiles[input$goto]), silent=T)
-
     })
 
-
+    observeEvent(input$write, {
+        molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        if(debug) debugMessage(sID=sID, sprintf('Writing %s to %s', input$sitelabel, input$goto))
+        fn <- file.path(folder, 'metarow.csv')
+        output <- c(gsub('.mol', '', ))
+        write.csv(output, filename= fn, quote=F)
+    })
 
     #selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
 
