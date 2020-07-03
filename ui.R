@@ -86,7 +86,7 @@ ui <- navbarPage("XChem Review", id='beep',
                     actionButton('write', 'Write metadata')
                 ), # sidebarpanel
                 mainPanel(
-                    nglShinyOutput('FragViewnglShiny', height='600px')
+                    nglShinyOutput('FragViewnglShiny', height='600px'),
                     DT::dataTableOutput('therow')
                 ) # Main Panel
             ) # sidebar layout
