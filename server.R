@@ -774,6 +774,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
     }
 
+    metadata <- reactive({ showCurrentMetaData() })
+
+    output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
+        pageLength = 100
+    ))})
+
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
@@ -783,10 +789,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
-
-        output$therow <-  DT::renderDataTable({datatable(showCurrentMetaData(), selection = 'single', options = list(
-            pageLength = 100
-        ))})
     })
 
     observeEvent(input$gonext, {
@@ -797,7 +799,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         next_id <- id + 1
         if(next_id > nmol) next_id <- 1 # Overflow back to start of list
         # Cycle along to next ligand in molfil
-
         if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molbase[next_id]))
         updateSelectInput(session, 'goto', selected = molbase[next_id], choices=molbase)
     })
@@ -856,9 +857,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
-        output$therow <-  DT::renderDataTable({datatable(showCurrentMetaData(), selection = 'single', options = list(
-            pageLength = 100
+
+        #output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
+        #    pageLength = 100
         ))})
+
     })
 
 
