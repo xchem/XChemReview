@@ -771,7 +771,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     showCurrentMetaData <- function(){
         files <- getMetaFiles(input$fragSelect)
-        do.call('rbind', lapply(files, read.csv, stringsAsFactors=F))
+        do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
     }
 
     observeEvent(input$fragSelect,{
@@ -819,7 +819,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Fill as it is seen:
         files <- dir(folder, pattern='.csv', full.names=T)
         if(length(files) > 0){
-            dat <- read.csv(files,stringsAsFactors=F)
+            dat <- read.csv(files,stringsAsFactors=F, row.names=1)
             updateTextInput(session, 'smiles', value = dat[1, 2])
             updateTextInput(session, 'new_smiles', value = dat[1, 3])
             updateTextInput(session, 'alternate_name', value = dat[1, 4])
