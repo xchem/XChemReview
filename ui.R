@@ -85,8 +85,12 @@ ui <- navbarPage("XChem Review", id='beep',
                     textInput('pdb_entry', 'PDB Entry', ''),
                     textOutput('metastatus'),
                     actionButton('write', 'Write metadata'),
-                    checkboxInput('refreshafterwrite', 'Refresh Metadata after writing? (warning: SLOW, will lose position!)', value = FALSE)
-                    
+                    checkboxInput('refreshafterwrite', 'Refresh Metadata after writing? (warning: SLOW, will lose position!)', value = FALSE),
+                    hr(),
+                    textOutput('massChange'),
+                    selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
+                    textInput('new_label', 'New label', ''),
+                    actionButton('mcl', 'Mass Convert Label')
                 ), # sidebarpanel
                 mainPanel(
                     nglShinyOutput('FragViewnglShiny', height='600px'),

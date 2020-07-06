@@ -790,6 +790,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
         updateSelectizeInput(session, 'site_name', choices = metadata()[,5])
+        updateSelectizeInput(session, 'site_name2', choices = metadata()[,5])
         updateSelectInput(session, 'goto', choices = molfil)
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
@@ -882,10 +883,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
 
-    #selectizeInput('sitelabel', 'Site Label (no commas)', list(), multiple=FALSE, options=list(create=TRUE))
-
-
-
+    output$massChange <- renderText({'Update Site Labels'})
+    observeEvent(input$mcl, {
+        oldlabel <- input$site_name2
+        newlabel <- input$new_label
+        # Perhaps open a modal
+        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+        metacsv <- dir(folderPath, pattern='meta.csv', rec=T, full.names=T)
+        for(i in metacsv){
+            x <- read.csv(i, row.names=1, stringsAsFactors=F)
+            if(x[1,5] == oldlabel){
+                x[1,5] <- newlabel
+                write.csv(x, file=i, quote=F)
+            }
+        }
+        currentProt <- input$fragSelect
+        updateSelectInput(session, 'fragSelect', selected = 'Select')
+        updateSelectInput(session, 'fragSelect', selected = currentProt)
+    })
 
     observeEvent(input$restartViewer, {
         try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
