@@ -834,9 +834,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             # The rest are blanks
             # move smiles to staging folder eventually, this will only work for mArh
-            inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/input/', input$fragSelect)
-            smilesfn <- strsplit(input$goto, split='_')[[1]][1]
-            smilestr <- system(sprintf('cat %s/%s_smiles.txt', inputfolder,smilesfn), intern=T)
+            inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+            smilesfn <- strsplit(input$goto, split='.m')[[1]][1]
+            smilestr <- system(sprintf('cat %s/%s/%s_smiles.txt', inputfolder,smilesfn,smilesfn), intern=T)
             updateTextInput(session, 'smiles', value = smilestr)
             updateTextInput(session, 'new_smiles', value = '')
             updateTextInput(session, 'alternate_name', value = '')
