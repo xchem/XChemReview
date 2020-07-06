@@ -771,7 +771,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     showCurrentMetaData <- function(){
         files <- getMetaFiles(input$fragSelect)
-        output <- do.call('rbind', lapply(files, read.csv, stringsAsFactors=F, row.names=1))
+        output <- do.call('rbind', lapply(files, function(x) read.csv(x, stringsAsFactors=F, row.names=1)[,1:6]))
         # Create placeholders for missing rows?
         #colnames(output) <- c('crystal_name', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
         return(output)
