@@ -832,6 +832,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'alternate_name', value = dat[1, 4])
             updateSelectizeInput(session, 'site_name', select = dat[1, 5])
             updateTextInput(session, 'pdb_entry', value = dat[1, 6])
+            updateTextInput(session, 'newCrystalName', value = dat[1, 7])
         } else {
             # The rest are blanks
             # move smiles to staging folder eventually, this will only work for mArh
@@ -843,6 +844,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'alternate_name', value = '')
             updateSelectizeInput(session, 'site_name', selected = '')
             updateTextInput(session, 'pdb_entry', value = '')
+            updateTextInput(session, 'newCrystalName', value = '')
         }
         # Go to specific ligand do not edit go next loop
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
@@ -862,7 +864,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$new_smiles, 
                     input$alternate_name, 
                     input$site_name, 
-                    input$pdb_entry))
+                    input$pdb_entry,
+                    input$newCrystalName))
         write.csv(output, file = fn, quote = F)
         if(input$refreshafterwrite){
             currentProt <- input$fragSelect
