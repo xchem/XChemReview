@@ -819,6 +819,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$goto, {
+        output$metastatus <- renderText({'STATUS: Pending...'}) 
         molfiles <- getMolFiles(input$fragSelect)
         folder <- dirname(molfiles[input$goto])
         # Fill as it is seen:
@@ -849,6 +850,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$write, {
+        output$metastatus <- renderText({'STATUS: Written!'}) 
         molfiles <- getMolFiles(input$fragSelect)
         folder <- dirname(molfiles[input$goto])
         if(debug) debugMessage(sID=sID, sprintf('Writing %s to %s', input$site_name, input$goto))
@@ -861,10 +863,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$site_name, 
                     input$pdb_entry))
         write.csv(output, file = fn, quote = F)
-        metadata <- reactive({ showCurrentMetaData() })
-        output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
-        pageLength = 100
-        ))})
+        if(input$refreshafterwrite){
+            currentProt <- input$fragSelect
+            currentFrag <- input$goto
+            updateSelectInput(session, 'fragSelect', selected = 'Select')
+            updateSelectInput(session, 'fragSelect', selected = currentProt)
+            molbase <- names(molfiles)
+            updateSelectInput(session, 'goto', selected = molbase[currentFrag], choices=molbase)
+        }
     })
 
     # On Table Rowclick

@@ -83,7 +83,10 @@ ui <- navbarPage("XChem Review", id='beep',
                     textInput('alternate_name', 'Alternate Name', ''),
                     selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
                     textInput('pdb_entry', 'PDB Entry', ''),
-                    actionButton('write', 'Write metadata')
+                    textOutput('metastatus'),
+                    actionButton('write', 'Write metadata'),
+                    checkboxInput('refreshafterwrite', 'Refresh Metadata after writing? (warning: SLOW, will lose position!)', value = FALSE)
+                    
                 ), # sidebarpanel
                 mainPanel(
                     nglShinyOutput('FragViewnglShiny', height='600px'),
