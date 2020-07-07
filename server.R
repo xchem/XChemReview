@@ -922,17 +922,27 @@ If you believe you have been sent this message in error, please email tyler.gorr
         newfiles <- gsub(oldname, newname, oldfiles)
         # Change folder name
 
-        file.rename(folder, newfolder)
-        # Reget Old Files
-        oldfiles <- dir(newfolder, rec=T, full.names=T)
-        file.rename(oldfiles, newfiles)
-        # Edit label in metadata...
+        # If newname has none of these characters, legal = TRUE
+        illegal <- '[./~\\!\"\'£$%^&*()@<>?|+`¬]'
+        legal <- !grepl(illegal, newname)
+        if(legal){
+            file.rename(folder, newfolder)
+            # Reget Old Files
+            oldfiles <- dir(newfolder, rec=T, full.names=T)
+            file.rename(oldfiles, newfiles)
+            # Edit label in metadata...
 
-        metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
-        if(length(metacsv) > 0){
-            metadat <- read.csv(metacsv, row.names=1, stringsAsFactors=F)
-            metadat[1,1] <- newname
-            write.csv(metadat, file=metacsv, quote=F)
+            metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
+            if(length(metacsv) > 0){
+                metadat <- read.csv(metacsv, row.names=1, stringsAsFactors=F)
+                metadat[1,1] <- newname
+                write.csv(metadat, file=metacsv, quote=F)
+            }
+        } else {
+            showModal(modalDialog(title = "You used some naughty characters",
+                sprintf('Please use a file name that does not include any of these symbols: 
+                    %s', illegal) 
+                , easyClose=TRUE))
         }
         updateTable()
         molfiles <- getMolFiles(input$fragSelect)
