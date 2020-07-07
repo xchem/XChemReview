@@ -86,7 +86,6 @@ ui <- navbarPage("XChem Review", id='beep',
                     textOutput('metastatus'),
                     actionButton('write', 'Write metadata'),
                     actionButton('updateTable', 'Update metadata Table'),
-                    checkboxInput('updateToggle', 'Automatically update table', default=TRUE)
                     hr(),
                     textOutput('massChange'),
                     selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
