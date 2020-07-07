@@ -73,7 +73,7 @@ ui <- navbarPage("XChem Review", id='beep',
         tabPanel('Main',
             sidebarLayout(
                 sidebarPanel( width = 2,
-                    actionButton("restartViewer", "Restart Viewer"),
+                    #actionButton("restartViewer", "Restart Viewer"),
                     selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
                     actionButton('goback', 'Prev Ligand'),
                     actionButton('gonext', 'Next Ligand'),
@@ -81,17 +81,20 @@ ui <- navbarPage("XChem Review", id='beep',
                     textInput('smiles', 'Smiles String', ''),
                     textInput('new_smiles', 'New Smiles String', ''),
                     textInput('alternate_name', 'Alternate Name', ''),
-                    textInput('newCrystalName', 'New Name', ''),
                     selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
                     textInput('pdb_entry', 'PDB Entry', ''),
                     textOutput('metastatus'),
                     actionButton('write', 'Write metadata'),
-                    checkboxInput('refreshafterwrite', 'Refresh Metadata after writing? (warning: SLOW, will lose position!)', value = FALSE),
+                    actionButton('updateTable', 'Update metadata Table'),
+                    checkboxInput('updateToggle', 'Automatically update table', default=TRUE)
                     hr(),
                     textOutput('massChange'),
                     selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
                     textInput('new_label', 'New label', ''),
-                    actionButton('mcl', 'Mass Convert Label')
+                    actionButton('mcl', 'Mass Convert Label'),
+                    hr(),
+                    textInput('newCrystalName', 'New Name', ''),
+                    actionButton('changeName', 'Change Name of Crystal')
                 ), # sidebarpanel
                 mainPanel(
                     nglShinyOutput('FragViewnglShiny', height='600px'),

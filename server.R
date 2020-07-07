@@ -191,16 +191,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
     dbDisconnect(con)
 
-    possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
-                        function(x){
-                            unique(unlist(strsplit(x, '; ')))
-                        })
-    possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
-    possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
-    possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
-    possRes[['Reject']] <- unique(c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density'))
+    possDec <- c("", "Release", "More Refinement", "More Experiments", "Reject")
+    possAns <- possAns2 <- c('Select Decision')
+    possRes <- list()
+    possRes[['Release']] <- c('High Confidence', 'Clear Density, Unexpected Ligand', 'Correct Ligand, Weak Density', 'Low Confidence', 'No Ligand Present')
+    possRes[["More Refinement"]] <- c('Check ligand conformation','Check sidechain rotamers','Check Rfactors','Check that refinement converged','Improve water model','Build alternate conformations','Fix geometry','Trim down ligand','Density did not load','Other')
+    possRes[["More Experiments"]] <- c('Get better density','Get better resolution','Confirm ligand identity','Check if ligand changed','Other')
+    possRes[["Reject"]] <- c('Density not convincing','Too few interactions','Binding site too noisy','Other')
     possDec_int <- 1:4
-    names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
+    names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Reject")
 
 
     inputData <- reactive({dbdat})
@@ -217,6 +216,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     if(debug) debugMessage(sID=sID, sprintf('Data Reactivised'))
+
     r1 <- reactive({
         rowidx <- rep(FALSE, nrow(inputData()))
         outcome <- inputData()$XCEoutcome
@@ -770,18 +770,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     showCurrentMetaData <- function(){
+        if(debug) debugMessage(sID=sID, sprintf('Fetching Data'))
         files <- getMetaFiles(input$fragSelect)
         output <- do.call('rbind', lapply(files, function(x) read.csv(x, stringsAsFactors=F, row.names=1)[,1:6]))
-        # Create placeholders for missing rows?
-        #colnames(output) <- c('crystal_name', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
+        rownames(output) <- output[,1]
         return(output)
     }
 
-    metadata <- reactive({ showCurrentMetaData() })
-
-    output$therow <-  DT::renderDataTable({datatable(metadata(), selection = 'single', options = list(
-        pageLength = 100
-    ))})
+    updateTable <- function(){
+        if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
+        dummy <- rbind(c(1,1), c(1,1))
+        mdr <- reactiveValues(x=showCurrentMetaData())
+        output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(pageLength = 200))})
+        output$therow <-  DT::renderDataTable({datatable(mdr$x, selection = 'single', options = list(pageLength = 200))})
+        updateSelectizeInput(session, 'site_name', choices = mdr$x[,5])
+        updateSelectizeInput(session, 'site_name2', choices = mdr$x[,5])
+        if(debug) debugMessage(sID=sID, sprintf('Updated Table'))
+    }
 
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
@@ -789,11 +794,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
-        updateSelectizeInput(session, 'site_name', choices = metadata()[,5])
-        updateSelectizeInput(session, 'site_name2', choices = metadata()[,5])
-        updateSelectInput(session, 'goto', choices = molfil)
+        updateSelectInput(session, 'goto', choices = molfil)       
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
+        updateTable()
     })
 
     observeEvent(input$gonext, {
@@ -825,6 +829,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         folder <- dirname(molfiles[input$goto])
         # Fill as it is seen:
         files <- dir(folder, pattern='.csv', full.names=T)
+        fn <- strsplit(input$goto, split='[.]')[[1]][1]
+        updateTextInput(session, 'newCrystalName', value = fn)
         if(length(files) > 0){
             dat <- read.csv(files,stringsAsFactors=F, row.names=1)
             updateTextInput(session, 'smiles', value = dat[1, 2])
@@ -832,10 +838,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'alternate_name', value = dat[1, 4])
             updateSelectizeInput(session, 'site_name', select = dat[1, 5])
             updateTextInput(session, 'pdb_entry', value = dat[1, 6])
-            updateTextInput(session, 'newCrystalName', value = dat[1, 7])
         } else {
-            # The rest are blanks
-            # move smiles to staging folder eventually, this will only work for mArh
             inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
             smilesfn <- strsplit(input$goto, split='[.]')[[1]][1]
             smilestr <- system(sprintf('cat %s/%s/%s_smiles.txt', inputfolder,smilesfn,smilesfn), intern=T)
@@ -844,8 +847,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'alternate_name', value = '')
             updateSelectizeInput(session, 'site_name', selected = '')
             updateTextInput(session, 'pdb_entry', value = '')
-            updateTextInput(session, 'newCrystalName', value = '')
         }
+
         # Go to specific ligand do not edit go next loop
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
         if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
@@ -853,6 +856,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$write, {
+        if(debug) debugMessage(sID=sID, sprintf('Writing a row'))
         output$metastatus <- renderText({'STATUS: Written!'}) 
         molfiles <- getMolFiles(input$fragSelect)
         folder <- dirname(molfiles[input$goto])
@@ -864,30 +868,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$new_smiles, 
                     input$alternate_name, 
                     input$site_name, 
-                    input$pdb_entry,
-                    input$newCrystalName))
+                    input$pdb_entry
+                    ))
         write.csv(output, file = fn, quote = F)
-        if(input$refreshafterwrite){
-            currentProt <- input$fragSelect
-            currentFrag <- input$goto
-            updateSelectInput(session, 'fragSelect', selected = 'Select')
-            updateSelectInput(session, 'fragSelect', selected = currentProt)
-            molbase <- names(molfiles)
-            updateSelectInput(session, 'goto', selected = molbase[currentFrag], choices=molbase)
-        }
+        updateTable()
     })
 
-    # On Table Rowclick
+    # On Table Rowclick # Potentially slow? Unneeded? # Go back to
     observeEvent(input$therow_rows_selected, {
+        if(debug) debugMessage(sID=sID, sprintf('Selecting Row'))
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
-        choice <- metadata()[input$therow_rows_selected,1]
+        mdr <- reactiveValues(x=showCurrentMetaData())
+        choice <- mdr$x[input$therow_rows_selected,1]
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', choice), choices=molbase)
     })
 
-
     output$massChange <- renderText({'Update Site Labels'})
+
     observeEvent(input$mcl, {
+        if(debug) debugMessage(sID=sID, sprintf('Changing Labels'))
         oldlabel <- input$site_name2
         newlabel <- input$new_label
         # Perhaps open a modal
@@ -900,17 +900,47 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 write.csv(x, file=i, quote=F)
             }
         }
-        currentProt <- input$fragSelect
-        updateSelectInput(session, 'fragSelect', selected = 'Select')
-        updateSelectInput(session, 'fragSelect', selected = currentProt)
+        updateTable()
     })
 
     observeEvent(input$restartViewer, {
         try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
     })
 
+    observeEvent(input$changeName, {
+        if(debug) debugMessage(sID=sID, sprintf('Changing Names'))
+        oldname <- strsplit(input$goto, split='[.]')[[1]][1]
+        newname <- input$newCrystalName
+        molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        newfolder <- gsub(oldname, newname, folder)
+
+        # sanity check newname for / . etc Reject with modal.
+
+        # Have a modal with accept...
+        oldfiles <- dir(folder, rec=T, full.names=T)
+        newfiles <- gsub(oldname, newname, oldfiles)
+        # Change folder name
+
+        file.rename(folder, newfolder)
+        # Reget Old Files
+        oldfiles <- dir(newfolder, rec=T, full.names=T)
+        file.rename(oldfiles, newfiles)
+        # Edit label in metadata...
+
+        metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
+        if(length(metacsv) > 0){
+            metadat <- read.csv(metacsv, row.names=1, stringsAsFactors=F)
+            metadat[1,1] <- newname
+            write.csv(metadat, file=metacsv, quote=F)
+        }
+        updateTable()
+    })
 
 
+    observeEvent(input$updateTable,{
+        updateTable()
+    })
 
     # Frag Chat
 

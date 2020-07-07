@@ -106,21 +106,16 @@ gc()
 defaultRepresentation <- "ball+stick"
 defaultColorScheme <- "chainIndex"
 
-possDec <- c("", "Release", "Release (notify)", "More Work", "Reject")
+possDec <- c("", "Release", "More Refinement", "More Experiments", "Reject")
 possAns <- possAns2 <- c('Select Decision')
-
-possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
-                    function(x){
-                        unique(unlist(strsplit(x, '; ')))
-                    })
-
-possRes[['Release']] <- c(possRes[['Release']], 'Everything is Wonderful')
-possRes[['Release (notify)']] <- c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality')
-possRes[['More Work']] <- c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement')
-possRes[['Reject']] <- c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density')
+possRes <- list()
+possRes[['Release']] <- c('High Confidence', 'Clear Density, Unexpected Ligand', 'Correct Ligand, Weak Density', 'Low Confidence', 'No Ligand Present')
+possRes[["More Refinement"]] <- c('Check ligand conformation','Check sidechain rotamers','Check Rfactors','Check that refinement converged','Improve water model','Build alternate conformations','Fix geometry','Trim down ligand','Density did not load','Other')
+possRes[["More Experiments"]] <- c('Get better density','Get better resolution','Confirm ligand identity','Check if ligand changed','Other')
+possRes[["Reject"]] <- c('Density not convincing','Too few interactions','Binding site too noisy','Other')
 possDec_int <- 1:4
-names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
-
+names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Reject")
 
 fragfolders <- dir('/dls/science/groups/i04-1/fragprep/staging/')
 fragfolders <- fragfolders[!fragfolders %in% c('~', 'tmp')]
+
