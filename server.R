@@ -935,6 +935,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
             write.csv(metadat, file=metacsv, quote=F)
         }
         updateTable()
+        molfiles <- getMolFiles(input$fragSelect)
+        molbase <- names(molfiles)
+        updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', newname), choices=molbase)
     })
 
 
