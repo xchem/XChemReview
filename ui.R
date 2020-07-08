@@ -71,35 +71,46 @@ ui <- navbarPage("XChem Review", id='beep',
     ), # Tab Panel
     tabPanel('FragView',
         tabPanel('Main',
-            sidebarLayout(
-                sidebarPanel( width = 2,
-                    #actionButton("restartViewer", "Restart Viewer"),
-                    selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
-                    actionButton('goback', 'Prev Ligand'),
-                    actionButton('gonext', 'Next Ligand'),
-                    selectInput('goto', 'Go to Ligand', choices=list()),
-                    textInput('smiles', 'Smiles String', ''),
-                    textInput('new_smiles', 'New Smiles String', ''),
-                    textInput('alternate_name', 'Alternate Name', ''),
-                    selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
-                    textInput('pdb_entry', 'PDB Entry', ''),
-                    textOutput('metastatus'),
-                    actionButton('write', 'Write metadata'),
-                    actionButton('updateTable', 'Update metadata Table'),
-                    hr(),
-                    textOutput('massChange'),
-                    selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
-                    textInput('new_label', 'New label', ''),
-                    actionButton('mcl', 'Mass Convert Label'),
-                    hr(),
-                    textInput('newCrystalName', 'New Name', ''),
-                    actionButton('changeName', 'Change Name of Crystal')
-                ), # sidebarpanel
-                mainPanel(
-                    nglShinyOutput('FragViewnglShiny', height='600px'),
-                    DT::dataTableOutput('therow')
-                ) # Main Panel
-            ) # sidebar layout
+            fluidPage(
+                tags$head(
+                    tags$style("#panel3 {position: fixed;}"),
+                    tags$style("#panel4 {overflow: auto;}")
+                ),
+                sidebarLayout(
+                    sidebarPanel( width = 2,
+                        selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
+                        actionButton('goback', 'Prev Ligand'),
+                        actionButton('gonext', 'Next Ligand'),
+                        selectInput('goto', 'Go to Ligand', choices=list()),
+                        textInput('crysname', 'Crystal Name', '' ),
+                        textInput('smiles', 'Smiles String', ''),
+                        textInput('new_smiles', 'New Smiles String', ''),
+                        textInput('alternate_name', 'Alternate Fragment Name', ''),
+                        selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
+                        textInput('pdb_entry', 'PDB Entry', ''),
+                        textOutput('metastatus'),
+                        actionButton('write', 'Write metadata to table'),
+                        hr(),
+                        textInput('newCrystalName', 'New Fragment Name', ''),
+                        actionButton('changeName', 'Change Name of Fragment (will not assign site label)'),             
+                        hr(),
+                        textOutput('massChange'),
+                        selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
+                        textInput('new_label', 'New label', ''),
+                        actionButton('mcl', 'Mass Convert Label'),
+                        hr(),
+                        actionButton('updateTable', 'Refresh Metadata Table')
+                    ), # sidebarpanel
+                    mainPanel(
+                        absolutePanel(id = 'panel3', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
+                            nglShinyOutput('FragViewnglShiny', height='600px')
+                        ),
+                        absolutePanel(id = 'panel4', top='70%', bottom='0%', fixed=T,
+                            DT::dataTableOutput('therow')
+                        )
+                    ) # Main Panel
+                ) # sidebar layout
+            ) # Fluid Page
         ) # mainPanel
     ), # tabPanel
     tabPanel('FragChat',

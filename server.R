@@ -772,9 +772,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     showCurrentMetaData <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Fetching Data'))
         files <- getMetaFiles(input$fragSelect)
-        output <- do.call('rbind', lapply(files, function(x) read.csv(x, stringsAsFactors=F, row.names=1)[,1:6]))
-        rownames(output) <- output[,1]
-        return(output)
+        output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
+        try(colnames(output) <- c('', 'Fragalysis Label', 'Crystal Name', 'Smiles', 'New Smiles', 'Alt Fragalysis Label', 'Site Label', 'PDB Entry'), silent=T)
+        rownames(output) <- output[,2]
+        return(output[,-1])
     }
 
     updateTable <- function(){
@@ -783,8 +784,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         mdr <- reactiveValues(x=showCurrentMetaData())
         output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(pageLength = 200))})
         output$therow <-  DT::renderDataTable({datatable(mdr$x, selection = 'single', options = list(pageLength = 200))})
-        updateSelectizeInput(session, 'site_name', choices = mdr$x[,5])
-        updateSelectizeInput(session, 'site_name2', choices = mdr$x[,5])
+        updateSelectizeInput(session, 'site_name', choices = sort(mdr$x[,6]))
+        updateSelectizeInput(session, 'site_name2', choices = sort(mdr$x[,6]))
         if(debug) debugMessage(sID=sID, sprintf('Updated Table'))
     }
 
@@ -832,16 +833,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fn <- strsplit(input$goto, split='[.]')[[1]][1]
         updateTextInput(session, 'newCrystalName', value = fn)
         if(length(files) > 0){
-            dat <- read.csv(files,stringsAsFactors=F, row.names=1)
-            updateTextInput(session, 'smiles', value = dat[1, 2])
-            updateTextInput(session, 'new_smiles', value = dat[1, 3])
-            updateTextInput(session, 'alternate_name', value = dat[1, 4])
-            updateSelectizeInput(session, 'site_name', select = dat[1, 5])
-            updateTextInput(session, 'pdb_entry', value = dat[1, 6])
+            dat <- read.csv(files, row.names=NULL, stringsAsFactors=F, header=F)
+            updateTextInput(session, 'crysname', value = dat[1, 3])
+            updateTextInput(session, 'smiles', value = dat[1, 4])
+            updateTextInput(session, 'new_smiles', value = dat[1, 5])
+            updateTextInput(session, 'alternate_name', value = dat[1, 6])
+            updateSelectizeInput(session, 'site_name', select = dat[1, 7])
+            updateTextInput(session, 'pdb_entry', value = dat[1, 8])
         } else {
             inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
             smilesfn <- strsplit(input$goto, split='[.]')[[1]][1]
             smilestr <- system(sprintf('cat %s/%s/%s_smiles.txt', inputfolder,smilesfn,smilesfn), intern=T)
+            updateTextInput(session, 'crysname', value = '')
             updateTextInput(session, 'smiles', value = smilestr)
             updateTextInput(session, 'new_smiles', value = '')
             updateTextInput(session, 'alternate_name', value = '')
@@ -864,13 +867,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragname <- gsub('.mol', '', input$goto)
         fn <- file.path(folder, sprintf('%s_meta.csv', fragname))
         output <- t(c(fragname, 
+                    input$crysname,
                     input$smiles, 
                     input$new_smiles, 
                     input$alternate_name, 
                     input$site_name, 
                     input$pdb_entry
                     ))
-        write.csv(output, file = fn, quote = F)
+        write.table(output, file = fn, quote = F, col.names=F, sep=',')
         updateTable()
     })
 
@@ -894,10 +898,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
         metacsv <- dir(folderPath, pattern='meta.csv', rec=T, full.names=T)
         for(i in metacsv){
-            x <- read.csv(i, row.names=1, stringsAsFactors=F)
-            if(x[1,5] == oldlabel){
-                x[1,5] <- newlabel
-                write.csv(x, file=i, quote=F)
+            x <- read.csv(i, row.names=NULL, stringsAsFactors=F, header=F)
+            if(x[1,7] == oldlabel){
+                x[1,7] <- newlabel
+                write.table(x, file=i, quote=F, col.names=F, sep=',')
             }
         }
         updateTable()
@@ -922,28 +926,37 @@ If you believe you have been sent this message in error, please email tyler.gorr
         newfiles <- gsub(oldname, newname, oldfiles)
         # Change folder name
 
-        # If newname has none of these characters, legal = TRUE
-        illegal <- '[./~\\!\"\'£$%^&*()@<>?|+`¬]'
-        legal <- !grepl(illegal, newname)
-        if(legal){
-            file.rename(folder, newfolder)
-            # Reget Old Files
-            oldfiles <- dir(newfolder, rec=T, full.names=T)
-            file.rename(oldfiles, newfiles)
-            # Edit label in metadata...
-
-            metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
-            if(length(metacsv) > 0){
-                metadat <- read.csv(metacsv, row.names=1, stringsAsFactors=F)
-                metadat[1,1] <- newname
-                write.csv(metadat, file=metacsv, quote=F)
-            }
+        # check if name exists
+        existingNames <- names(molfiles)
+        dupe <- newname %in% existingNames
+        if(dupe){
+            showModal(modalDialog(title = "A fragment with this name already exists",
+                    sprintf('The name %s already exists, please use a different name', newname) 
+                    , easyClose=TRUE))
         } else {
-            showModal(modalDialog(title = "You used some naughty characters",
-                sprintf('Please use a file name that does not include any of these symbols: 
-                    %s', illegal) 
-                , easyClose=TRUE))
+            # If newname has none of these characters, legal = TRUE
+            illegal <- '[./~\\!\"\'£$%^&*()@<>?|+`¬]'
+            legal <- !grepl(illegal, newname)
+            if(legal){
+                file.rename(folder, newfolder)
+                # Reget Old Files
+                oldfiles <- dir(newfolder, rec=T, full.names=T)
+                file.rename(oldfiles, newfiles)
+                # Edit label in metadata...
+                metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
+                if(length(metacsv) > 0){
+                    metadat <- read.csv(metacsv, row.names=NULL, stringsAsFactors=F, header=F)
+                    metadat[1,2] <- newname
+                    write.table(metadat, file=metacsv, quote=F, col.names=F, row.names=F, sep=',')
+                }
+            } else {
+                showModal(modalDialog(title = "You used some naughty characters",
+                    sprintf('Please use a file name that does not include any of these symbols: 
+                        %s', illegal) 
+                    , easyClose=TRUE))
+            }
         }
+        # Mandatory Update
         updateTable()
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
