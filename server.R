@@ -780,10 +780,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     updateTable <- function(){
         gsearch <- input$therow_search
-        rowsel <- input$therow_rows_selected
+        gsearch <- ifelse(is.null(gsearch),'',gsearch)
+
+        #rowsel <- input$therow_rows_selected
+        #rowsel <- ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row'))
+
         csearch <- input$therow_search_columns
+        csearch <- ifelse(is.null(csearch), list(), csearch)
         print(gsearch)
-        print(rowsel)
+        #print(rowsel)
         print(csearch)
         if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
         dummy <- rbind(c(1,1), c(1,1))
@@ -792,14 +797,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
         output$therow <-  DT::renderDataTable({
             datatable(mdr$x, 
                 filter='top', 
-                selection = ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row')), 
+                selection = 'single',#rowsel, 
                 options = list(
-                    searchCols = ifelse(is.null(csearch),list(),csearch),
+                    searchCols = csearch,
                     scrollX=TRUE,
                     search = list(
                         regex = FALSE, 
                         caseInsensitive = TRUE, 
-                        search = ifelse(is.null(gsearch),'',gsearch) ),
+                        search = gsearch),
                     pageLength = 200
                 )
             )
