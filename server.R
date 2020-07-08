@@ -781,10 +781,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     updateTable <- function(){
         #gsearch <- input$therow_search
         #gsearch <- ifelse(is.null(gsearch),'',gsearch)
-
         #rowsel <- input$therow_rows_selected
         #rowsel <- ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row'))
-
         #csearch <- input$therow_search_columns
         #csearch <- ifelse(is.null(csearch), list(), csearch)
         #print(gsearch)
@@ -926,7 +924,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             x <- read.csv(i, row.names=NULL, stringsAsFactors=F, header=F)
             if(x[1,7] == oldlabel){
                 x[1,7] <- newlabel
-                write.table(x, file=i, quote=F, col.names=F, sep=',')
+                write.table(x, file=i, quote=F, col.names=F, sep=',', row.names=F, sep=',')
             }
         }
         updateTable()
