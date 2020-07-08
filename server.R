@@ -779,27 +779,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     updateTable <- function(){
-        if(exists("default_search")){ 
-            oldsearch <- default_search
-        } else {
-            oldsearch <- ''
-        }
-        if(exists("default_search_columns")){
-            oldcsearch <- default_search_columns
-        } else {
-            oldcsearch <- NULL
-        }
+        print(str(input))
+        gsearch <- input$therow_search
+        rowsel <- input$therow_rows_selected
+        csearch <- input$therow_search_columns
+
 
         if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
         dummy <- rbind(c(1,1), c(1,1))
         mdr <- reactiveValues(x=showCurrentMetaData())
-        output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(stateSave = TRUE, pageLength = 200))})
-        output$therow <-  DT::renderDataTable({datatable(mdr$x, filter='top',selection = 'single', options = list(
-            #searchCols = oldcsearch,
-            scrollX=TRUE,
-            stateSave=TRUE,
-            #search = list(regex = FALSE, caseInsensitive=TRUE, search=oldsearch),
-            pageLength = 200
+        output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(pageLength = 200))})
+        output$therow <-  DT::renderDataTable({
+            datatable(mdr$x, filter='top', selection = list(mode='single', selected=rowsel, target='row'), 
+            options = list(
+                searchCols = csearch,
+                scrollX=TRUE,
+                search = list(regex = FALSE, caseInsensitive=TRUE, search=gsearch),
+                pageLength = 200
             ))
         })
         updateSelectizeInput(session, 'site_name', choices = sort(mdr$x[,6]))
