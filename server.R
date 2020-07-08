@@ -779,17 +779,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     updateTable <- function(){
-        gsearch <- input$therow_search
-        gsearch <- ifelse(is.null(gsearch),'',gsearch)
+        #gsearch <- input$therow_search
+        #gsearch <- ifelse(is.null(gsearch),'',gsearch)
 
         #rowsel <- input$therow_rows_selected
         #rowsel <- ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row'))
 
-        csearch <- input$therow_search_columns
-        csearch <- ifelse(is.null(csearch), list(), csearch)
-        print(gsearch)
+        #csearch <- input$therow_search_columns
+        #csearch <- ifelse(is.null(csearch), list(), csearch)
+        #print(gsearch)
         #print(rowsel)
-        print(csearch)
+        #print(csearch)
         if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
         dummy <- rbind(c(1,1), c(1,1))
         mdr <- reactiveValues(x=showCurrentMetaData())
@@ -799,12 +799,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 filter='top', 
                 selection = 'single',#rowsel, 
                 options = list(
-                    searchCols = csearch,
+                    #searchCols = csearch,
                     scrollX=TRUE,
-                    search = list(
-                        regex = FALSE, 
-                        caseInsensitive = TRUE, 
-                        search = gsearch),
+                    #search = list(
+                    #    regex = FALSE, 
+                    #    caseInsensitive = TRUE, 
+                    #    search = gsearch),
                     pageLength = 200
                 )
             )
