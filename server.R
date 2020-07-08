@@ -924,7 +924,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             x <- read.csv(i, row.names=NULL, stringsAsFactors=F, header=F)
             if(x[1,7] == oldlabel){
                 x[1,7] <- newlabel
-                write.table(x, file=i, quote=F, col.names=F, sep=',', row.names=F, sep=',')
+                write.table(x, file=i, quote=F, col.names=F, row.names=F, sep=',')
             }
         }
         updateTable()
