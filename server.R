@@ -782,12 +782,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         gsearch <- input$therow_search
         rowsel <- input$therow_rows_selected
         csearch <- input$therow_search_columns
-
         print(gsearch)
         print(rowsel)
         print(csearch)
-
-
         if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
         dummy <- rbind(c(1,1), c(1,1))
         mdr <- reactiveValues(x=showCurrentMetaData())
@@ -795,9 +792,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         output$therow <-  DT::renderDataTable({
             datatable(mdr$x, 
                 filter='top', 
-                selection = ifelse(is.null(rowsel), 'single', list(mode='single', selected=rowsel, target='row')), 
+                selection = ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row')), 
                 options = list(
-                    searchCols = ifelse(is.null(csearch),NULL,csearch),
+                    searchCols = ifelse(is.null(csearch),list(),csearch),
                     scrollX=TRUE,
                     search = list(
                         regex = FALSE, 
