@@ -920,11 +920,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Perhaps open a modal
         folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
         metacsv <- dir(folderPath, pattern='meta.csv', rec=T, full.names=T)
-        for(i in metacsv){
-            x <- read.csv(i, row.names=NULL, stringsAsFactors=F, header=F)
-            if(x[1,7] == oldlabel){
-                x[1,7] <- newlabel
-                write.table(x, file=i, quote=F, col.names=F, row.names=F, sep=',')
+        for(afile in metacsv){
+            message(afile)
+            afile_data <- read.csv(afile, row.names=NULL, stringsAsFactors=F, header=F)
+            currentlabel <- afile_data[1,7]
+            if(!is.na(currentlabel)){
+                if(afile_data[1,7] == oldlabel){
+                    afile_data[1,7] <- newlabel
+                    write.table(afile_data, file=afile, quote=F, col.names=F, row.names=F, sep=',')
+                }
             }
         }
         updateTable()
@@ -971,12 +975,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     metadat <- read.csv(metacsv, row.names=NULL, stringsAsFactors=F, header=F)
                     metadat[1,2] <- newname
                     write.table(metadat, file=metacsv, quote=F, col.names=F, row.names=F, sep=',')
-                }
-            } else {
+                } else {
                 showModal(modalDialog(title = "You used some naughty characters",
                     sprintf('Please use a file name that does not include any of these symbols: 
                         %s', illegal) 
                     , easyClose=TRUE))
+                }
             }
         }
         # Mandatory Update
