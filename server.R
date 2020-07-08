@@ -779,10 +779,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     updateTable <- function(){
-        print(str(input))
         gsearch <- input$therow_search
         rowsel <- input$therow_rows_selected
         csearch <- input$therow_search_columns
+
+        print(gsearch)
+        print(rowsel)
+        print(csearch)
 
 
         if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
@@ -790,13 +793,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
         mdr <- reactiveValues(x=showCurrentMetaData())
         output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(pageLength = 200))})
         output$therow <-  DT::renderDataTable({
-            datatable(mdr$x, filter='top', selection = list(mode='single', selected=rowsel, target='row'), 
-            options = list(
-                searchCols = csearch,
-                scrollX=TRUE,
-                search = list(regex = FALSE, caseInsensitive=TRUE, search=gsearch),
-                pageLength = 200
-            ))
+            datatable(mdr$x, 
+                filter='top', 
+                selection = ifelse(is.null(rowsel), 'single', list(mode='single', selected=rowsel, target='row')), 
+                options = list(
+                    searchCols = ifelse(is.null(csearch),NULL,csearch),
+                    scrollX=TRUE,
+                    search = list(
+                        regex = FALSE, 
+                        caseInsensitive = TRUE, 
+                        search = ifelse(is.null(gsearch),'',gsearch) ),
+                    pageLength = 200
+                )
+            )
         })
         updateSelectizeInput(session, 'site_name', choices = sort(mdr$x[,6]))
         updateSelectizeInput(session, 'site_name2', choices = sort(mdr$x[,6]))
