@@ -828,9 +828,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$writeButton <- renderUI({
         if(input$desync) {
-            actionButton('write', 'Write metadata to table', style="background-color: #337ab7")
+            actionButton('write', 'Write metadata to table', style="background-color: #FF0000")
         } else {
-            actionButton('write', 'Write metadata to table', style="background-color: #337ab7")
+            actionButton('write', 'Write metadata to table')
         }
 
     })
@@ -922,7 +922,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$pdb_entry
                     ))
         write.table(output, file = fn, quote = F, col.names=F, sep=',')
-        updateTable()
+        if(input$desync) updateTable()
     })
 
     # On Table Rowclick # Potentially slow? Unneeded? # Go back to
@@ -955,7 +955,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }
         }
-        updateTable()
+        if(input$desync) updateTable()
     })
 
     observeEvent(input$restartViewer, {
@@ -1008,7 +1008,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
         }
         # Mandatory Update
-        updateTable()
+        if(input$desync) updateTable()
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', newname), choices=molbase)
