@@ -922,7 +922,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     input$pdb_entry
                     ))
         write.table(output, file = fn, quote = F, col.names=F, sep=',')
-        if(input$desync) updateTable()
+        if(!input$desync) updateTable()
     })
 
     # On Table Rowclick # Potentially slow? Unneeded? # Go back to
@@ -955,7 +955,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }
         }
-        if(input$desync) updateTable()
+        if(!input$desync) updateTable()
     })
 
     observeEvent(input$restartViewer, {
@@ -1008,7 +1008,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
         }
         # Mandatory Update
-        if(input$desync) updateTable()
+        if(!input$desync) updateTable()
         molfiles <- getMolFiles(input$fragSelect)
         molbase <- names(molfiles)
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', newname), choices=molbase)
