@@ -79,6 +79,7 @@ ui <- navbarPage("XChem Review", id='beep',
                 sidebarLayout(
                     sidebarPanel( width = 2,
                         selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
+                        checkboxInput('desync', 'Turn off automatic Updates', value = FALSE),
                         actionButton('goback', 'Prev Ligand'),
                         actionButton('gonext', 'Next Ligand'),
                         selectInput('goto', 'Go to Ligand', choices=list()),

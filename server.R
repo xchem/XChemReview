@@ -736,6 +736,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 message=list(choice))
     }
 
+    getAlignedStagingFolder <- function(){
+        stagefold <- getStagingFolder()
+        if(length(dir('stagefold', pattern='aligned')) > 0){
+            out <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect, 'aligned')
+        } else {
+            out <- stagefold
+        }
+        return(out)
+    }
+
+    getStagingFolder <- function(){
+        file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+    }
+
     uploadMol <- function(filepath){
             syscall <- sprintf('cat %s', filepath)
             if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
@@ -757,14 +771,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
  
     getMolFiles <- function(folderName){
-        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', folderName)
+        folderPath <- getAlignedStagingFolder()
         molfiles <- dir(folderPath, rec=T, pattern='.mol', full.names=TRUE)
         names(molfiles) <- basename(molfiles)
         return(molfiles)
     }
 
     getMetaFiles <- function(folderName){
-        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', folderName)
+        folderPath <- getAlignedStagingFolder()
         files <- dir(folderPath, rec=T, pattern='meta.csv', full.names=TRUE)
         return(files)
     }
@@ -812,16 +826,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Updated Table'))
     }
 
+    output$writeButton <- renderUI({
+        if(input$desync) {
+            actionButton('write', 'Write metadata to table', style="background-color: #337ab7")
+        } else {
+            actionButton('write', 'Write metadata to table', style="background-color: #337ab7")
+        }
+
+    })
+
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
-        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+        folderPath <- getAlignedStagingFolder()
         apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
         molfiles <- getMolFiles(input$fragSelect)
         molfil <- names(molfiles)
-        updateSelectInput(session, 'goto', choices = molfil)       
+        updateSelectInput(session, 'goto', choices = molfil)
+        updateTable()     
         tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
         molout <- try(sapply(molfiles, uploadMol), silent=T)
-        updateTable()
+        
     })
 
     observeEvent(input$gonext, {
@@ -918,7 +942,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         oldlabel <- input$site_name2
         newlabel <- input$new_label
         # Perhaps open a modal
-        folderPath <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+        folderPath <- getAlignedStagingFolder()
         metacsv <- dir(folderPath, pattern='meta.csv', rec=T, full.names=T)
         for(afile in metacsv){
             message(afile)
