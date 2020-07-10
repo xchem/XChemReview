@@ -786,13 +786,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
     showCurrentMetaData <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Fetching Data'))
         files <- getMetaFiles(input$fragSelect)
-        if(debug) debugMessage(sID=sID, sprintf('Saving Data'))
+
 
         try({
+            metaoutfile <- file.path(getStagingFolder(), 'metadata.csv')
+            if(debug) debugMessage(sID=sID, sprintf('Saving Data to %s', metaoutfile))
             output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
             colnames(output) <- c('','crystal_name', 'RealCrystalName', 'smiles','new_smiles','alternate_name','site_name','pdb_entry')
             output2 <- output[!meta$site_name=='IGNORE',]
-            write.csv(output2[,-1], file=sprintf('%s/metadata.csv', getStagingFolder()), quote=F)
+            write.csv(output2[,-1], file=metaoutfile, quote=F)
         }, silent = T)
 
         try(colnames(output) <- c('', 'Fragalysis Label', 'Crystal Name', 'Smiles', 'New Smiles', 'Alt Fragalysis Label', 'Site Label', 'PDB Entry'), silent=T)
