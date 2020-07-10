@@ -793,7 +793,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(debug) debugMessage(sID=sID, sprintf('Saving Data to %s', metaoutfile))
             output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
             colnames(output) <- c('','crystal_name', 'RealCrystalName', 'smiles','new_smiles','alternate_name','site_name','pdb_entry')
-            output2 <- output[!meta$site_name=='IGNORE',]
+            output2 <- output[!output$site_name=='IGNORE',]
             write.csv(output2[,-1], file=metaoutfile, quote=F)
         }, silent = T)
 
