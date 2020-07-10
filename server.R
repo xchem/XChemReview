@@ -377,9 +377,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     findFiles <- function(fp){
-        eventmapStrings <- c('_event.ccp4', 'event_map.map', '_map.native.ccp4')
-        fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
-        fofcStrings <- c('_fofc.ccp4', '^fofc.map')
+        eventmapStrings <- c('_event_cut.ccp4', '_event.ccp4', 'event_map.map', '_map.native.ccp4')
+        fofc2Strings <- c('_2fofc_cut.cpp4', '_2fofc.cpp4', '^2fofc.map')
+        fofcStrings <- c('_fofc_cut.cpp4', '_fofc.ccp4', '^fofc.map')
 
         # first look for .ccp4 files
         eventmapFile <- findFirstMatchingFile(eventmapStrings, fp=fp)
@@ -786,7 +786,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
     showCurrentMetaData <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Fetching Data'))
         files <- getMetaFiles(input$fragSelect)
-        output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
+        if(debug) debugMessage(sID=sID, sprintf('Saving Data'))
+
+        try({
+            output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
+            colnames(output) <- c('','crystal_name', 'RealCrystalName', 'smiles','new_smiles','alternate_name','site_name','pdb_entry')
+            output2 <- output[!meta$site_name=='IGNORE',]
+            write.csv(output2[,-1], file=sprintf('%s/metadata.csv', getStagingFolder()), quote=F)
+        }, silent = T)
+
         try(colnames(output) <- c('', 'Fragalysis Label', 'Crystal Name', 'Smiles', 'New Smiles', 'Alt Fragalysis Label', 'Site Label', 'PDB Entry'), silent=T)
         rownames(output) <- output[,2]
         return(output[,-1])
