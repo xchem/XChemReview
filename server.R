@@ -28,12 +28,62 @@ server <- function(input, output, session) {
         data
     }
 
+    getChannelList <- function(){
+        channellist <- content(POST(url='https://slack.com/api/conversations.list', body=list(token=api)))
+        channels <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
+        rownames(channels) <- channels[,1]
+        return(channels)
+    }
+
+    createChannel <- function(structure){
+        # lowercase and despecial
+        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
+        resp <- POST(url='https://slack.com/api/conversations.create', body=list(token=api, name =channelname))
+        return(content(resp)$channel$id)
+    }
+
+    getChannel <- function(structure, channels){
+        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
+        ifelse(channelname %in% rownames(channels), channels[channelname, 2], NA)
+    }
+
+    sendMessageToSlack <- function(channel, structure, user, decision, reason, comments){
+        content(POST(url='https://slack.com/api/chat.postMessage', 
+            body=list(token=apiuser, 
+                channel=channel, 
+                text= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
+
+With these additional comments:
+
+%s', structure, decision, user, reason, comments), 
+                as_user='true', 
+                username='xchemreview-bot')))
+    }
+
     sendEmail <- function(structure, user, decision, reason, comments){
+        if(debug) debugMessage(sID=sID, sprintf('Communicating to Slack...'))
+        channels <- getChannelList()
+        channelID <- getChannel(structure, channels)
+        if(is.na(channelID)){
+            # Create Channel, then get ID immediately
+            channelID <- createChannel(structure=structure)
+        }
+        # Post comment...
+        sendMessageToSlack(channel=channelID, 
+                            structure=structure, 
+                            user = user, 
+                            decision =decision, 
+                            reason=reason, 
+                            comments=comments
+                            )
+
+
         if(debug) debugMessage(sID=sID, sprintf('Sending Email'))
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = '<tyler.gorrie-stone@diamond.ac.uk>'
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
@@ -48,12 +98,12 @@ connected to the diamond VPN or via NX.
 
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
 
-If you disagree with this decision please discuss and change the outcome by submitting a new response.
+If you disagree with this decision please discuss at the in the slack channel: (https://xchemreview.slack.com/archives/%s) or change the outcome by submitting a new response.
 
 This email was automatically sent by The XChem Review app
 
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, comments, structure, protein),
+            structure, decision, user, reason, comments, structure, protein, channelID),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
