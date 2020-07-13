@@ -226,7 +226,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         rownames(dbdat) <- dbdat[,'Xtal']
         # Sort Data 
         dbdat <- do.call('rbind', 
-        lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
+        lapply("","Release", "More Refinement", "More Experiments", "Reject"), function(dec){
             dbdat[ dbdat[ , 'Decision'] == dec , ]
         })
         )
