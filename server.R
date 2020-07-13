@@ -102,6 +102,8 @@ If you disagree with this decision please discuss at the in the slack channel: (
 
 This email was automatically sent by The XChem Review app
 
+If you have trouble joining the slack channel please use this invitation link: https://join.slack.com/t/xchemreview/shared_invite/zt-fpocaf6e-JQp~U6rcbGrre33E~7~faw
+
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
             structure, decision, user, reason, comments, structure, protein, channelID),
             control = list(
