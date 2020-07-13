@@ -83,7 +83,7 @@ With these additional comments:
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
             #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
-            to = '<tyler.gorrie-stone@diamond.ac.uk>'
+            to = '<tyler.gorrie-stone@diamond.ac.uk>',
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
