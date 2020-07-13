@@ -288,7 +288,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )) %>% formatStyle(
         'Decision',
         target = 'row',
-        backgroundColor = styleEqual(c('Release', 'More Refinement', 'More Experiments' 'Reject'), c('#648FFF', '#FFB000', '#FE6100', '#DC267F'))
+        backgroundColor = styleEqual(c('Release', 'More Refinement', 'More Experiments', 'Reject'), c('#648FFF', '#FFB000', '#FE6100', '#DC267F'))
         )}  
     )
 
