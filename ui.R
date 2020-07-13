@@ -48,7 +48,7 @@ ui <- navbarPage("XChem Review", id='beep',
                                 checkboxInput('twofofcMap', '2fofc map', value = FALSE),
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
-                                uiOutput('isofofcSlider'),
+                                uiOutput('isofofcSlider'), 
                                 fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
                                          column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
                                 ),
@@ -57,7 +57,8 @@ ui <- navbarPage("XChem Review", id='beep',
                                     value = c(45,58)),
                                 sliderInput("clipping", "Clipping:",
                                     min = 0, max = 100,
-                                    value = c(47,100)),       
+                                    value = c(47,100)
+                                    )       
                             ) # column
                         ) # Fluid row
                     ), 
@@ -68,6 +69,63 @@ ui <- navbarPage("XChem Review", id='beep',
             ) # sidebarlayout
         ) # Fluid Page
     ), # Tab Panel
+    tabPanel('FragView',
+        tabPanel('Main',
+            fluidPage(
+                tags$head(
+                    tags$style("#panel3 {position: fixed;}"),
+                    tags$style("#panel4 {overflow: auto;}")
+                ),
+                sidebarLayout(
+                    sidebarPanel( width = 2,
+                        selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
+                        checkboxInput('desync', 'Turn off automatic Updates', value = FALSE),
+                        actionButton('goback', 'Prev Ligand'),
+                        actionButton('gonext', 'Next Ligand'),
+                        selectInput('goto', 'Go to Ligand', choices=list()),
+                        textInput('crysname', 'Crystal Name', '' ),
+                        textInput('smiles', 'Smiles String', ''),
+                        textInput('new_smiles', 'New Smiles String', ''),
+                        textInput('alternate_name', 'Alternate Fragment Name', ''),
+                        selectizeInput('site_name', 'Site Label', list(), multiple=FALSE, options=list(create=TRUE)),
+                        textInput('pdb_entry', 'PDB Entry', ''),
+                        textOutput('metastatus'),
+                        uiOutput('writeButton'),
+                        hr(),
+                        textInput('newCrystalName', 'New Fragment Name', ''),
+                        actionButton('changeName', 'Change Name of Fragment (will not assign site label)'),             
+                        hr(),
+                        textOutput('massChange'),
+                        selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
+                        textInput('new_label', 'New label', ''),
+                        actionButton('mcl', 'Mass Convert Label'),
+                        hr(),
+                        actionButton('updateTable', 'Refresh Metadata Table')
+                    ), # sidebarpanel
+                    mainPanel(
+                        absolutePanel(id = 'panel3', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
+                            nglShinyOutput('FragViewnglShiny', height='600px')
+                        ),
+                        absolutePanel(id = 'panel4', top='70%', bottom='0%', fixed=T,
+                            DT::dataTableOutput('therow')
+                        )
+                    ) # Main Panel
+                ) # sidebar layout
+            ) # Fluid Page
+        ) # mainPanel
+    ), # tabPanel
+    tabPanel('FragChat',
+        tabPanel('Main',
+            sidebarLayout(
+                sidebarPanel(
+
+                ), # sidebarpanel
+                mainPanel('Coming Soon...'
+
+                ) # Main Panel
+            ) # sidebar layout
+        ) # mainPanel
+    ), # tabPanel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
 	) # Tab Panel

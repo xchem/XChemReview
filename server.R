@@ -3,14 +3,20 @@
 # Server Code
 #################################################################################
 server <- function(input, output, session) {
+    sID <- sample(1:100000, 1)
+    debugMessage <- function(sID, text){
+        message(sprintf('sid: %s | %s | %s', sID, text, Sys.time()))
+    }
     defaultPdbID <- ""
     defaultShell <- ""
-    if(debug) message('Server Init')
-    session$allowReconnect('force')
-	sessionDisconnect <- function() message('User Disconnected')
+    if(debug) debugMessage(sID=sID, sprintf('Session init'))
+    session$allowReconnect(FALSE)
+	sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
     session$onSessionEnded(sessionDisconnect)
     sessionTime <- epochTime()
     options <- list(pdbID="")
+
+    # Page 1
 
     # Functions
     # Read-in Responses Form Data
@@ -23,6 +29,7 @@ server <- function(input, output, session) {
     }
 
     sendEmail <- function(structure, user, decision, reason, comments){
+        if(debug) debugMessage(sID=sID, sprintf('Sending Email'))
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
@@ -178,22 +185,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
                     db_user=db_user, db_password=db_password)
-    if(debug) print('Data Loaded')
+    if(debug) debugMessage(sID=sID, sprintf('Data Loaded'))
 
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
     dbDisconnect(con)
 
-    possRes <- tapply(X=response_data$reason, INDEX=response_data$decision_str,
-                        function(x){
-                            unique(unlist(strsplit(x, '; ')))
-                        })
-    possRes[['Release']] <- unique(c(possRes[['Release']], 'Everything is Wonderful'))
-    possRes[['Release (notify)']] <- unique(c(possRes[['Release (notify)']], 'Alternate binding conformation','Incomplete Density','Weak Density','Low Resolution','Poor Data quality'))
-    possRes[['More Work']] <- unique(c(possRes[['More Work']], 'Cannot View Density', 'Repeat Experiment', 'Check Geometry', 'Check Conformation', 'Check Refinement'))
-    possRes[['Reject']] <- unique(c(possRes[['Reject']], 'Density too weak', 'Insubstantial Evidence','Bad coordination','Incomplete Density'))
+    possDec <- c("", "Release", "More Refinement", "More Experiments", "Reject")
+    possAns <- possAns2 <- c('Select Decision')
+    possRes <- list()
+    possRes[['Release']] <- c('High Confidence', 'Clear Density, Unexpected Ligand', 'Correct Ligand, Weak Density', 'Low Confidence', 'No Ligand Present')
+    possRes[["More Refinement"]] <- c('Check ligand conformation','Check sidechain rotamers','Check Rfactors','Check that refinement converged','Improve water model','Build alternate conformations','Fix geometry','Trim down ligand','Density did not load','Other')
+    possRes[["More Experiments"]] <- c('Get better density','Get better resolution','Confirm ligand identity','Check if ligand changed','Other')
+    possRes[["Reject"]] <- c('Density not convincing','Too few interactions','Binding site too noisy','Other')
     possDec_int <- 1:4
-    names(possDec_int) <- c("Release", "Release (notify)", "More Work", "Reject")
+    names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Reject")
 
 
     inputData <- reactive({dbdat})
@@ -201,22 +207,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # NGL Viewer
     output$nglShiny <- renderNglShiny(
-        nglShiny(list(), width=NULL, height=100)
+        nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
     observeEvent(input$decision,{
-        if(debug) message('Updating Decision')
+        if(debug) debugMessage(sID=sID, sprintf('Update Decision'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
     })
 
-    if(debug) print('Data Reactivised')
+    if(debug) debugMessage(sID=sID, sprintf('Data Reactivised'))
+
     r1 <- reactive({
         rowidx <- rep(FALSE, nrow(inputData()))
         outcome <- inputData()$XCEoutcome
         if(input$out4) rowidx[outcome==4] <- TRUE
         if(input$out5) rowidx[outcome==5] <- TRUE
         if(input$out6) rowidx[outcome==6] <- TRUE
-        if(debug) print('Subsetting Table') # Based on input$protein and input$columns?
+        if(debug) debugMessage(sID=sID, sprintf('Subsetting Table')) # Based on input$protein and input$columns?
         # Subset data
         if(is.null(input$protein) & is.null(input$columns)) inputData()[rowidx, ]
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
@@ -224,13 +231,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
     })
   
-    output$table <- DT::renderDataTable({r1()},
-                                        selection = 'single', 
-                                        options = list(
-                                            pageLength = 20#, 
-                                            #drawCallback = I("function( settings ) {document.getElementById('table').style.width = '300px';}")
-                                            )
-                                        )
+    output$table <- DT::renderDataTable(
+        #{r1()},
+        {datatable(r1(), selection = 'single', options = list(
+            pageLength = 20
+        )) %>% formatStyle(
+        'Decision',
+        target = 'row',
+        backgroundColor = styleEqual(c('Release', 'More Work', 'Reject'), c('#8D86FF', '#FFC107', '#F56360'))
+        )}  
+    )
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'}) 
@@ -240,11 +250,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Observers, behaviour will be described as best as possible
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
-        if(debug) print('Row Click')
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
         # Connect to DB and get most recent time...        
         rdat <- r1()[input$table_rows_selected,,drop=FALSE]
-        selrow <- rownames(rdat) 
+        selrow <- rownames(rdat)
+        if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', selrow)) 
         xId <- dbdat[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
         if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
@@ -256,7 +266,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$ok, {
-        if(debug) print('Reload Session')
+        if(debug) debugMessage(sID=sID, sprintf('Reloading Session'))
         session$reload()
     })
   
@@ -265,20 +275,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     resetForm <- function(){
-        if(debug) print('Reset Form')
+        if(debug) debugMessage(sID=sID, sprintf('Resetting Form'))
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
         session$reload()
-        #dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
-        #                db_user=db_user, db_password=db_password)
-        #inputData <- reactive({dbdat})
-        #sessionTime <- epochTime()
     }
 
     # Upon Main Page Submit
     observeEvent(input$submit, {
-
         fData <- formData()[[1]]
         xtaln <- formData()[[2]]
+        if(debug) debugMessage(sID=sID, sprintf('Submitting Form'))
         if(debug) print(fData)
         if(any(fData%in%c('', ' '))) {
             showModal(modalDialog(title = "Please fill all fields in the form", 
@@ -334,7 +340,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     uploadPDB <- function(filepath, input){
 #        withProgress(message = 'Uploading PDB', style='notification', detail = 'Finding File', value = 0, {
             syscall <- sprintf('cat %s', filepath)
-            if(debug) message(syscall)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
 #            incProgress(.25, detail = 'Reading File')
             pdbstrings <- system(syscall, intern = TRUE)
             choice <- paste0(pdbstrings, collapse='\n')
@@ -371,9 +377,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     findFiles <- function(fp){
-        eventmapStrings <- c('_event.ccp4', 'event_map.map', '_map.native.ccp4')
-        fofc2Strings <- c('_2fofc.cpp4', '^2fofc.map')
-        fofcStrings <- c('_fofc.ccp4', '^fofc.map')
+        eventmapStrings <- c('_event_cut.ccp4', '_event.ccp4', 'event_map.map', '_map.native.ccp4')
+        fofc2Strings <- c('_2fofc_cut.cpp4', '_2fofc.cpp4', '^2fofc.map')
+        fofcStrings <- c('_fofc_cut.cpp4', '_fofc.ccp4', '^fofc.map')
 
         # first look for .ccp4 files
         eventmapFile <- findFirstMatchingFile(eventmapStrings, fp=fp)
@@ -396,7 +402,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     uploadEMaps <- function(XtalRoot, input){
 #        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
-            if(debug) print(theFiles)
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
                 missfiles <- paste0(maptype[which(is.na(theFiles))], collapse = ' and ')
@@ -405,13 +410,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     sprintf('Unable to find %s maps for this structure. Please check folder for files ending in .map or .cpp4', missfiles)
                 }) 
             } else {
-                output$missingFiles <- renderText({''})
+                output$missingFiles <- renderText({sprintf('Using: event: %s, 2fofc: %s, fofc: %s', basename(theFiles[1]), basename(theFiles[2]), basename(theFiles[3]))})
             }
 #            incProgress(.1, details='Load Event Map')
             #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
             #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
             fname <- theFiles[1]
-            if(debug) message(sprintf('%s: %s', 'event Map', fname))
+            if(debug) debugMessage(sID=sID, sprintf('Event Map: %s', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
@@ -427,7 +432,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('orange'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$eventMap)))
+
                     )
                 )
             }
@@ -437,7 +444,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
                 #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
-                if(debug) message(sprintf('%s: %s', '2fofc', fname))
+                if(debug) debugMessage(sID=sID, sprintf('2fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 session$sendCustomMessage(type="add2fofc", 
@@ -447,7 +454,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('blue'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$twofofcMap)))
                     )
                 )
             }
@@ -457,7 +465,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
-                if(debug) message(sprintf('%s: %s', 'fofc', fname))
+                if(debug) debugMessage(sID=sID, sprintf('fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 session$sendCustomMessage(type="addfofc_positive", 
@@ -467,7 +475,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('lightgreen'), 
                         as.character('false'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
                 session$sendCustomMessage(type="addfofc_negative", 
@@ -477,7 +486,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         as.character('tomato'), 
                         as.character('true'), 
                         as.character(getExt(fname)),
-                        as.character(input$boxsize)
+                        as.character(input$boxsize),
+                        tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
             }
@@ -520,6 +530,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
+            starttime <- Sys.time()
             choice = input$Xtal
             filepath <- dbdat[choice,'Latest.PDB']
             XtalRoot <- try(getRootFP(filepath), silent=T)
@@ -540,7 +551,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         defaultShell <- ''
                         session$sendCustomMessage(type="removeAllRepresentations", message=list())
                     }
-                    output$progtext <- renderText({sprintf('Currently Viewing: %s', input$Xtal)}) 
+                    endtime <- Sys.time()
+                    output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                 }
             }
 
@@ -644,16 +656,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$xtalselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if(!is.null(query[['xtal']])){
-            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = query[['xtal']], multiple = FALSE)
+            selectizeInput('Xtal', 'Which Structure?', choices = c('', xtalList), selected = query[['xtal']], multiple = FALSE)
         } else {
-            selectizeInput('Xtal', 'Which Structure?', choices = xtalList, selected = list(), multiple = FALSE)
+            selectizeInput('Xtal', 'Which Structure?', choices = c('', xtalList), multiple = FALSE)
         }
     })
 
     output$isoEventSlider <- renderUI({
         if(input$eventMap){
             sliderInput("isoEvent", "",
-                    min = 0, max = 10,
+                    min = 0, max = 3,
                     value = 1, step = 0.1)
         } else {
             NULL
@@ -663,7 +675,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$iso2fofcSlider <- renderUI({
         if(input$twofofcMap){
             sliderInput("iso2fofc", "",
-                    min = 0, max = 10,
+                    min = 0, max = 3,
                     value = 1.5, step = 0.1)
         } else {
             NULL
@@ -673,7 +685,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$isofofcSlider <- renderUI({
         if(input$fofcMap){
             sliderInput("isofofc", "",
-                min = 0, max = 10,
+                min = 0, max = 3,
                 value = 3, step = 0.1)
         } else {
             NULL
@@ -708,6 +720,316 @@ If you believe you have been sent this message in error, please email tyler.gorr
             NULL
         }
     })
+
+    # Frag View
+    output$FragViewnglShiny <- renderNglShiny(
+        nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
+    )
+
+    uploadPDB2 <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="setapoPDB", 
+                message=list(choice))
+    }
+
+    getAlignedStagingFolder <- function(){
+        stagefold <- getStagingFolder()
+        if(length(dir('stagefold', pattern='aligned')) > 0){
+            out <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect, 'aligned')
+        } else {
+            out <- stagefold
+        }
+        return(out)
+    }
+
+    getStagingFolder <- function(){
+        file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+    }
+
+    uploadMol <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="addMol", 
+                message=list(choice))
+    }
+
+    uploadMol2 <- function(filepath){
+            syscall <- sprintf('cat %s', filepath)
+            if(debug) debugMessage(sID=sID, sprintf('Executing: %s', syscall))
+            pdbstrings <- system(syscall, intern = TRUE)
+            choice <- paste0(pdbstrings, collapse='\n')
+            session$sendCustomMessage(
+                type="addMolandfocus", 
+                message=list(choice))
+    }
+ 
+    getMolFiles <- function(folderName){
+        folderPath <- getAlignedStagingFolder()
+        molfiles <- dir(folderPath, rec=T, pattern='.mol', full.names=TRUE)
+        names(molfiles) <- basename(molfiles)
+        return(molfiles)
+    }
+
+    getMetaFiles <- function(folderName){
+        folderPath <- getAlignedStagingFolder()
+        files <- dir(folderPath, rec=T, pattern='meta.csv', full.names=TRUE)
+        return(files)
+    }
+
+    showCurrentMetaData <- function(){
+        if(debug) debugMessage(sID=sID, sprintf('Fetching Data'))
+        files <- getMetaFiles(input$fragSelect)
+
+
+        try({
+            metaoutfile <- file.path(getStagingFolder(), 'metadata.csv')
+            if(debug) debugMessage(sID=sID, sprintf('Saving Data to %s', metaoutfile))
+            output <- do.call('rbind', lapply(files, function(x) read.csv(x, row.names=NULL, stringsAsFactors=F, header=F)))
+            colnames(output) <- c('','crystal_name', 'RealCrystalName', 'smiles','new_smiles','alternate_name','site_name','pdb_entry')
+            output2 <- output[!output$site_name=='IGNORE',]
+            write.csv(output2[,-1], file=metaoutfile, quote=F)
+        }, silent = T)
+
+        try(colnames(output) <- c('', 'Fragalysis Label', 'Crystal Name', 'Smiles', 'New Smiles', 'Alt Fragalysis Label', 'Site Label', 'PDB Entry'), silent=T)
+        rownames(output) <- output[,2]
+        return(output[,-1])
+    }
+
+    updateTable <- function(){
+        #gsearch <- input$therow_search
+        #gsearch <- ifelse(is.null(gsearch),'',gsearch)
+        #rowsel <- input$therow_rows_selected
+        #rowsel <- ifelse((is.null(rowsel) | rowsel==''), 'single', list(mode='single', selected=rowsel, target='row'))
+        #csearch <- input$therow_search_columns
+        #csearch <- ifelse(is.null(csearch), list(), csearch)
+        #print(gsearch)
+        #print(rowsel)
+        #print(csearch)
+        if(debug) debugMessage(sID=sID, sprintf('Updating Table'))
+        dummy <- rbind(c(1,1), c(1,1))
+        mdr <- reactiveValues(x=showCurrentMetaData())
+        output$therow <-  DT::renderDataTable({datatable(dummy, selection = 'single', options = list(pageLength = 200))})
+        output$therow <-  DT::renderDataTable({
+            datatable(mdr$x, 
+                filter='top', 
+                selection = 'single',#rowsel, 
+                options = list(
+                    #searchCols = csearch,
+                    scrollX=TRUE,
+                    #search = list(
+                    #    regex = FALSE, 
+                    #    caseInsensitive = TRUE, 
+                    #    search = gsearch),
+                    pageLength = 200
+                )
+            )
+        })
+        updateSelectizeInput(session, 'site_name', choices = sort(mdr$x[,6]))
+        updateSelectizeInput(session, 'site_name2', choices = sort(mdr$x[,6]))
+        if(debug) debugMessage(sID=sID, sprintf('Updated Table'))
+    }
+
+    output$writeButton <- renderUI({
+        if(input$desync) {
+            actionButton('write', 'Write metadata to table', style="background-color: #FF0000")
+        } else {
+            actionButton('write', 'Write metadata to table')
+        }
+
+    })
+
+    observeEvent(input$fragSelect,{
+        if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
+        folderPath <- getAlignedStagingFolder()
+        apofile <- tail(dir(folderPath, rec =T, pattern = 'apo.pdb', full.names=TRUE),1)
+        molfiles <- getMolFiles(input$fragSelect)
+        molfil <- names(molfiles)
+        updateSelectInput(session, 'goto', choices = molfil)
+        updateTable()     
+        tryAddPDB <- try(uploadPDB2(filepath=apofile), silent=T)
+        molout <- try(sapply(molfiles, uploadMol), silent=T)
+        
+    })
+
+    observeEvent(input$gonext, {
+        molfiles <- getMolFiles(input$fragSelect)
+	    molbase <- names(molfiles)
+        nmol <- length(molfiles)
+        id <- which(molbase == input$goto)
+        next_id <- id + 1
+        if(next_id > nmol) next_id <- 1 # Overflow back to start of list
+        # Cycle along to next ligand in molfil
+        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molbase[next_id]))
+        updateSelectInput(session, 'goto', selected = molbase[next_id], choices=molbase)
+    })
+
+    observeEvent(input$goback, {
+        molfiles <- getMolFiles(input$fragSelect)
+	    molbase <- names(molfiles)
+        nmol <- length(molfiles)
+        id <- which(molbase == input$goto)
+        next_id <- id - 1
+        if(next_id < 1) next_id <- nmol # Underflow to end of list
+        if(debug) debugMessage(sID=sID, sprintf('Switching to: %s', molbase[next_id]))
+        updateSelectInput(session, 'goto', selected = molbase[next_id], choices=molbase)
+    })
+
+    observeEvent(input$goto, {
+        output$metastatus <- renderText({'STATUS: Pending...'}) 
+        molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        # Fill as it is seen:
+        files <- dir(folder, pattern='.csv', full.names=T)
+        fn <- strsplit(input$goto, split='[.]')[[1]][1]
+        updateTextInput(session, 'newCrystalName', value = fn)
+        if(length(files) > 0){
+            dat <- read.csv(files, row.names=NULL, stringsAsFactors=F, header=F)
+            updateTextInput(session, 'crysname', value = dat[1, 3])
+            updateTextInput(session, 'smiles', value = dat[1, 4])
+            updateTextInput(session, 'new_smiles', value = dat[1, 5])
+            updateTextInput(session, 'alternate_name', value = dat[1, 6])
+            updateSelectizeInput(session, 'site_name', select = dat[1, 7])
+            updateTextInput(session, 'pdb_entry', value = dat[1, 8])
+        } else {
+            inputfolder <- file.path('/dls/science/groups/i04-1/fragprep/staging', input$fragSelect)
+            smilesfn <- strsplit(input$goto, split='[.]')[[1]][1]
+            smilestr <- system(sprintf('cat %s/%s/%s_smiles.txt', inputfolder,smilesfn,smilesfn), intern=T)
+            updateTextInput(session, 'crysname', value = '')
+            updateTextInput(session, 'smiles', value = smilestr)
+            updateTextInput(session, 'new_smiles', value = '')
+            updateTextInput(session, 'alternate_name', value = '')
+            updateSelectizeInput(session, 'site_name', selected = '')
+            updateTextInput(session, 'pdb_entry', value = '')
+        }
+
+        # Go to specific ligand do not edit go next loop
+        if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
+        if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
+        gogogo <- try(uploadMol2(molfiles[input$goto]), silent=T)
+    })
+
+    observeEvent(input$write, {
+        if(debug) debugMessage(sID=sID, sprintf('Writing a row'))
+        output$metastatus <- renderText({'STATUS: Written!'}) 
+        molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        if(debug) debugMessage(sID=sID, sprintf('Writing %s to %s', input$site_name, input$goto))
+        fragname <- gsub('.mol', '', input$goto)
+        fn <- file.path(folder, sprintf('%s_meta.csv', fragname))
+        output <- t(c(fragname, 
+                    input$crysname,
+                    input$smiles, 
+                    input$new_smiles, 
+                    input$alternate_name, 
+                    input$site_name, 
+                    input$pdb_entry
+                    ))
+        write.table(output, file = fn, quote = F, col.names=F, sep=',')
+        if(!input$desync) updateTable()
+    })
+
+    # On Table Rowclick # Potentially slow? Unneeded? # Go back to
+    observeEvent(input$therow_rows_selected, {
+        if(debug) debugMessage(sID=sID, sprintf('Selecting Row'))
+        molfiles <- getMolFiles(input$fragSelect)
+        molbase <- names(molfiles)
+        mdr <- reactiveValues(x=showCurrentMetaData())
+        choice <- mdr$x[input$therow_rows_selected,1]
+        updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', choice), choices=molbase)
+    })
+
+    output$massChange <- renderText({'Update Site Labels'})
+
+    observeEvent(input$mcl, {
+        if(debug) debugMessage(sID=sID, sprintf('Changing Labels'))
+        oldlabel <- input$site_name2
+        newlabel <- input$new_label
+        # Perhaps open a modal
+        folderPath <- getAlignedStagingFolder()
+        metacsv <- dir(folderPath, pattern='meta.csv', rec=T, full.names=T)
+        for(afile in metacsv){
+            message(afile)
+            afile_data <- read.csv(afile, row.names=NULL, stringsAsFactors=F, header=F)
+            currentlabel <- afile_data[1,7]
+            if(!is.na(currentlabel)){
+                if(afile_data[1,7] == oldlabel){
+                    afile_data[1,7] <- newlabel
+                    write.table(afile_data, file=afile, quote=F, col.names=F, row.names=F, sep=',')
+                }
+            }
+        }
+        if(!input$desync) updateTable()
+    })
+
+    observeEvent(input$restartViewer, {
+        try({session$sendCustomMessage(type="removeAllComponents", message=list())}, silent=T)
+    })
+
+    observeEvent(input$changeName, {
+        if(debug) debugMessage(sID=sID, sprintf('Changing Names'))
+        oldname <- strsplit(input$goto, split='[.]')[[1]][1]
+        newname <- input$newCrystalName
+        molfiles <- getMolFiles(input$fragSelect)
+        folder <- dirname(molfiles[input$goto])
+        newfolder <- gsub(oldname, newname, folder)
+
+        # sanity check newname for / . etc Reject with modal.
+
+        # Have a modal with accept...
+        oldfiles <- dir(folder, rec=T, full.names=T)
+        newfiles <- gsub(oldname, newname, oldfiles)
+        # Change folder name
+
+        # check if name exists
+        existingNames <- names(molfiles)
+        dupe <- newname %in% existingNames
+        if(dupe){
+            showModal(modalDialog(title = "A fragment with this name already exists",
+                    sprintf('The name %s already exists, please use a different name', newname) 
+                    , easyClose=TRUE))
+        } else {
+            # If newname has none of these characters, legal = TRUE
+            illegal <- '[./~\\!\"\'£$%^&*()@<>?|+`¬]'
+            legal <- !grepl(illegal, newname)
+            if(legal){
+                file.rename(folder, newfolder)
+                # Reget Old Files
+                oldfiles <- dir(newfolder, rec=T, full.names=T)
+                file.rename(oldfiles, newfiles)
+                # Edit label in metadata...
+                metacsv <- dir(newfolder, pattern='_meta.csv', rec=T, full.names=T)
+                if(length(metacsv) > 0){
+                    metadat <- read.csv(metacsv, row.names=NULL, stringsAsFactors=F, header=F)
+                    metadat[1,2] <- newname
+                    write.table(metadat, file=metacsv, quote=F, col.names=F, row.names=F, sep=',')
+                } else {
+                showModal(modalDialog(title = "You used some naughty characters",
+                    sprintf('Please use a file name that does not include any of these symbols: 
+                        %s', illegal) 
+                    , easyClose=TRUE))
+                }
+            }
+        }
+        # Mandatory Update
+        if(!input$desync) updateTable()
+        molfiles <- getMolFiles(input$fragSelect)
+        molbase <- names(molfiles)
+        updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', newname), choices=molbase)
+    })
+
+
+    observeEvent(input$updateTable,{
+        updateTable()
+    })
+
+    # Frag Chat
 
 
 } # Server
