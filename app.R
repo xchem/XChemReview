@@ -37,16 +37,18 @@ if(local){
 
 # Source the rest of the code
 if(local){
+    source('./slackconfig.R')
     source('./globals.R')
     source('./ui.R')
     source('./server.R')
-    source('./slackconfig.R')
+
 } else {
     # This is not good!...
+    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
     source('/dls/science/users/mly94721/xchemreview/staging/globals.R')
     source('/dls/science/users/mly94721/xchemreview/staging/ui.R')
     source('/dls/science/users/mly94721/xchemreview/staging/server.R')
-    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
+
 }
 # Create App
 

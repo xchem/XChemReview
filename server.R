@@ -1151,12 +1151,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Frag Chat
     output$scrollDialog <- renderText({'Scroll for More...'})
-    message('Getting Channel List')
+
     channels <- getChannelList()
     channelSelect <- channels[,2]
     names(channelSelect) <- channels[,1]
-
     updateSelectizeInput(session, "channelSelect", select = '', choices = names(channelSelect))
+
     observeEvent(input$channelSelect, {
         message(input$channelSelect)
         channels <- getChannelList()

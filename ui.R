@@ -121,7 +121,7 @@ ui <- navbarPage("XChem Review", id='beep',
                 ),
                 sidebarLayout(
                     sidebarPanel(
-                        selectizeInput("channelSelect", "Channel/Crystal", choices = list(), multiple=FALSE),
+                        selectizeInput("channelSelect", "Channel/Crystal", select='', choices = names(channelSelect), multiple=FALSE),
                         textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
                         cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
                         textInput('slackUser', label = 'Name', value =''),
