@@ -121,6 +121,7 @@ ui <- navbarPage("XChem Review", id='beep',
                 ),
                 sidebarLayout(
                     sidebarPanel(
+                        actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
                         selectizeInput("channelSelect", "Channel/Crystal", select='', choices = names(channelSelect), multiple=FALSE),
                         textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
                         cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
