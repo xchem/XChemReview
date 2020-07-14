@@ -1157,6 +1157,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         channelSelect <- channels[,2]
         names(channelSelect) <- channels[,1]
         updateSelectizeInput(session, "channelSelect", select = '', choices = names(channelSelect))
+        refreshChat(channel = channelSelect[input$channelSelect]) 
     })
 
     observeEvent(input$channelSelect, {
