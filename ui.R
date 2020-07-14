@@ -115,16 +115,29 @@ ui <- navbarPage("XChem Review", id='beep',
         ) # mainPanel
     ), # tabPanel
     tabPanel('FragChat',
-        tabPanel('Main',
-            sidebarLayout(
-                sidebarPanel(
-
-                ), # sidebarpanel
-                mainPanel('Coming Soon...'
-
-                ) # Main Panel
-            ) # sidebar layout
-        ) # mainPanel
+        fluidPage(
+                tags$head(
+                    tags$style("#chatpanel {overflow: auto;}")
+                ),
+                sidebarLayout(
+                    sidebarPanel(
+                        selectizeInput("channelSelect", "Channel/Crystal", choices = list(), multiple=FALSE),
+                        textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
+                        cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
+                        textInput('slackUser', label = 'Name', value =''),
+                        actionButton('slackSubmit', label = 'Submit')
+                    ), # sidebarpanel
+                    mainPanel(
+                        absolutePanel(id = 'chatpanel', fixed=T,
+                            #tableOutput('chatTable')]
+                            textOutput('chatURL'),
+                            textOutput('scrollDialog'),
+                            textOutput('chat'),
+                            tags$style(type="text/css", "#chat {white-space: pre-wrap; max-height: 500px}")
+                        )
+                    ) # Main Panel
+                ) # sidebar layout
+            ) # Fluid Page
     ), # tabPanel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
