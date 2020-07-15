@@ -331,6 +331,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
+    observeEvent(input$clickedAtoms, {
+        print(input$clickedAtoms)
+    })
+
     observeEvent(input$decision,{
         if(debug) debugMessage(sID=sID, sprintf('Update Decision'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
