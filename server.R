@@ -655,6 +655,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
+            session$sendCustomMessage(type = 'setup', message=list())
             starttime <- Sys.time()
             choice = input$Xtal
             filepath <- dbdat[choice,'Latest.PDB']
