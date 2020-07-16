@@ -24,7 +24,7 @@ ui <- navbarPage("XChem Review", id='beep',
                     ),
                     fluidRow(
                         column(4, checkboxInput('out4', 'Comp Chem Ready', value = TRUE)),
-                        column(4, checkboxInput('out5', 'Deposition Ready', value = TRUE)),
+                        column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
                     imageOutput('spiderPlot'),
