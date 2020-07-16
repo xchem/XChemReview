@@ -337,10 +337,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         print(input$clickedAtoms)
     })
 
-    output$selAtoms <- renderText({''})
-    observeEvent(input$clickedNames, {
-        print(input$clickedNames)
-        output$selAtoms <- renderText({paste(input$clickedNames, collapse = ';')})
+    output$selAtoms <- renderText({'Selected Atoms'})
+
+    observeEvent(input$clickNames, {
+        print(input$clickNames)
+        output$selAtoms <- renderText({paste(input$clickNames, collapse = ';')})
     })
 
     observeEvent(input$decision,{
