@@ -331,8 +331,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
+
+    # Update behaviour for these...
     observeEvent(input$clickedAtoms, {
         print(input$clickedAtoms)
+    })
+
+    output$selAtoms <- renderText({''})
+    observeEvent(input$clickedNames, {
+        print(input$clickedNames)
+        output$selAtoms <- renderText({paste(input$clickedNames, collapse = ';')})
     })
 
     observeEvent(input$decision,{

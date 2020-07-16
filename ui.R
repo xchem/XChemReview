@@ -27,8 +27,9 @@ ui <- navbarPage("XChem Review", id='beep',
                         column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    imageOutput('spiderPlot'),
-                    imageOutput('ligimage')
+                    imageOutput('ligimage'),
+                    imageOutput('spiderPlot')
+                    
                 ), #sidebarpanel
                 mainPanel(
                     absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
@@ -40,8 +41,9 @@ ui <- navbarPage("XChem Review", id='beep',
                                 ),
                             column(2,
                                 textOutput('msg3'),
-                                actionButton("fitButton", "Fit to Ligand"),
-                                actionButton("defaultViewButton", "Restart Viewer"), 
+                                actionButton("fitButton", "Center on Ligand"),
+                                actionButton("defaultViewButton", "Restart Viewer"),
+                                textOutput('selAtoms'), 
                                 selectInput('assembly2', 'Assembly', choices=c('AU', 'UNITCELL', 'SUPERCELL'), selected='AU', multiple=FALSE),       
                                 checkboxInput('eventMap', 'Event map', value = TRUE),
                                 uiOutput('isoEventSlider'), 
