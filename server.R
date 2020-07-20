@@ -534,7 +534,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadEMaps <- function(XtalRoot, input){
-#        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
@@ -546,19 +545,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             } else {
                 output$missingFiles <- renderText({sprintf('Using: event: %s, 2fofc: %s, fofc: %s', basename(theFiles[1]), basename(theFiles[2]), basename(theFiles[3]))})
             }
-#            incProgress(.1, details='Load Event Map')
-            #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
-            #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
             fname <- theFiles[1]
             if(debug) debugMessage(sID=sID, sprintf('Event Map: %s', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                # addEvent requires:
-                # filepath as event blob (base64string)
-                # desired iso level
-
                 session$sendCustomMessage(type="addEvent", 
                     message=list(
                         'map' = event, 
@@ -575,8 +567,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
             output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
             if(TRUE){
-                #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-                #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
                 if(debug) debugMessage(sID=sID, sprintf('2fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
