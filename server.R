@@ -561,7 +561,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
                 session$sendCustomMessage(type="addEvent", 
                     message=list(
-                        event, 
+                        'map' = event, 
                         as.character(input$isoEvent), 
                         as.character('orange'), 
                         as.character('false'), 
