@@ -553,7 +553,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
                 session$sendCustomMessage(type="addEvent", 
                     message=list(
-                        'map' = event, 
+                        as.character(event), 
                         as.character(input$isoEvent), 
                         as.character('orange'), 
                         as.character('false'), 

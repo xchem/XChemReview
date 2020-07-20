@@ -21,9 +21,11 @@ library(DBI)
 if(local){
     gpath <- '.'
     responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
-    source('./db_config.R')
+    #source('./db_config.R')
+    source('/dls/science/users/mly94721/xchemreview/db_config.R') 
     install.packages('~/nglshiny', repos=NULL, type='source')
     library(nglShiny)
+    library(httr)
 } else {
     gpath <- '/srv/shiny-server/'
     install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
@@ -37,7 +39,8 @@ if(local){
 
 # Source the rest of the code
 if(local){
-    source('./slackconfig.R')
+    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
+    #source('./slackconfig.R')
     source('./globals.R')
     source('./ui.R')
     source('./server.R')
