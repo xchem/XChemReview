@@ -88,7 +88,9 @@ server <- function(input, output, session) {
         users <- content(POST(url='https://slack.com/api/users.list', 
             body = list(token = api)))
         userlist <- t(sapply(users$members, function(x){
-            c(x$id, x$real_name)
+            pull <- c(x$id, x$real_name)
+            if(length(pull)<2) pull <- c(pull, NA)
+            return(pull)
         }))
         users <- userlist[,2]
         names(users) <- userlist[,1]
