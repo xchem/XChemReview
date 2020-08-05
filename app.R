@@ -2,7 +2,7 @@
 # TODO: Scrub out filepaths add as command line options...
 
 debug = TRUE
-local = FALSE # Binding for testing on a local machine bodes no use other than me...
+local = TRUE # Binding for testing on a local machine bodes no use other than me...
 
 # Set Path: May need to add something later for files on /dls
 
@@ -39,9 +39,9 @@ if(local){
 
 # Source the rest of the code
 if(local){
-    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
-    #source('./slackconfig.R')
+    source('./slackconfig.R')
     source('./globals.R')
+    source('./modules.R')
     source('./ui.R')
     source('./server.R')
 
@@ -49,6 +49,7 @@ if(local){
     # This is not good!...
     source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
     source('/dls/science/users/mly94721/xchemreview/staging/globals.R')
+    source('/dls/science/users/mly94721/xchemreview/staging/modules.R')
     source('/dls/science/users/mly94721/xchemreview/staging/ui.R')
     source('/dls/science/users/mly94721/xchemreview/staging/server.R')
 

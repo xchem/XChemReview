@@ -51,6 +51,7 @@ ui <- navbarPage("XChem Review", id='beep',
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
                                 uiOutput('isofofcSlider'), 
+                                modalModuleUI("controlPanel"),
                                 fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
                                          column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
                                 ),

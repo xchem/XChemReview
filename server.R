@@ -333,6 +333,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
+    # Control Panel listener
+    callModule(modalModule, "foo")
 
     # Update behaviour for these...
     observeEvent(input$clickedAtoms, {
