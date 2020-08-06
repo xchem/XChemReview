@@ -153,8 +153,8 @@ With these additional comments:
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
-            #to = '<tyler.gorrie-stone@diamond.ac.uk>',
+            #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = '<tyler.gorrie-stone@diamond.ac.uk>',
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
@@ -186,12 +186,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Save Responses.
     saveData <- function(data, xtaln) {
-        fileName <- sprintf("%s_%s.csv",
-                            humanTime(),
-                            digest::digest(data))
+        #fileName <- sprintf("%s_%s.csv",
+        #                    humanTime(),
+        #                    digest::digest(data))
         if(!data[,'fedid'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
-            write.csv(x = data, file = file.path(responsesDir, fileName),
-                  row.names = FALSE, quote = TRUE)
+            #write.csv(x = data, file = file.path(responsesDir, fileName),
+            #      row.names = FALSE, quote = TRUE)
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
@@ -226,7 +226,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
                 showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
                     sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                    , footer = tagList(actionButton("ok", "Okay"))
                 ))
     }
 
@@ -333,8 +333,39 @@ If you believe you have been sent this message in error, please email tyler.gorr
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
-    # Control Panel listener
-    callModule(modalModule, "foo")
+    loadDefaultParams <- function(){
+        list(fogging=c(45,58),
+            clipping=c(47,100),
+            boxsize=10,
+            clipDist=5)
+    }
+
+    getCurrentParams <- function(input){
+        list(fogging=input$fogging,
+            clipping=input$clipping,
+            boxsize=input$boxsize,
+            clipDist=input$clipDist)
+    }
+
+    values <- reactiveValues()
+    values$defaults <- loadDefaultParams()
+    observeEvent(input$pictureModal, ignoreNULL = TRUE, {
+        showModal(pictureModal())
+    })
+
+    observeEvent(input$controlPanel, ignoreNULL = FALSE, {
+        showModal(contolPanelModal(values=isolate(values$defaults)))
+    })
+
+    observeEvent(input$updateParams, {
+        removeModal()
+        values$defaults$fogging <- input$fogging
+        values$defaults$clipping <- input$clipping
+        values$defaults$boxsize <- input$boxsize
+        values$defaults$clipDist <- input$clipDist
+        print(values)
+    })
+
 
     # Update behaviour for these...
     observeEvent(input$clickedAtoms, {
@@ -355,7 +386,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     if(debug) debugMessage(sID=sID, sprintf('Data Reactivised'))
 
-    r1 <- reactive({
+    reactiviseData <- function(inputData){
+        reactive({
         rowidx <- rep(FALSE, nrow(inputData()))
         outcome <- inputData()$XCEoutcome
         if(input$out4) rowidx[outcome==4] <- TRUE
@@ -367,18 +399,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
         else if(!is.null(input$columns) & is.null(input$protein)) inputData()[rowidx,input$columns]
         else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
-    })
-  
-    output$table <- DT::renderDataTable(
-        #{r1()},
+        })
+    }
+
+    updateMainTable <- function(r1){
+        DT::renderDataTable(
         {datatable(r1(), selection = 'single', options = list(
             pageLength = 20
         )) %>% formatStyle(
         'Decision',
         target = 'row',
         backgroundColor = styleEqual(c('Release', 'More Refinement', 'More Experiments', 'Reject'), c('#648FFF', '#FFB000', '#FE6100', '#DC267F'))
-        )}  
-    )
+        )}) 
+    }
+
+    r1 <- reactiviseData(inputData=inputData)
+    output$table <- updateMainTable(r1=r1)
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'}) 
@@ -386,6 +422,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$msg3 <- renderText({'NGL Viewer Controls'})
     output$progtext <- renderText({''}) # User Feedback...
     # Observers, behaviour will be described as best as possible
+
+
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
@@ -400,14 +438,28 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
             displayModalWhoUpdated(id=xId)
+            sessionTime <- epochTime()
         }
     })
 
+    restartSessionKeepOptions <- function(){
+        message('Updating Data')
+        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+            db_user=db_user, db_password=db_password)
+        inputData <- reactive({dbdat})
+        return(inputData)
+    }
+
     observeEvent(input$ok, {
         if(debug) debugMessage(sID=sID, sprintf('Reloading Session'))
-        session$reload()
+        #session$reload()
+        inputData <- restartSessionKeepOptions()
+        r1 <- reactiviseData(inputData=inputData)
+        output$table <- updateMainTable(r1=r1)
+        sessionTime <- epochTime()
+        removeModal()  
     })
-  
+
     observeEvent(input$updateView,{
         session$sendCustomMessage(type="updateParams", message=list())
     })
@@ -415,7 +467,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     resetForm <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Resetting Form'))
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
-        session$reload()
+        #session$reload()
+        return(restartSessionKeepOptions())
     }
 
     # Upon Main Page Submit
@@ -434,7 +487,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             xId <- fData[ ,'crystal_id']
             if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
                 saveData(fData, xtaln)
-                resetForm()
+                sessionTime <- epochTime()
+                message(sessionTime)
+                inputData <- resetForm()
+                r1 <- reactiviseData(inputData=inputData)
+                output$table <- updateMainTable(r1=r1)
+                
             } else {
                 displayModalWhoUpdated(id=xId)
             }
@@ -719,7 +777,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Go back to main Panel, do a refresh for good measure.
     observeEvent(input$clear, {
-        resetForm()
+        inputData <- resetForm()
+        r1 <- reactiviseData(inputData=inputData)
+        output$table <- updateMainTable(r1=r1)
+        sessionTime <- epochTime()
     })
 
     # When pressed re-create original xtal ngl view...
@@ -816,35 +877,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             sliderInput("isofofc", "",
                 min = 0, max = 3,
                 value = 3, step = 0.1)
-        } else {
-            NULL
-        }
-    })
-
-    controlPanel = TRUE
-    output$controlRow <- renderUI({
-        if(TRUE){
-            fluidRow(
-                    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
-                    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
-                    )
-        } else {
-            NULL
-        }
-    })
-
-    output$controlFog <- renderUI({
-        if(controlPanel){
-            sliderInput("fogging", "Fogging:", min = 0, max = 100, value = c(45,58))
-        } else {
-            NULL
-        }
-    })
-
-
-    output$controlClip <- renderUI({
-        if(controlPanel){
-            sliderInput("clipping", "Clipping:", min = 0, max = 100, value = c(47,100))
         } else {
             NULL
         }

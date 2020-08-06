@@ -15,7 +15,7 @@ ui <- navbarPage("XChem Review", id='beep',
                         textInput("name", "Name/FedID", ""),
                         uiOutput('xtalselect'),
                         selectInput("decision", "Decision", choices = possDec),
-                        selectizeInput("reason", "Reason(s)", list(), multiple=TRUE, options= list(create=TRUE)),
+                        selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                         textInput('comments', 'Additonal  Comments', value = "", width = NULL,placeholder = NULL),
                         textOutput('msg'),
                         actionButton("submit", "Submit", class = "btn-primary"),
@@ -27,8 +27,9 @@ ui <- navbarPage("XChem Review", id='beep',
                         column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    imageOutput('ligimage'),
-                    imageOutput('spiderPlot')
+                    actionButton('pictureModal', 'Show Images')
+                    #imageOutput('ligimage'),
+                    #imageOutput('spiderPlot')
                     
                 ), #sidebarpanel
                 mainPanel(
@@ -51,17 +52,19 @@ ui <- navbarPage("XChem Review", id='beep',
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
                                 uiOutput('isofofcSlider'), 
-                                modalModuleUI("controlPanel"),
-                                fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
-                                         column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
-                                ),
-                                sliderInput("fogging", "Fogging:",
-                                    min = 0, max = 100,
-                                    value = c(45,58)),
-                                sliderInput("clipping", "Clipping:",
-                                    min = 0, max = 100,
-                                    value = c(47,100)
-                                    )       
+                                actionButton('controlPanel', 'Show Control Panel')#,
+                                #fluidRow(
+                                #    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
+                                #    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                                #),
+                                #sliderInput("fogging", "Fogging:",
+                                #    min = 0, max = 100,
+                                #    value = c(45,58)
+                                #),
+                                #sliderInput("clipping", "Clipping:",
+                                #    min = 0, max = 100,
+                                #    value = c(47,100)
+                                #)       
                             ) # column
                         ) # Fluid row
                     ), 

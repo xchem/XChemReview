@@ -39,7 +39,7 @@ if(local){
 
 # Source the rest of the code
 if(local){
-    source('./slackconfig.R')
+    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
     source('./globals.R')
     source('./modules.R')
     source('./ui.R')
