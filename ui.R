@@ -15,7 +15,7 @@ ui <- navbarPage("XChem Review", id='beep',
                         textInput("name", "Name/FedID", ""),
                         uiOutput('xtalselect'),
                         selectInput("decision", "Decision", choices = possDec),
-                        selectizeInput("reason", "Reason(s)", list(), multiple=TRUE, options= list(create=TRUE)),
+                        selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
                         textInput('comments', 'Additonal  Comments', value = "", width = NULL,placeholder = NULL),
                         textOutput('msg'),
                         actionButton("submit", "Submit", class = "btn-primary"),
@@ -24,11 +24,13 @@ ui <- navbarPage("XChem Review", id='beep',
                     ),
                     fluidRow(
                         column(4, checkboxInput('out4', 'Comp Chem Ready', value = TRUE)),
-                        column(4, checkboxInput('out5', 'Deposition Ready', value = TRUE)),
+                        column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    imageOutput('spiderPlot'),
-                    imageOutput('ligimage')
+                    actionButton('pictureModal', 'Show Images')
+                    #imageOutput('ligimage'),
+                    #imageOutput('spiderPlot')
+                    
                 ), #sidebarpanel
                 mainPanel(
                     absolutePanel(id = 'panel1', top='6.5%', bottom='0%', width='90vw', height='50vw',fixed=T,
@@ -40,8 +42,9 @@ ui <- navbarPage("XChem Review", id='beep',
                                 ),
                             column(2,
                                 textOutput('msg3'),
-                                actionButton("fitButton", "Fit to Ligand"),
-                                actionButton("defaultViewButton", "Restart Viewer"), 
+                                actionButton("fitButton", "Center on Ligand"),
+                                actionButton("defaultViewButton", "Restart Viewer"),
+                                textOutput('selAtoms'), 
                                 selectInput('assembly2', 'Assembly', choices=c('AU', 'UNITCELL', 'SUPERCELL'), selected='AU', multiple=FALSE),       
                                 checkboxInput('eventMap', 'Event map', value = TRUE),
                                 uiOutput('isoEventSlider'), 
@@ -49,16 +52,19 @@ ui <- navbarPage("XChem Review", id='beep',
                                 uiOutput('iso2fofcSlider'),
                                 checkboxInput('fofcMap', 'fofc Map', value = FALSE),
                                 uiOutput('isofofcSlider'), 
-                                fluidRow(column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
-                                         column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
-                                ),
-                                sliderInput("fogging", "Fogging:",
-                                    min = 0, max = 100,
-                                    value = c(45,58)),
-                                sliderInput("clipping", "Clipping:",
-                                    min = 0, max = 100,
-                                    value = c(47,100)
-                                    )       
+                                actionButton('controlPanel', 'Show Control Panel')#,
+                                #fluidRow(
+                                #    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
+                                #    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
+                                #),
+                                #sliderInput("fogging", "Fogging:",
+                                #    min = 0, max = 100,
+                                #    value = c(45,58)
+                                #),
+                                #sliderInput("clipping", "Clipping:",
+                                #    min = 0, max = 100,
+                                #    value = c(47,100)
+                                #)       
                             ) # column
                         ) # Fluid row
                     ), 
@@ -115,16 +121,30 @@ ui <- navbarPage("XChem Review", id='beep',
         ) # mainPanel
     ), # tabPanel
     tabPanel('FragChat',
-        tabPanel('Main',
-            sidebarLayout(
-                sidebarPanel(
-
-                ), # sidebarpanel
-                mainPanel('Coming Soon...'
-
-                ) # Main Panel
-            ) # sidebar layout
-        ) # mainPanel
+        fluidPage(
+                tags$head(
+                    tags$style("#chatpanel {overflow: auto;}")
+                ),
+                sidebarLayout(
+                    sidebarPanel(
+                        actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
+                        selectizeInput("channelSelect", "Channel/Crystal", select='', choices = names(channelSelect), multiple=FALSE),
+                        textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
+                        cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
+                        textInput('slackUser', label = 'Name', value =''),
+                        actionButton('slackSubmit', label = 'Submit')
+                    ), # sidebarpanel
+                    mainPanel(
+                        absolutePanel(id = 'chatpanel', fixed=T,
+                            #tableOutput('chatTable')]
+                            textOutput('chatURL'),
+                            textOutput('scrollDialog'),
+                            textOutput('chat'),
+                            tags$style(type="text/css", "#chat {white-space: pre-wrap; max-height: 500px}")
+                        )
+                    ) # Main Panel
+                ) # sidebar layout
+            ) # Fluid Page
     ), # tabPanel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))

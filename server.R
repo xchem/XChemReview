@@ -13,7 +13,7 @@ server <- function(input, output, session) {
     session$allowReconnect(FALSE)
 	sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
     session$onSessionEnded(sessionDisconnect)
-    sessionTime <- epochTime()
+    sessionTime <- reactive({epochTime()})
     options <- list(pdbID="")
 
     # Page 1
@@ -28,12 +28,133 @@ server <- function(input, output, session) {
         data
     }
 
+    slackFilters <- c('has joined the channel')
+    getChannelList <- function(){
+        channellist <- content(POST(url='https://slack.com/api/conversations.list', body=list(token=api)))
+        channels <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
+        rownames(channels) <- channels[,1]
+        channels <- channels[!rownames(channels)%in%c('welcome', 'team', 'project'),]
+        return(channels)
+    }
+
+    getChannel <- function(structure, channels){
+        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
+        ifelse(channelname %in% rownames(channels), channels[channelname, 2], NA)
+    }
+
+    parseConversation <- function(channel){
+        history <- content(POST(url='https://slack.com/api/conversations.history', 
+                body = list(token = api, channel = channel)))
+        convoblock <- do.call('rbind', parseMessageContent(conversations_history = history[[2]], channel=channel))
+        return(convoblock[nrow(convoblock):1,])
+    }
+
+    parseMessageContent <- function(conversations_history, channel){
+        messageContent <- lapply(conversations_history, parseIndividualMessage, channel=channel)
+        return(messageContent)
+    }
+
+    parseReply <- function(x, content, ts){
+        user <- content[[x]]$user
+        text <- content[[x]]$text
+        out <- c(user, text, ts)
+        return(out)
+    }
+
+    parseThread <- function(channel, ts, api){
+        thread <- content(POST(url='https://slack.com/api/conversations.replies',
+                            body = list(token = api, channel = channel, ts = ts)))
+        content <- thread[[1]]
+        contentid <- length(content):1
+        out <- t(sapply(contentid, parseReply, content=content, ts=ts))
+        return(out)
+    }
+
+    parseIndividualMessage <- function(message, channel){
+        user <- message$user
+        text <- message$text
+        ts <- message$thread_ts
+        broadcastedreply <- any(grepl('root', names(message)))
+        if(broadcastedreply) return(NULL)
+        if(!is.null(ts)){
+            out <- parseThread(channel = channel, ts = ts, api = api)
+        } else {
+            out <- t(c(user, text, message$ts))
+        }
+        return(out)
+    }
+
+    userList <- function(){
+        users <- content(POST(url='https://slack.com/api/users.list', 
+            body = list(token = api)))
+        userlist <- t(sapply(users$members, function(x){
+            pull <- c(x$id, x$real_name)
+            if(length(pull)<2) pull <- c(pull, NA)
+            return(pull)
+        }))
+        users <- userlist[,2]
+        names(users) <- userlist[,1]
+        return(users)
+    }
+
+    refreshChat <- function(channel){
+        users <- userList()
+        convo <- try(parseConversation(channel=channel), silent=T)
+        if(!inherits(convo, 'try-error')){
+            convo <- convo[!convo[,2] == '', ,drop=F]
+            convo <- convo[!grepl(slackFilters, convo[,2]), ,drop=F]
+            convo[,1] <- users[convo[,1]]
+            stamps <- duplicated(convo[,3])
+            textdump <- paste(mapply(X=1:nrow(convo), Y=stamps, function(X,Y){
+                date <- as.POSIXct(as.numeric(convo[X, 3]), origin="1970-01-01")
+                if(Y) sprintf('\t- <%s>: %s', convo[X,1], convo[X,2])
+                else sprintf('[%s] - <%s>: %s ',  date, convo[X,1], convo[X,2])
+            }), collapse='\n')
+            output$chat <- renderText({textdump})
+        } else {
+            output$chat <- renderText({'Select A Channel'})
+        }
+    }
+
+    createChannel <- function(structure){
+        # lowercase and despecial
+        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
+        resp <- POST(url='https://slack.com/api/conversations.create', body=list(token=api, name =channelname))
+        return(content(resp)$channel$id)
+    }
+
+    sendMessageToSlack <- function(channel, message, name){
+        content(POST(url='https://slack.com/api/chat.postMessage', 
+            body=list(token=apiuser, 
+                channel=channel, 
+                text= message, 
+                as_user='true', 
+                username=name)))
+    }
+
     sendEmail <- function(structure, user, decision, reason, comments){
+        if(debug) debugMessage(sID=sID, sprintf('Communicating to Slack...'))
+        channels <- getChannelList()
+        channelID <- getChannel(structure, channels)
+        if(is.na(channelID)){
+            # Create Channel, then get ID immediately
+            channelID <- createChannel(structure=structure)
+        }
+        # Post comment...
+        sendMessageToSlack(channel=channelID, 
+                            message= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
+
+With these additional comments:
+
+%s', structure, decision, user, reason, comments), 
+                            name = 'xchemreview-bot')
+
         if(debug) debugMessage(sID=sID, sprintf('Sending Email'))
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = '<tyler.gorrie-stone@diamond.ac.uk>',
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
@@ -48,12 +169,14 @@ connected to the diamond VPN or via NX.
 
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
 
-If you disagree with this decision please discuss and change the outcome by submitting a new response.
+If you disagree with this decision please discuss at the in the slack channel: (https://xchemreview.slack.com/archives/%s) or change the outcome by submitting a new response.
 
 This email was automatically sent by The XChem Review app
 
+If you have trouble joining the slack channel please use this invitation link: https://join.slack.com/t/xchemreview/shared_invite/zt-fpocaf6e-JQp~U6rcbGrre33E~7~faw
+
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, comments, structure, protein),
+            structure, decision, user, reason, comments, structure, protein, channelID),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -63,12 +186,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Save Responses.
     saveData <- function(data, xtaln) {
-        fileName <- sprintf("%s_%s.csv",
-                            humanTime(),
-                            digest::digest(data))
+        #fileName <- sprintf("%s_%s.csv",
+        #                    humanTime(),
+        #                    digest::digest(data))
         if(!data[,'fedid'] %in% c('', ' ')){ # Create Modal that prevent empty data from being submitted!!
-            write.csv(x = data, file = file.path(responsesDir, fileName),
-                  row.names = FALSE, quote = TRUE)
+            #write.csv(x = data, file = file.path(responsesDir, fileName),
+            #      row.names = FALSE, quote = TRUE)
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
             dbDisconnect(con)
@@ -88,8 +211,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             output <- TRUE
         }
-        return(output)
-
+        return(TRUE) # Just force it... The app updates fairly rapidly now...
     }
 
     displayModalWhoUpdated <- function(id){
@@ -103,7 +225,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
                 showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
                     sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
-                    , easyClose=TRUE, footer = tagList( modalButton("Cancel"), actionButton("ok", "Restart Session"))
+                    , footer = tagList(actionButton("ok", "Okay"))
                 ))
     }
 
@@ -175,11 +297,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         rownames(dbdat) <- dbdat[,'Xtal']
         # Sort Data 
-        dbdat <- do.call('rbind', 
-        lapply(c('Release (notify)', '', 'More Work', 'Release', 'Reject'), function(dec){
-            dbdat[ dbdat[ , 'Decision'] == dec , ]
-        })
-        )
+        #dbdat <- do.call('rbind', 
+        #lapply(c("","Release", "More Refinement", "More Experiments", "Reject"), function(dec){
+        #    dbdat[ dbdat[ , 'Decision'] == dec , ]
+        #})
+        #)
         return(dbdat)
     }
 
@@ -210,6 +332,52 @@ If you believe you have been sent this message in error, please email tyler.gorr
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
+    loadDefaultParams <- function(){
+        list(fogging=c(45,58),
+            clipping=c(47,100),
+            boxsize=10,
+            clipDist=5)
+    }
+
+    getCurrentParams <- function(input){
+        list(fogging=input$fogging,
+            clipping=input$clipping,
+            boxsize=input$boxsize,
+            clipDist=input$clipDist)
+    }
+
+    values <- reactiveValues()
+    values$defaults <- loadDefaultParams()
+    observeEvent(input$pictureModal, ignoreNULL = TRUE, {
+        showModal(pictureModal())
+    })
+
+    observeEvent(input$controlPanel, ignoreNULL = FALSE, {
+        showModal(contolPanelModal(values=isolate(values$defaults)))
+    })
+
+    observeEvent(input$updateParams, {
+        removeModal()
+        values$defaults$fogging <- input$fogging
+        values$defaults$clipping <- input$clipping
+        values$defaults$boxsize <- input$boxsize
+        values$defaults$clipDist <- input$clipDist
+        print(values)
+    })
+
+
+    # Update behaviour for these...
+    observeEvent(input$clickedAtoms, {
+        print(input$clickedAtoms)
+    })
+
+    output$selAtoms <- renderText({'Selected Atoms'})
+
+    observeEvent(input$clickNames, {
+        print(input$clickNames)
+        output$selAtoms <- renderText({paste(input$clickNames, collapse = ';')})
+    })
+
     observeEvent(input$decision,{
         if(debug) debugMessage(sID=sID, sprintf('Update Decision'))
         updateSelectizeInput(session, 'reason', choices = possRes[[input$decision]])
@@ -217,7 +385,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     if(debug) debugMessage(sID=sID, sprintf('Data Reactivised'))
 
-    r1 <- reactive({
+    reactiviseData <- function(inputData){
+        reactive({
         rowidx <- rep(FALSE, nrow(inputData()))
         outcome <- inputData()$XCEoutcome
         if(input$out4) rowidx[outcome==4] <- TRUE
@@ -229,18 +398,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
         else if(is.null(input$columns) & !is.null(input$protein)) inputData()[rowidx & inputData()$Protein %in% input$protein, ]
         else if(!is.null(input$columns) & is.null(input$protein)) inputData()[rowidx,input$columns]
         else inputData()[rowidx & inputData()$Protein %in% input$protein, input$columns]
-    })
-  
-    output$table <- DT::renderDataTable(
-        #{r1()},
+        })
+    }
+
+    updateMainTable <- function(r1){
+        DT::renderDataTable(
         {datatable(r1(), selection = 'single', options = list(
             pageLength = 20
         )) %>% formatStyle(
         'Decision',
         target = 'row',
-        backgroundColor = styleEqual(c('Release', 'More Work', 'Reject'), c('#8D86FF', '#FFC107', '#F56360'))
-        )}  
-    )
+        backgroundColor = styleEqual(c('Release', 'More Refinement', 'More Experiments', 'Reject'), c('#648FFF', '#FFB000', '#FE6100', '#DC267F'))
+        )}) 
+    }
+
+    r1 <- reactiviseData(inputData=inputData)
+    output$table <- updateMainTable(r1=r1)
 
     # Generic Output Messages.
     output$msg <- renderText({'Please click once'}) 
@@ -248,6 +421,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$msg3 <- renderText({'NGL Viewer Controls'})
     output$progtext <- renderText({''}) # User Feedback...
     # Observers, behaviour will be described as best as possible
+
+
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
         # Check if Row has been updated since session began, ensure that loadData()[,] # will also get relevant xtal data?
@@ -257,19 +432,33 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', selrow)) 
         xId <- dbdat[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
-        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
+        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
             displayModalWhoUpdated(id=xId)
+            sessionTime <- reactive({epochTime()})
         }
     })
 
+    restartSessionKeepOptions <- function(){
+        message('Updating Data')
+        dbdat <- getData(db=db, host_db=host_db, db_port=db_port, 
+            db_user=db_user, db_password=db_password)
+        inputData <- reactive({dbdat})
+        return(inputData)
+    }
+
     observeEvent(input$ok, {
         if(debug) debugMessage(sID=sID, sprintf('Reloading Session'))
-        session$reload()
+        #session$reload()
+        inputData <- restartSessionKeepOptions()
+        r1 <- reactiviseData(inputData=inputData)
+        output$table <- updateMainTable(r1=r1)
+        sessionTime <- reactive({epochTime()})
+        removeModal()  
     })
-  
+
     observeEvent(input$updateView,{
         session$sendCustomMessage(type="updateParams", message=list())
     })
@@ -277,7 +466,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     resetForm <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Resetting Form'))
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
-        session$reload()
+        updateSelectInput(session, 'decision', selected ='', choices = possDec)
+        updateSelectInput(session, 'reason', selected='', choices='')
+        updateTextInput(session, 'comments', value = "")
+        #session$reload()
+        return(restartSessionKeepOptions())
     }
 
     # Upon Main Page Submit
@@ -294,9 +487,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
              # Get ID...
             xId <- fData[ ,'crystal_id']
-            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
+            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
                 saveData(fData, xtaln)
-                resetForm()
+                sessionTime <- reactive({epochTime()})
+                message(sessionTime())
+                inputData <- resetForm()
+                r1 <- reactiviseData(inputData=inputData)
+                output$table <- updateMainTable(r1=r1)
+                
             } else {
                 displayModalWhoUpdated(id=xId)
             }
@@ -400,7 +598,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadEMaps <- function(XtalRoot, input){
-#        withProgress(message = 'Loading maps', detail = 'Finding Files', style='notification', value=0, {
             theFiles <- findFiles(XtalRoot) # row 1 is: 1 = event map, 2 = 2fofc and 3 = fofc
             if(any(is.na(theFiles))){
                 maptype <- c('event', '2fofc', 'fofc')
@@ -412,22 +609,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
             } else {
                 output$missingFiles <- renderText({sprintf('Using: event: %s, 2fofc: %s, fofc: %s', basename(theFiles[1]), basename(theFiles[2]), basename(theFiles[3]))})
             }
-#            incProgress(.1, details='Load Event Map')
-            #fname <- dir(XtalRoot, pattern = '_event.ccp4', full.names=T)[1]
-            #fname <- dir(XtalRoot, pattern = 'event', full.names=T)[1]
             fname <- theFiles[1]
             if(debug) debugMessage(sID=sID, sprintf('Event Map: %s', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
+            incProgress(.1, detail = 'Uploading Event Map')
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading Event Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
-                # addEvent requires:
-                # filepath as event blob (base64string)
-                # desired iso level
-
+                incProgress(.05, detail = 'Uploading Event Map')
                 session$sendCustomMessage(type="addEvent", 
                     message=list(
-                        event, 
+                        as.character(event), 
                         as.character(input$isoEvent), 
                         as.character('orange'), 
                         as.character('false'), 
@@ -437,16 +630,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
                     )
                 )
+                incProgress(.05, detail = 'Uploading Event Map')
             }
 
             output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
+            incProgress(.1, detail = 'Uploading 2fofc Map')
             if(TRUE){
-                #fname <- dir(XtalRoot, pattern = '_2fofc.ccp4', full.names=T)
-                #fname <- dir(XtalRoot, pattern = '2fofc.map', full.names=T)[1]
                 fname <- theFiles[2]
                 if(debug) debugMessage(sID=sID, sprintf('2fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading 2fofc Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
+                incProgress(.05, detail = 'Uploading 2fofc Map')
                 session$sendCustomMessage(type="add2fofc", 
                     message=list(
                         event, 
@@ -458,16 +653,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$twofofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploading 2fofc Map')
             }
 
             output$progtext <- renderText({'Uploading map files... fofc map...'}) 
+            incProgress(.05, detail = 'Uploading fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
                 if(debug) debugMessage(sID=sID, sprintf('fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading fofc Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
+                incProgress(.05, detail = 'Uploading +ve fofc Map')
                 session$sendCustomMessage(type="addfofc_positive", 
                     message=list(
                         event, 
@@ -479,6 +678,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploading -ve fofc Map')
                 session$sendCustomMessage(type="addfofc_negative", 
                     message=list(
                         event, 
@@ -490,6 +690,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploaded')
             }
             updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
@@ -530,67 +731,75 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
-            starttime <- Sys.time()
-            choice = input$Xtal
-            filepath <- dbdat[choice,'Latest.PDB']
-            XtalRoot <- try(getRootFP(filepath), silent=T)
-            defaultPdbID <- filepath
-            defaultShell <- XtalRoot
-            output$progtext <- renderText({'Uploading PDB File...'}) 
-            tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-            output$progtext <- renderText({'Uploading PDB File... Done'}) 
-            if(inherits(tryAddPDB, 'try-error')){
-                defaultPdbID <- ''
-                defaultShell <- ''
-                session$sendCustomMessage(type="removeAllRepresentations", message=list())
-            } else {
-                if(!inherits(XtalRoot, 'try-error')){
-                    output$progtext <- renderText({'Uploading map files... '}) 
-                    tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
-                    if(inherits(tryAddEvent, 'try-error')){
-                        defaultShell <- ''
-                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+            withProgress(message = 'Loading Crystal', value = 0,{
+                session$sendCustomMessage(type = 'setup', message=list())
+                starttime <- Sys.time()
+                choice = input$Xtal
+                filepath <- dbdat[choice,'Latest.PDB']
+                XtalRoot <- try(getRootFP(filepath), silent=T)
+                defaultPdbID <- filepath
+                defaultShell <- XtalRoot
+                #output$progtext <- renderText({'Uploading PDB File...'}) 
+                incProgress(.1, detail = 'Uploading PDB file')
+                tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+                #output$progtext <- renderText({'Uploading PDB File... Done'}) 
+                if(inherits(tryAddPDB, 'try-error')){
+                    defaultPdbID <- ''
+                    defaultShell <- ''
+                    session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                } else {
+                    if(!inherits(XtalRoot, 'try-error')){
+                        output$progtext <- renderText({'Uploading map files... '}) 
+                        tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+                        if(inherits(tryAddEvent, 'try-error')){
+                            defaultShell <- ''
+                            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                        }
+                        endtime <- Sys.time()
+                        output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                     }
-                    endtime <- Sys.time()
-                    output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                 }
-            }
 
-            spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
-            output$spiderPlot <- renderImage({
-                if(length(spfile) == 1){
-                    list(src = spfile,
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                } else { 
-                    list(src = '',
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                }
-            }, deleteFile=FALSE)
+                incProgress(.1, detail = 'Finding miscellenious Files')
+                spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
+                output$spiderPlot <- renderImage({
+                    if(length(spfile) == 1){
+                        list(src = spfile,
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    } else { 
+                        list(src = '',
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    }
+                }, deleteFile=FALSE)
 
-            ligfile <- tail(dir(sprintf('%s/compound', XtalRoot), pattern = '.png', full.names=T),1)
-            output$ligimage <- renderImage({
-                if(length(ligfile) == 1){
-                    list(src = ligfile,
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                } else { 
-                    list(src = '',
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                }
-            }, deleteFile=FALSE)
-
+                ligfile <- tail(dir(sprintf('%s/compound', XtalRoot), pattern = '.png', full.names=T),1)
+                output$ligimage <- renderImage({
+                    if(length(ligfile) == 1){
+                        list(src = ligfile,
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    } else { 
+                        list(src = '',
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    }
+                }, deleteFile=FALSE)
+                setProgress(1)
+            })
     })
 
     # Go back to main Panel, do a refresh for good measure.
     observeEvent(input$clear, {
-        resetForm()
+        inputData <- resetForm()
+        r1 <- reactiviseData(inputData=inputData)
+        output$table <- updateMainTable(r1=r1)
+        sessionTime <- reactive({epochTime()})
     })
 
     # When pressed re-create original xtal ngl view...
@@ -687,35 +896,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             sliderInput("isofofc", "",
                 min = 0, max = 3,
                 value = 3, step = 0.1)
-        } else {
-            NULL
-        }
-    })
-
-    controlPanel = TRUE
-    output$controlRow <- renderUI({
-        if(TRUE){
-            fluidRow(
-                    column(6, numericInput("boxsize", 'Box Size', value = 10, min = 0, max = 100, width='100px')),
-                    column(6, numericInput("clipDist", "Clip Dist", value=5, min = 0, max = 100, width='100px'))
-                    )
-        } else {
-            NULL
-        }
-    })
-
-    output$controlFog <- renderUI({
-        if(controlPanel){
-            sliderInput("fogging", "Fogging:", min = 0, max = 100, value = c(45,58))
-        } else {
-            NULL
-        }
-    })
-
-
-    output$controlClip <- renderUI({
-        if(controlPanel){
-            sliderInput("clipping", "Clipping:", min = 0, max = 100, value = c(47,100))
         } else {
             NULL
         }
@@ -1024,12 +1204,39 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateSelectizeInput(session, 'goto', selected = sprintf('%s.mol', newname), choices=molbase)
     })
 
-
     observeEvent(input$updateTable,{
         updateTable()
     })
 
     # Frag Chat
+    output$scrollDialog <- renderText({'Scroll for More...'})
 
+    observeEvent(input$updateSlackChannels,{
+        channels <- getChannelList()
+        channelSelect <- channels[,2]
+        names(channelSelect) <- channels[,1]
+        updateSelectizeInput(session, "channelSelect", select = input$channelSelect, choices = names(channelSelect))
+        refreshChat(channel = channelSelect[input$channelSelect]) 
+    })
 
+    observeEvent(input$channelSelect, {
+        message(input$channelSelect)
+        channels <- getChannelList()
+        channelSelect <- channels[,2]
+        names(channelSelect) <- channels[,1]
+        refreshChat(channel = channelSelect[input$channelSelect]) 
+        output$chatURL <- renderText({sprintf('https://xchemreview.slack.com/archives/%s', channelSelect[input$channelSelect])})
+    })
+
+    observeEvent(input$slackSubmit, {
+        if(input$slackUser == '' | input$TextInput == ''){
+            showModal(modalDialog(title = "Cannot send empty messages.",
+                    'Please add some text to the Name and Text Fields.', easyClose=TRUE))
+        } else {
+        sendMessageToSlack(channel = channelSelect[input$channelSelect], 
+                            message = sprintf('on behalf of: %s. \n %s', input$slackUser, input$TextInput), 
+                            name=input$slackUser)
+        }
+        refreshChat(channel = channelSelect[input$channelSelect]) 
+    })
 } # Server
