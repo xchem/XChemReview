@@ -153,8 +153,8 @@ With these additional comments:
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
-            #to = '<tyler.gorrie-stone@diamond.ac.uk>',
+            #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            to = '<tyler.gorrie-stone@diamond.ac.uk>',
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
@@ -297,11 +297,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         rownames(dbdat) <- dbdat[,'Xtal']
         # Sort Data 
-        dbdat <- do.call('rbind', 
-        lapply(c("","Release", "More Refinement", "More Experiments", "Reject"), function(dec){
-            dbdat[ dbdat[ , 'Decision'] == dec , ]
-        })
-        )
+        #dbdat <- do.call('rbind', 
+        #lapply(c("","Release", "More Refinement", "More Experiments", "Reject"), function(dec){
+        #    dbdat[ dbdat[ , 'Decision'] == dec , ]
+        #})
+        #)
         return(dbdat)
     }
 
@@ -612,10 +612,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fname <- theFiles[1]
             if(debug) debugMessage(sID=sID, sprintf('Event Map: %s', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
-            incProgress(.3, detail = 'Uploading Event Map')
+            incProgress(.1, detail = 'Uploading Event Map')
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading Event Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
+                incProgress(.05, detail = 'Uploading Event Map')
                 session$sendCustomMessage(type="addEvent", 
                     message=list(
                         as.character(event), 
@@ -628,15 +630,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
                     )
                 )
+                incProgress(.05, detail = 'Uploading Event Map')
             }
 
             output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
-            incProgress(.3, detail = 'Uploading 2fofc Map')
+            incProgress(.1, detail = 'Uploading 2fofc Map')
             if(TRUE){
                 fname <- theFiles[2]
                 if(debug) debugMessage(sID=sID, sprintf('2fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading 2fofc Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
+                incProgress(.05, detail = 'Uploading 2fofc Map')
                 session$sendCustomMessage(type="add2fofc", 
                     message=list(
                         event, 
@@ -648,17 +653,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$twofofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploading 2fofc Map')
             }
 
             output$progtext <- renderText({'Uploading map files... fofc map...'}) 
-            incProgress(.3, detail = 'Uploading fofc Map')
+            incProgress(.05, detail = 'Uploading fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
                 fname <- theFiles[3]
                 if(debug) debugMessage(sID=sID, sprintf('fofc Map: %s', fname))
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
+                incProgress(.05, detail = 'Uploading fofc Map')
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
+                incProgress(.05, detail = 'Uploading +ve fofc Map')
                 session$sendCustomMessage(type="addfofc_positive", 
                     message=list(
                         event, 
@@ -670,6 +678,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploading -ve fofc Map')
                 session$sendCustomMessage(type="addfofc_negative", 
                     message=list(
                         event, 
@@ -681,6 +690,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         tolower(as.character(as.logical(input$fofcMap)))
                     )
                 )
+                incProgress(.05, detail = 'Uploaded')
             }
             updateVisabilities(event=input$eventMap, twofofc=input$twofofcMap, fofc=input$fofcMap)
     }
@@ -750,7 +760,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     }
                 }
 
-
+                incProgress(.1, detail = 'Finding miscellenious Files')
                 spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
                 output$spiderPlot <- renderImage({
                     if(length(spfile) == 1){
@@ -780,6 +790,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         height=200)
                     }
                 }, deleteFile=FALSE)
+                setProgress(1)
             })
     })
 
