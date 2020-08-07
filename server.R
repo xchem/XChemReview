@@ -13,7 +13,7 @@ server <- function(input, output, session) {
     session$allowReconnect(FALSE)
 	sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
     session$onSessionEnded(sessionDisconnect)
-    sessionTime <- epochTime()
+    sessionTime <- reactive({epochTime()})
     options <- list(pdbID="")
 
     # Page 1
@@ -153,8 +153,8 @@ With these additional comments:
         protein <- gsub('-x[0-9]+', '', structure)
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
-            #to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
-            to = '<tyler.gorrie-stone@diamond.ac.uk>',
+            to = sort(unique(emailListperStructure[[protein]])),#'<tyler.gorrie-stone@diamond.ac.uk>', #emailListperStructure[[structure]],
+            #to = '<tyler.gorrie-stone@diamond.ac.uk>',
             subject = sprintf('%s has been labelled as %s', structure, decision),
             msg = sprintf(
 '%s has been labelled as %s by %s for the following reason(s): %s.
@@ -211,8 +211,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
             output <- TRUE
         }
-        return(output)
-
+        return(TRUE) # Just force it... The app updates fairly rapidly now...
     }
 
     displayModalWhoUpdated <- function(id){
@@ -433,12 +432,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', selrow)) 
         xId <- dbdat[selrow, 'xId']        
         #if(sessionTime > max( loadData()[,'timestamp']) ){ 
-        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
+        if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
             # Update Form window (weird bug with changing decision reupdates form...)
             updateSelectizeInput(session, "Xtal", selected = rownames(rdat), choices = sort(rownames( inputData() )))
         } else {
             displayModalWhoUpdated(id=xId)
-            sessionTime <- epochTime()
+            sessionTime <- reactive({epochTime()})
         }
     })
 
@@ -456,7 +455,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         inputData <- restartSessionKeepOptions()
         r1 <- reactiviseData(inputData=inputData)
         output$table <- updateMainTable(r1=r1)
-        sessionTime <- epochTime()
+        sessionTime <- reactive({epochTime()})
         removeModal()  
     })
 
@@ -467,6 +466,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     resetForm <- function(){
         if(debug) debugMessage(sID=sID, sprintf('Resetting Form'))
         updateSelectizeInput(session, "Xtal", selected = '', choices = sort(rownames( inputData() )))
+        updateSelectInput(session, 'decision', selected ='', choices = possDec)
+        updateSelectInput(session, 'reason', selected='', choices='')
+        updateTextInput(session, 'comments', value = "")
         #session$reload()
         return(restartSessionKeepOptions())
     }
@@ -485,10 +487,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         } else {
              # Get ID...
             xId <- fData[ ,'crystal_id']
-            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime)){
+            if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
                 saveData(fData, xtaln)
-                sessionTime <- epochTime()
-                message(sessionTime)
+                sessionTime <- reactive({epochTime()})
+                message(sessionTime())
                 inputData <- resetForm()
                 r1 <- reactiviseData(inputData=inputData)
                 output$table <- updateMainTable(r1=r1)
@@ -610,6 +612,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fname <- theFiles[1]
             if(debug) debugMessage(sID=sID, sprintf('Event Map: %s', fname))
             output$progtext <- renderText({'Uploading map files... event map...'}) 
+            incProgress(.3, detail = 'Uploading Event Map')
             if(TRUE){   
                 event <- readBin(fname, what = 'raw', file.info(fname)$size)
                 event <- base64encode(event, size=NA, endian=.Platform$endian)
@@ -628,6 +631,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
 
             output$progtext <- renderText({'Uploading map files... 2fofc map...'}) 
+            incProgress(.3, detail = 'Uploading 2fofc Map')
             if(TRUE){
                 fname <- theFiles[2]
                 if(debug) debugMessage(sID=sID, sprintf('2fofc Map: %s', fname))
@@ -647,6 +651,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
 
             output$progtext <- renderText({'Uploading map files... fofc map...'}) 
+            incProgress(.3, detail = 'Uploading fofc Map')
             if(TRUE){
                 #fname <- dir(XtalRoot, pattern = '_fofc.ccp4', full.names=T)[1]
                 #fname <- dir(XtalRoot, pattern = '^fofc.map', full.names=T)[1]
@@ -716,63 +721,66 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Really need to sort this logic ball out...
     observeEvent(input$Xtal, {
-            session$sendCustomMessage(type = 'setup', message=list())
-            starttime <- Sys.time()
-            choice = input$Xtal
-            filepath <- dbdat[choice,'Latest.PDB']
-            XtalRoot <- try(getRootFP(filepath), silent=T)
-            defaultPdbID <- filepath
-            defaultShell <- XtalRoot
-            output$progtext <- renderText({'Uploading PDB File...'}) 
-            tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
-            output$progtext <- renderText({'Uploading PDB File... Done'}) 
-            if(inherits(tryAddPDB, 'try-error')){
-                defaultPdbID <- ''
-                defaultShell <- ''
-                session$sendCustomMessage(type="removeAllRepresentations", message=list())
-            } else {
-                if(!inherits(XtalRoot, 'try-error')){
-                    output$progtext <- renderText({'Uploading map files... '}) 
-                    tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
-                    if(inherits(tryAddEvent, 'try-error')){
-                        defaultShell <- ''
-                        session$sendCustomMessage(type="removeAllRepresentations", message=list())
+            withProgress(message = 'Loading Crystal', value = 0,{
+                session$sendCustomMessage(type = 'setup', message=list())
+                starttime <- Sys.time()
+                choice = input$Xtal
+                filepath <- dbdat[choice,'Latest.PDB']
+                XtalRoot <- try(getRootFP(filepath), silent=T)
+                defaultPdbID <- filepath
+                defaultShell <- XtalRoot
+                #output$progtext <- renderText({'Uploading PDB File...'}) 
+                incProgress(.1, detail = 'Uploading PDB file')
+                tryAddPDB <- try(uploadPDB(filepath=defaultPdbID, input=input), silent=T)
+                #output$progtext <- renderText({'Uploading PDB File... Done'}) 
+                if(inherits(tryAddPDB, 'try-error')){
+                    defaultPdbID <- ''
+                    defaultShell <- ''
+                    session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                } else {
+                    if(!inherits(XtalRoot, 'try-error')){
+                        output$progtext <- renderText({'Uploading map files... '}) 
+                        tryAddEvent <- try(uploadEMaps(XtalRoot=defaultShell, input=input), silent=T)
+                        if(inherits(tryAddEvent, 'try-error')){
+                            defaultShell <- ''
+                            session$sendCustomMessage(type="removeAllRepresentations", message=list())
+                        }
+                        endtime <- Sys.time()
+                        output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                     }
-                    endtime <- Sys.time()
-                    output$progtext <- renderText({sprintf('Currently Viewing: %s (TimeTaken: %s seconds)', input$Xtal, signif(endtime-starttime, 3))}) 
                 }
-            }
 
-            spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
-            output$spiderPlot <- renderImage({
-                if(length(spfile) == 1){
-                    list(src = spfile,
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                } else { 
-                    list(src = '',
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                }
-            }, deleteFile=FALSE)
 
-            ligfile <- tail(dir(sprintf('%s/compound', XtalRoot), pattern = '.png', full.names=T),1)
-            output$ligimage <- renderImage({
-                if(length(ligfile) == 1){
-                    list(src = ligfile,
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                } else { 
-                    list(src = '',
-                    contentType = 'image/png',
-                    width=200,
-                    height=200)
-                }
-            }, deleteFile=FALSE)
+                spfile <- tail(dir(XtalRoot, pattern='A-1101.png', full.names=T, rec=T),1)
+                output$spiderPlot <- renderImage({
+                    if(length(spfile) == 1){
+                        list(src = spfile,
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    } else { 
+                        list(src = '',
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    }
+                }, deleteFile=FALSE)
 
+                ligfile <- tail(dir(sprintf('%s/compound', XtalRoot), pattern = '.png', full.names=T),1)
+                output$ligimage <- renderImage({
+                    if(length(ligfile) == 1){
+                        list(src = ligfile,
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    } else { 
+                        list(src = '',
+                        contentType = 'image/png',
+                        width=200,
+                        height=200)
+                    }
+                }, deleteFile=FALSE)
+            })
     })
 
     # Go back to main Panel, do a refresh for good measure.
@@ -780,7 +788,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         inputData <- resetForm()
         r1 <- reactiviseData(inputData=inputData)
         output$table <- updateMainTable(r1=r1)
-        sessionTime <- epochTime()
+        sessionTime <- reactive({epochTime()})
     })
 
     # When pressed re-create original xtal ngl view...
