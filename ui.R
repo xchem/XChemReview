@@ -9,6 +9,7 @@ ui <- navbarPage("XChem Review", id='beep',
             ),
             sidebarLayout(
                 sidebarPanel(width=2,
+                    textOutput('ntoreview'),
                     uiOutput('proteinselect'),
                     div(
                         id = "form",
@@ -27,7 +28,8 @@ ui <- navbarPage("XChem Review", id='beep',
                         column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE)),
                         column(4, checkboxInput('out6', 'Deposited', value = FALSE))
                     ),
-                    actionButton('pictureModal', 'Show Images')
+                    actionButton('pictureModal', 'Show Images'),
+                    actionButton('slackButton', 'Show Slack/History')
                     #imageOutput('ligimage'),
                     #imageOutput('spiderPlot')
                     
@@ -120,32 +122,32 @@ ui <- navbarPage("XChem Review", id='beep',
             ) # Fluid Page
         ) # mainPanel
     ), # tabPanel
-    tabPanel('FragChat',
-        fluidPage(
-                tags$head(
-                    tags$style("#chatpanel {overflow: auto;}")
-                ),
-                sidebarLayout(
-                    sidebarPanel(
-                        actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
-                        selectizeInput("channelSelect", "Channel/Crystal", select='', choices = names(channelSelect), multiple=FALSE),
-                        textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
-                        cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
-                        textInput('slackUser', label = 'Name', value =''),
-                        actionButton('slackSubmit', label = 'Submit')
-                    ), # sidebarpanel
-                    mainPanel(
-                        absolutePanel(id = 'chatpanel', fixed=T,
-                            #tableOutput('chatTable')]
-                            textOutput('chatURL'),
-                            textOutput('scrollDialog'),
-                            textOutput('chat'),
-                            tags$style(type="text/css", "#chat {white-space: pre-wrap; max-height: 500px}")
-                        )
-                    ) # Main Panel
-                ) # sidebar layout
-            ) # Fluid Page
-    ), # tabPanel
+    #tabPanel('FragChat',
+    #    fluidPage(
+    #            tags$head(
+    #                tags$style("#chatpanel {overflow: auto;}")
+    #            ),
+    #            sidebarLayout(
+    #                sidebarPanel(
+    #                    actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
+    #                    selectizeInput("channelSelect", "Channel/Crystal", select='', choices = names(channelSelect), multiple=FALSE),
+     #                   textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
+     #                   cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
+     #                   textInput('slackUser', label = 'Name', value =''),
+    #                    actionButton('slackSubmit', label = 'Submit')
+    #                ), # sidebarpanel
+    #                mainPanel(
+    #                    absolutePanel(id = 'chatpanel', fixed=T,
+    #                        #tableOutput('chatTable')]
+    #                        textOutput('chatURL'),
+     #                       textOutput('scrollDialog'),
+     #                       textOutput('chat'),
+    #                        tags$style(type="text/css", "#chat {white-space: pre-wrap; max-height: 500px}")
+    #                    )
+    #                ) # Main Panel
+    #            ) # sidebar layout
+    #        ) # Fluid Page
+    #), # tabPanel
 	tabPanel('Help',
 		includeMarkdown(sprintf('%s/%s', gpath, "Pages/include.md"))
 	) # Tab Panel

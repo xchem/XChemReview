@@ -336,15 +336,25 @@ If you believe you have been sent this message in error, please email tyler.gorr
         list(fogging=c(45,58),
             clipping=c(47,100),
             boxsize=10,
-            clipDist=5)
+            clipDist=5,
+            backgroundColor='black',
+            cameraType='orthographic',
+            mousePreset='default'
+        )
     }
 
     getCurrentParams <- function(input){
         list(fogging=input$fogging,
             clipping=input$clipping,
             boxsize=input$boxsize,
-            clipDist=input$clipDist)
+            clipDist=input$clipDist,
+            backgroundColor=input$backgroundColor,
+            cameraType=input$cameraType,
+            mousePreset=input$mousePreset
+        )
     }
+
+
 
     values <- reactiveValues()
     values$defaults <- loadDefaultParams()
@@ -356,15 +366,33 @@ If you believe you have been sent this message in error, please email tyler.gorr
         showModal(contolPanelModal(values=isolate(values$defaults)))
     })
 
+    observeEvent(input$slackButton, ignoreNULL=TRUE,{
+        updateSelectizeInput(session, 'channelSelect', select=tolower(gsub('[^[:alnum:]]', '', input$Xtal)))
+        showModal(slackPanel(input=NULL))
+    })
+
     observeEvent(input$updateParams, {
         removeModal()
         values$defaults$fogging <- input$fogging
         values$defaults$clipping <- input$clipping
         values$defaults$boxsize <- input$boxsize
         values$defaults$clipDist <- input$clipDist
-        print(values)
+        values$defaults$backgroundColor <- input$backgroundColor
+        values$defaults$cameraType <- input$cameraType
+        values$defaults$mousePreset <- input$mousePreset
     })
 
+    observeEvent(input$backgroundColor,{
+        session$sendCustomMessage('updateaparam', list('backgroundColor', input$backgroundColor))
+    })
+
+    observeEvent(input$cameraType,{
+        session$sendCustomMessage('updateaparam', list('cameraType', input$cameraType))
+    })
+
+    observeEvent(input$mousePreset,{
+        session$sendCustomMessage('updateaparam', list('mousePreset', input$mousePreset))
+    })
 
     # Update behaviour for these...
     observeEvent(input$clickedAtoms, {
@@ -422,6 +450,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$progtext <- renderText({''}) # User Feedback...
     # Observers, behaviour will be described as best as possible
 
+
+    output$ntoreview <- renderText({sprintf('To Review: %s', sum(r1()$Decision==''))})
 
     # Upon Row Click
     observeEvent(input$table_rows_selected, {
@@ -852,9 +882,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$proteinselect <- renderUI({
         query <- parseQueryString(session$clientData$url_search)
         if (!is.null(query[['protein']])) {
-            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=query[['protein']], multiple=TRUE) 
+            selectInput('protein', 'Select Protein', choices = proteinList, selected=query[['protein']], multiple=TRUE) 
         } else {
-            selectInput('protein', 'Select Specific Protein', choices = proteinList, selected=list(), multiple=TRUE)                  
+            selectInput('protein', 'Select Protein', choices = proteinList, selected=list(), multiple=TRUE)                  
         }
     })
 
