@@ -21,28 +21,38 @@ library(DBI)
 if(local){
     gpath <- '.'
     responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
-    source('./db_config.R')
+    #source('./db_config.R')
+    source('/dls/science/users/mly94721/xchemreview/db_config.R') 
     install.packages('~/nglshiny', repos=NULL, type='source')
     library(nglShiny)
+    library(httr)
 } else {
     gpath <- '/srv/shiny-server/'
     install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
     library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
     # Move this to docker...
-    #install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
+    install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
     library(sendmailR, lib.loc = "/dls/science/users/mly94721/R/")
+    install.packages('httr', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
+    library(httr, lib.loc = "/dls/science/users/mly94721/R/")
 }
 
 # Source the rest of the code
 if(local){
+    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
     source('./globals.R')
+    source('./modules.R')
     source('./ui.R')
     source('./server.R')
+
 } else {
     # This is not good!...
+    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
     source('/dls/science/users/mly94721/xchemreview/staging/globals.R')
+    source('/dls/science/users/mly94721/xchemreview/staging/modules.R')
     source('/dls/science/users/mly94721/xchemreview/staging/ui.R')
     source('/dls/science/users/mly94721/xchemreview/staging/server.R')
+
 }
 # Create App
 

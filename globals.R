@@ -119,3 +119,16 @@ names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Rejec
 fragfolders <- dir('/dls/science/groups/i04-1/fragprep/staging/')
 fragfolders <- fragfolders[!fragfolders %in% c('~', 'tmp')]
 
+getChannelList <- function(){
+    channellist <- content(POST(url='https://slack.com/api/conversations.list', body=list(token=api)))
+    channels <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
+    rownames(channels) <- channels[,1]
+    channels <- channels[!rownames(channels)%in%c('welcome', 'team', 'project'),]
+    return(channels)
+}
+
+channels <- getChannelList()
+channelSelect <- channels[,2]
+names(channelSelect) <- channels[,1]
+#updateSelectizeInput(session, "channelSelect", select = '', choices = names(channelSelect))
+
