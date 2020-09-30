@@ -22,24 +22,23 @@ if(local){
     gpath <- '.'
     responsesDir <-file.path(sprintf('%s/%s', gpath, "Responses"))
     #source('./db_config.R')
-    source('/dls/science/users/mly94721/xchemreview/db_config.R') 
+    source('/dls/science/groups/i04-1/software/xchemreview/db_config.R') 
     install.packages('~/nglshiny', repos=NULL, type='source')
     library(nglShiny)
     library(httr)
 } else {
     gpath <- '/srv/shiny-server/'
-    install.packages("/dls/science/users/mly94721/xchemreview/nglshiny", repos=NULL, type='source', lib="/dls/science/users/mly94721/R/")
-    library(nglShiny, lib.loc = "/dls/science/users/mly94721/R/")
+    # Need to move the lib location...
+    #install.packages("/dls/science/groups/i04-1/software/nglshiny", repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    library(nglShiny, lib.loc = '/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     # Move this to docker...
-    install.packages('sendmailR', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
-    library(sendmailR, lib.loc = "/dls/science/users/mly94721/R/")
-    install.packages('httr', repos = 'http://cran.rstudio.com/' ,lib ="/dls/science/users/mly94721/R/")
-    library(httr, lib.loc = "/dls/science/users/mly94721/R/")
+    library(sendmailR) #, lib.loc = "/dls/science/users/mly94721/R/")
+    library(httr)#, lib.loc = "/dls/science/users/mly94721/R/")
 }
 
 # Source the rest of the code
 if(local){
-    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
+    source('/dls/science/users/mly94721/xchemreview/slackconfig.R')
     source('./globals.R')
     source('./modules.R')
     source('./ui.R')
@@ -47,11 +46,11 @@ if(local){
 
 } else {
     # This is not good!...
-    source('/dls/science/users/mly94721/xchemreview/staging/slackconfig.R')
-    source('/dls/science/users/mly94721/xchemreview/staging/globals.R')
-    source('/dls/science/users/mly94721/xchemreview/staging/modules.R')
-    source('/dls/science/users/mly94721/xchemreview/staging/ui.R')
-    source('/dls/science/users/mly94721/xchemreview/staging/server.R')
+    source('/dls/science/groups/i04-1/software/xchemreview/slackconfig.R')
+    source('/dls/science/groups/i04-1/software/xchemreview/globals.R')
+    source('/dls/science/groups/i04-1/software/xchemreview/modules.R')
+    source('/dls/science/groups/i04-1/software/xchemreview/ui.R')
+    source('/dls/science/groups/i04-1/software/xchemreview/server.R')
 
 }
 # Create App
