@@ -335,7 +335,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     loadDefaultParams <- function(){
         list(fogging=c(45,58),
             clipping=c(47,100),
-            boxsize=8,
+            boxsize=5,
             clipDist=5,
             backgroundColor='black',
             cameraType='orthographic',
