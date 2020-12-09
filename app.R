@@ -24,7 +24,7 @@ rsplit <- function(string, split_by, n=1){spl <- strsplit(string, split_by)[[1]]
 
 
 # Current temporary would be: source('./config.R')
-source('./config.R')
+source('/dls/science/groups/i04-1/software/xchemreview/config.R')
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     ligand_data <- dbGetQuery(con, "SELECT * from ligand")
@@ -449,7 +449,7 @@ With these additional comments:
 
 
         protein <- gsub('-[a-zA-Z]*[0-9]+_[0-9]*[A-Z]*', '', structure)
-        emaillist <- ifelse(is.null(emailListperStructure[[protein]]), defaultUsers, emailListperStructure[[protein]]))
+        emaillist <- ifelse(is.null(emailListperStructure[[protein]]), defaultUsers, emailListperStructure[[protein]])
 
         if(debug) debugMessage(sID=sID, sprintf('Sending Email'))
         sendmailR::sendmail(
