@@ -17,6 +17,7 @@ library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib
 library(ggplot2)
 library(plotly)
 
+sessionInfo()
 
 # I can't believe this doesn't exist in R!
 # Functional equivalent to string.rsplit('_', 1)
