@@ -1030,7 +1030,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             ),
             fragview = tagList(
-                    selectInput('fragSelect', 'Project Select', choices=c('Select', fragfolders)),
+                    selectInput('fragSelect', 'Project Select', selected = '', choices=fragfolders),
                     checkboxInput('desync', 'Turn off automatic Updates', value = FALSE),
                     actionButton('goback', 'Prev Ligand'),
                     actionButton('gonext', 'Next Ligand'),
