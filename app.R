@@ -1493,6 +1493,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         refreshChat(channel = channelSelect[input$channelSelect]) 
     })
+
+    autoInvalidate <- reactiveTimer(10000)
+    observe({
+        autoInvalidate()
+        cat("")
+    })
 }
 
 app <- shinyApp(ui = ui, server = server)

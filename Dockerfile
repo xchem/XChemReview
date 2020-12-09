@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c('devtools', 'caTools','shiny','shinydashboard','shinyjqui','shinyWidgets','ggplot2','plotly','htmlwidgets', 'DT', 'remotes', 'httr', 'sendmailR'), repos='http://cran.rstudio.com/')"
 RUN R -e "library(remotes); remotes::install_github('r-dbi/RPostgres')" 
 RUN R -e "install.packages('RPostgres', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages("/dls/science/groups/i04-1/software/nglshiny", repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')"
 # Copy App to Image
 # COPY app.R /srv/shiny-server
 COPY Pages /srv/shiny-server/Pages
