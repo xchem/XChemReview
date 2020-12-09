@@ -24,7 +24,7 @@ rsplit <- function(string, split_by, n=1){spl <- strsplit(string, split_by)[[1]]
 
 
 # Current temporary would be: source('./config.R')
-source('./true_config_no_dot_commmit.R')
+source('./config.R')
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     ligand_data <- dbGetQuery(con, "SELECT * from ligand")
