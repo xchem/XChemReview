@@ -11,7 +11,8 @@ library(sendmailR)
 library(caTools)
 # Render structures in ngl window
 #library(nglShiny)
-library(nglShiny, lib.loc='/home/mly94721/R/x86_64-pc-linux-gnu-library/3.6')
+install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 # Plotting Libs
 library(ggplot2)
 library(plotly)
@@ -755,15 +756,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
-    updateTable <- function(){
-            fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-            fragview_input <- react_fv_data(fragview_data, input)
-            fragview_table_data <- react_fv_data2(fragview_data, input)
-            output$therow <- updateMainTable(fragview_input, pl=100)
-    }
-
     observeEvent(input$updateTable,{
-        updateTable()
+        fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+        fragview_input <- react_fv_data(fragview_data, input)
+        fragview_table_data <- react_fv_data2(fragview_data, input)
+        output$therow <- updateMainTable(fragview_input, pl=100)
     })
 
     observeEvent(input$write, {
@@ -784,7 +781,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
                           user=db_user,
                           password=db_password)
         output$metastatus <- renderText({'STATUS: Written!'})
-        if(!input$desync) updateTable()
+        if(!input$desync){
+            fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+            fragview_input <- react_fv_data(fragview_data, input)
+            fragview_table_data <- react_fv_data2(fragview_data, input)
+            output$therow <- updateMainTable(fragview_input, pl=100)
+        }
     })
 
     # On Table Rowclick # Potentially slow? Unneeded? # Go back to
