@@ -69,7 +69,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
     head(ligand_response_data)
     mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-    head(mostrevent)
+    head(mostrecent)
     to_release_ids <- unlist(mostrecent$Ligand_name_id[mostrecent$decision_int==1])
     head(to_release_ids)
     liganded_ligands <- dbGetQuery(con, "SELECT fragalysis_ligand_id, id from ligand")
