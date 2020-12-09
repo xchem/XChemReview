@@ -675,7 +675,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-    fragfolders <- levels(fvd$targetname)
+    fragfolders <- c('', sort(unique(fvd$targetname)))
     print('Print FragFolders?')
     print(fragfolders)
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
