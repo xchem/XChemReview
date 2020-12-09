@@ -606,6 +606,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Selector Stuff:
     review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
 
+    updateSelectInput(session, 'protein', selected = '', choices=sort(unique(as.character(review_data$target_name))))
+    updateSelectInput(session, 'fpe_target', selected = '', choices=sort(unique(as.character(review_data$target_name))))
+
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
     output$reviewtable <- updateMainTable(r1=r1)
@@ -665,6 +668,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragfolders <- levels(isolate(fragview_data()$targetname))
+    updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
 
     fragview_input <- react_fv_data(fragview_data, input)
     fragview_table_data <- react_fv_data2(fragview_data, input)
