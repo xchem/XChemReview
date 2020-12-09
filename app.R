@@ -665,9 +665,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         reactive({getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)})
     }
 
-
+    fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-    fragfolders <- levels(isolate(fragview_data()$targetname))
+    fragfolders <- levels(fvd$targetname)
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
 
     fragview_input <- react_fv_data(fragview_data, input)
@@ -802,11 +802,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         choice = isolate(rownames(fragview_input())[input$therow_rows_selected])
         updateSelectizeInput(session, 'goto', selected = choice, choices=molbase)
     })
-
-
-
-
-    updateSelectInput(session, 'fpe_target', selected='', choices=levels(isolate(r1()$target_name)))
 
     observeEvent(input$protein,{
         updateSelectInput(session, 'fpe_target', selected=input$protein)
@@ -1012,7 +1007,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$flex1 <- renderUI({
         switch(input$tab,
             review = tagList(
-                selectInput('protein', 'Select Protein', choices = c('',levels(isolate(r1()$target_name)))),
+                selectInput('protein', 'Select Protein', selected = '', choices=sort(unique(as.character(review_data$target_name)))),
                 div(
                     id = 'form',
                     # Ligand/Xtal Select????
@@ -1067,7 +1062,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 selectInput('d1', 'Selection', c('setosa', 'versicolor', 'virginica'))
             ),
             summary = tagList(
-                selectInput('protein_to_summarize', 'Selection', c('', levels(isolate(r1()$target_name))))
+                selectInput('protein_to_summarize', 'Selection', selected = '', choices=sort(unique(as.character(review_data$target_name))))
             )
         )
     })
