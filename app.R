@@ -44,8 +44,12 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
     rownames(ligand_compound_data) <- as.character(ligand_compound_data$id)
     ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
     mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-    rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
-
+    if(nrow(mostrecent)>1){
+        rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+    } else {
+        mostrecent <- ligand_response_data
+        rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+    }
     output <- cbind(
         'ligand_name' = ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),2],
         mostrecent[as.character(ligand_data$id),c(4,5)],
@@ -134,7 +138,7 @@ debugMessage <- function(sID, text){
 
 controlPanelModal <- function(values, title){
     # Function that opens up a modal dialog to contain accessory ngl controls that are not needed to be accessed immediately.
-    modalDialog(
+    draggableModalDialog(
         title=title,
         numericInput('boxsize', 'Box Size', value = values$boxsize, min = 0, max = 100, width = '100px'),
         numericInput('clipDist', 'Clipping Distance', value = values$clipDist, min = 0, max = 100, width = '100px'),
@@ -142,7 +146,7 @@ controlPanelModal <- function(values, title){
         sliderInput('clipping', 'Clipping:', min = 0, max = 100, value = values$clipping),
         selectInput('backgroundColor', 'Background Colour', selected = values$backgroundColor, choices = c('black', 'white')),
         selectInput('cameraType', 'Camera Type', selected = values$cameraType, choices = c('orthographic', 'perspective')),
-        selectInput('mousePreset', 'Mouse Preset', selected = values$mousePreset, choices = c('default', 'pymol', 'coot')),
+        selectInput('mousePreset', 'Mouse Preset', selected = values$mousePreset, choices = c('coot', 'default', 'pymol')),
         easyClose = FALSE,
         footer = tagList(actionButton('updateParams', 'Update Controls'))
     )
@@ -208,7 +212,7 @@ body <- dashboardBody(
                                     column(6,imageOutput('spiderPlot'))
                                 ),
                                 column(4,
-                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot (will make loading slow!)', value = FALSE, width = NULL)),
+                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
                                     div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
                                     div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
@@ -256,10 +260,10 @@ body <- dashboardBody(
                             title='Review Plots (wowee)',
                             fluidRow(
                                 column(4, 
-                                        selectInput('fpex', 'x', selected = 'r_free', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
+                                        selectInput('fpex', 'x', selected = 'res', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
                                 ),
                                 column(4, 
-                                    selectInput('fpey', 'y', selected = 'res', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
+                                    selectInput('fpey', 'y', selected = 'r_free', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
                                 ),
                                 column(4, 
                                     selectInput('fpe_target', 'target', selected = '', choices=c('A', 'B', 'C'))
@@ -443,23 +447,27 @@ server <- function(input, output, session){
 
     sendEmail <- function(structure, user, decision, reason, comments){
         if(debug) debugMessage(sID=sID, sprintf('Communicating to Slack...'))
-        channels <- getChannelList()
-        channelID <- getChannel(structure, channels)
-        if(is.na(channelID)){
+        #channels <- getChannelList()
+        #channelID <- getChannel(structure, channels)
+        #if(is.na(channelID)){
             # Create Channel, then get ID immediately
-            channelID <- createChannel(structure=structure)
-        }
+        #    channelID <- createChannel(structure=structure)
+        #}
         # Post comment...
-        sendMessageToSlack(channel=channelID, 
-                            message= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
-With these additional comments:
-%s', structure, decision, user, reason, comments), 
-                            name = 'xchemreview-bot')
-
+        #sendMessageToSlack(channel=channelID,
+        #                    message= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
+#With these additional comments:
+#%s', structure, decision, user, reason, comments),
+#                            name = 'xchemreview-bot')
+	channelID <- 'NA'
 
         protein <- gsub('-[a-zA-Z]*[0-9]+_[0-9]*[A-Z]*', '', structure)
-        emaillist <- ifelse(is.null(emailListperStructure[[protein]]), defaultUsers, emailListperStructure[[protein]])
-
+        if(is.null(emailListperStructure[[protein]])){
+            emaillist <- defaultUsers
+        } else {
+            emaillist <- emailListperStructure[[protein]]
+        }
+        print(emaillist)
         if(debug) debugMessage(sID=sID, sprintf('Sending Email'))
         sendmailR::sendmail(
             from = '<XChemStructureReview@diamond.ac.uk>',
@@ -477,12 +485,14 @@ If you disagree with this decision please discuss at the in the slack channel: (
 This email was automatically sent by The XChem Review app
 If you have trouble joining the slack channel please use this invitation link: https://join.slack.com/t/xchemreview/shared_invite/zt-fpocaf6e-JQp~U6rcbGrre33E~7~faw
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, comments, structure, protein, channelID),
+            structure, decision, user, reason, comments, structure, protein, channelID), # replace NA with channelID
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
                 )
         )
+        modalDialog(title = 'Submission Sent', 'Your review has been sucessfully recorded, please select another structure!', footer = modalButton("Dismiss"),
+  size = 's', easyClose = TRUE, fade = TRUE)
     }
 
     resetForm <- function(){
@@ -579,7 +589,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     updateFlexPlot <- function(flexdata){
         renderPlotly({
-            plot_ly(flexdata()$data, x=~x, y=~y, text=~ligand_name, color=~status, customdata = ~ligand_name) %>% config(scrollZoom = TRUE)
+            plot_ly(flexdata()$data, x=~x, y=~y, text=~ligand_name, color=~status, customdata = ~ligand_name, size=20) %>% config(scrollZoom = TRUE)
         })
     }
 
@@ -592,6 +602,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 d <- event_data("plotly_click")
                 vec = as.character(r1()[rowidx, 'decision_str'])
                 vec[vec == 'NULL'] <- 'Needs Review'
+                vec[is.na(vec)] <- 'Needs Review'
                 print(vec)
                 list(
                     col=vec
@@ -1087,11 +1098,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         list(
             fogging = c(45,58),
             clipping = c(47,100),
-            boxsize = 0,
+            boxsize = 5,
             clipDist = 10,
             backgroundColor = 'black',
             cameraType = 'orthographic',
-            mousePreset = 'default'
+            mousePreset = 'coot'
         )
     }
 
@@ -1325,6 +1336,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
 
         session$sendCustomMessage(type = 'setup', message = list())
+        updateParam('mousePreset', as.character(input$mousePreset))
+
         updateSelectizeInput(session, 'channelSelect', select=tolower(gsub('[^[:alnum:]]', '', input$ligand)))
         withProgress(message = 'Loading Crystal', value = 0,{
             message('Crystal Updated')
@@ -1383,7 +1396,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         sel <- isolate(sessionlist$current_emaps)[input$emap]
         message(sel)
         try(uploadVolumeDensity(sel,
-            color = 'orange', negateiso = FALSE, boxsize = 0, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap'), silent=T)
+            color = 'orange', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap'), silent=T)
         message('Completed!')
     })
 
