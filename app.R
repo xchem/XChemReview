@@ -61,6 +61,17 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
         'ligand_id' = ligand_data$id,
         'crystal_id' = ligand_crystal_data[as.character(ligand_data$crystal_id),1]
     )
+ 
+    # Fix to handle duplicate row names... Use the latest modification date...
+    rids <- 1:nrow(output)
+    multi <- names(which(table(as.character(output$ligand_name)) > 1))
+    rids2 <- which(output$ligand_name %in% multi)
+    dupes <- cbind('id' =rids2, output[rids2, c('ligand_name','modification_date')])
+    todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) { 
+        y <- dupes[dupes[,'ligand_name'] %in% x,]
+        y[-which.max(as.numeric(y[,'modification_date'])),1]
+    }))
+    output <- output[-todel,]				 
     rownames(output) <- output$ligand_name
     dbDisconnect(con)
 
@@ -71,19 +82,12 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     # Get All ligands that are reviewed as release or above. Mandatory...
     ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
-    print(head(ligand_response_data))
     mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-    print(head(mostrecent))
     to_release_ids <- unlist(mostrecent$Ligand_name_id[mostrecent$decision_int==1])
-    print(head(to_release_ids))
     liganded_ligands <- dbGetQuery(con, "SELECT fragalysis_ligand_id, id from ligand")
-    print(head(liganded_ligands))
     ind <- as.character(liganded_ligands[,2]) %in% as.character(to_release_ids)
-    print(head(ind))
     fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
-    print(head(fvdat))
     md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
-    print(head(md))
     rownames(md) <- md$Ligand_name_id
     # Now we work on this exclusively...
     # This means we only annotate data which has been reviewed
@@ -93,7 +97,6 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     targets <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisTarget\" WHERE id IN (%s)", paste(unique(annotatable_fv_dat$fragalysis_target_id), collapse=',')))
     rownames(targets) <- as.character(targets$id)
     output <- cbind(annotatable_fv_dat, targetname=targets[as.character(annotatable_fv_dat$fragalysis_target_id), 'target'], md[as.character(annotatable_fv_dat$id),])
-    print(head(output))
     dbDisconnect(con)
     rownames(output) <- as.character(output$ligand_name)
     return(output)
