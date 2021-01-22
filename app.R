@@ -664,7 +664,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     toshow <- data()$targetname == input$fragSelect
                     data()[toshow, ]
                 } else {
-                    data()[,]
+                    data()[NULL,]
                 }
             }
         })
@@ -677,7 +677,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     toshow <- data()$targetname == input$fragSelect
                     data()[toshow, c('original_name', 'fragalysis_name', 'alternate_name','Site_Label', 'new_smiles', 'pdb_id')]
                 } else {
-                    data()[,]
+                    data()[NULL,]
                 }
             }
         })
