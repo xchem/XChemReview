@@ -695,6 +695,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
+    updateMainTable2 <- function(r1, pl=10){
+        DT::renderDataTable({
+            DT::datatable(
+                r1(),
+                selection = 'single',
+                options = list(
+                    pageLength = pl
+                )
+            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+        })
+    }
+
     updateFlexPlot <- function(flexdata){
         renderPlotly({
             plot_ly(flexdata()$data, x=~x, y=~y, text=~ligand_name, color=~status, customdata = ~ligand_name, size=20) %>% config(scrollZoom = TRUE)
@@ -802,7 +814,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fragview_input <- react_fv_data(fragview_data, input)
     fragview_table_data <- react_fv_data2(fragview_data, input)
 
-    output$therow <- updateMainTable(fragview_input, pl=100)
+    output$therow <- updateMainTable2(fragview_input, pl=100)
 
 
     fv_values <- reactiveValues()
@@ -818,7 +830,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
         updateSelectInput(session, 'goto', choices = fv_values$molfil)
         fragview_input <- react_fv_data(fragview_data, input)
-        output$therow <- updateMainTable(fragview_input, pl=100)
+        output$therow <- updateMainTable2(fragview_input, pl=100)
         tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon'), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
 
@@ -894,7 +906,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
-        output$therow <- updateMainTable(fragview_input, pl=100)
+        output$therow <- updateMainTable2(fragview_input, pl=100)
     })
 
     observeEvent(input$write, {
@@ -919,7 +931,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
-            output$therow <- updateMainTable(fragview_input, pl=100)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
         }
     })
 
