@@ -1,6 +1,10 @@
+local = FALSE
+
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
+library(grDevices)
+library(lubridate)
 library(shinydashboard)
 library(shinyjqui)
 library(shinyWidgets)
@@ -10,9 +14,15 @@ library(sendmailR)
 # Read Binaries to encode to b64
 library(caTools)
 # Render structures in ngl window
-#library(nglShiny)
-install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
-library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+if(local) {
+    library(nglShiny)
+    source('./my_config.R')
+} else {
+    source('/dls/science/groups/i04-1/software/xchemreview/config.R')
+    install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+}
+
 # Plotting Libs
 library(ggplot2)
 library(plotly)
@@ -23,9 +33,6 @@ sessionInfo()
 # Functional equivalent to string.rsplit('_', 1)
 rsplit <- function(string, split_by, n=1){spl <- strsplit(string, split_by)[[1]]; c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))}
 
-
-# Current temporary would be: source('./config.R')
-source('/dls/science/groups/i04-1/software/xchemreview/config.R')
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     ligand_data <- dbGetQuery(con, "SELECT * from ligand")
@@ -52,26 +59,35 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
     }
     output <- cbind(
         'ligand_name' = ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),2],
-        mostrecent[as.character(ligand_data$id),c(4,5)],
+        'decision_str' = sapply(mostrecent[as.character(ligand_data$id),4], function(x) ifelse(is.null(x), NA, as.character(x))),
+        ligand_refinement_data[as.character(ligand_data$crystal_id),3:14],
+        ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),3:13],
         'target_name' = as.character(ligand_target_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$target_id),2]),
         'SMILES' = ligand_compound_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$compound_id),2],
         'crystal_name' = ligand_crystal_data[as.character(ligand_data$crystal_id),2],
-        ligand_refinement_data[as.character(ligand_data$crystal_id),3:14],
-        ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),3:13],
+        'decision_int' = sapply(mostrecent[as.character(ligand_data$id),5], function(x) ifelse(is.null(x), NA, as.character(x))),
+        'time_submitted' = sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%Y%m%d%H%M%S'))),
         'ligand_id' = ligand_data$id,
-        'crystal_id' = ligand_crystal_data[as.character(ligand_data$crystal_id),1]
+        'crystal_id' = ligand_crystal_data[as.character(ligand_data$crystal_id),1],
+        'out_of_date' = as.character(mapply(
+            function(x,y){
+                ifelse(is.na(x), FALSE, y > x)
+            },
+            as.numeric(sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%Y%m%d%H%M%S')))),
+            as.numeric(ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),13])
+            ))
     )
- 
+
     # Fix to handle duplicate row names... Use the latest modification date...
     rids <- 1:nrow(output)
     multi <- names(which(table(as.character(output$ligand_name)) > 1))
     rids2 <- which(output$ligand_name %in% multi)
     dupes <- cbind('id' =rids2, output[rids2, c('ligand_name','modification_date')])
-    todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) { 
+    todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) {
         y <- dupes[dupes[,'ligand_name'] %in% x,]
         y[-which.max(as.numeric(y[,'modification_date'])),1]
     }))
-    output <- output[-todel,]				 
+    output <- output[-todel,]
     rownames(output) <- output$ligand_name
     dbDisconnect(con)
 
@@ -102,27 +118,27 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     return(output)
 }
 
-updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='', 
+updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
     dbname, host, port, user, password){
-    df = data.frame(Site_Label=as.character(site_label), 
-                    new_smiles=as.character(new_smiles), 
-                    alternate_name=as.character(alternate_name), 
-                    pdb_id=as.character(pdb_id), 
-                    fragalysis_name=as.character(fragalysis_name), 
-                    original_name=as.character(original_name), 
+    df = data.frame(Site_Label=as.character(site_label),
+                    new_smiles=as.character(new_smiles),
+                    alternate_name=as.character(alternate_name),
+                    pdb_id=as.character(pdb_id),
+                    fragalysis_name=as.character(fragalysis_name),
+                    original_name=as.character(original_name),
                     Ligand_name_id=as.character(ligand_name_id))
     print(df)
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=%s", ligand_name_id))[1,1]
     if(is.na(id)){
         message('Creating MetaRow')
-        dbAppendTable(con, "MetaData", value = df, row.names=NULL)  
+        dbAppendTable(con, "MetaData", value = df, row.names=NULL)
     } else {
         message('Updating MetaRow!')
-        dbExecute(con, sprintf("UPDATE \"MetaData\" SET %s WHERE \"Ligand_name_id\"=%s", 
+        dbExecute(con, sprintf("UPDATE \"MetaData\" SET %s WHERE \"Ligand_name_id\"=%s",
             sprintf("\"Site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name),
             ligand_name_id)
-        )   
+        )
     }
     dbDisconnect(con)
 }
@@ -154,6 +170,66 @@ controlPanelModal <- function(values, title){
         footer = tagList(actionButton('updateParams', 'Update Controls'))
     )
 }
+
+colfunc <- colorRampPalette(c("red", "white", "blue"))
+
+changeRasterRank <- function(raster, rank, colour){
+    raster[floor(rank*100)] <-  colour
+    return(raster)
+}
+
+hmapbar <- function(data, title, target_name){
+    globalcolour = '#000000'
+    experimentcolour = '#00FF00'
+    par(xpd=TRUE)
+    plot.new()
+    text(x=0.5, y=.99, labels=title)
+    text(x=0.05, y = .95, labels = 'Metric')
+    text(x=0.5, y = .95, labels = 'Percentile Ranks')
+    text(x=0.95, y = .95, labels = 'Value')
+
+    text(x= 0.05, y = .8, labels = 'Resolution')
+    text(x= 0.95, y = .8, labels = data[[1]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[1]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[1]][2], globalcolour)
+    rasterImage(legend_image,.15,.75,.9,.85)
+
+    text(x= 0.05, y = .65, labels = 'R Free')
+    text(x= 0.95, y = .65, labels = data[[2]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[2]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[2]][2], globalcolour)
+    rasterImage(legend_image,.15,.6,.9,.7)
+
+    text(x= 0.05, y = .5, labels = 'R Cryst')
+    text(x= 0.95, y = .5, labels = data[[3]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[3]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[3]][2], globalcolour)
+    rasterImage(legend_image,.15,.45,.9,.55)
+
+    text(x= 0.05, y = .35, labels = 'Ram Outliers')
+    text(x= 0.95, y = .35, labels = data[[4]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[4]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[4]][2], globalcolour)
+    rasterImage(legend_image,.15,.3,.9,.4)
+
+    text(x= 0.06, y = .2, labels = 'RMSD Angles')
+    text(x= 0.95, y = .2, labels = data[[5]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[5]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[5]][2], globalcolour)
+    rasterImage(legend_image,.15,0.15,.9,.25)
+
+    text(x= 0.06, y = .05, labels = 'RMSD Bonds')
+    text(x= 0.95, y = .05, labels = data[[6]][3])
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[6]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, data[[6]][2], globalcolour)
+    rasterImage(legend_image,.15,0,.9,.1)
+
+    text(x=0.15, y=-0.05, 'Worst')
+    text(x=0.9, y=-0.05, 'Best')
+
+    legend(x=0.10, y=-0.05, legend=c(sprintf('Percentile Relative to other %s crystals', target_name), 'Percentile Relative to crystals from all XChem Experiments'), fill=c(experimentcolour , globalcolour), bty='n')
+}
+
 
 header <- dashboardHeader(
     # What we see in the top bar
@@ -193,18 +269,28 @@ body <- dashboardBody(
                             title = 'NGL Controls',
                             actionButton("fitButton", "Center on Ligand"),
                             fluidRow(
-                                checkboxInput('eventMap', 'Show Event Map', value = TRUE),
-                                uiOutput('isoEventSlider')
-                            ),
-                            fluidRow(
-                                checkboxInput('twofofcMap', 'Show 2fofc Map', value = FALSE),
-                                uiOutput('iso2fofcSlider')
-                            ),
-                            fluidRow(
-                                checkboxInput('fofcMap', 'Show fofc Map', value = FALSE),
-                                uiOutput('isofofcSlider')
+                                chooseSliderSkin("Flat", color='#112446'),
+                                column(6,
+                                    fluidRow(
+                                        column(2, checkboxInput('eventMap', 'Show Event Map', value = TRUE)),
+                                        column(10, sliderInput("isoEvent", "", min = 0, max = 3, value = 1, step = 0.1))
+                                        #column(10, uiOutput('isoEventSlider'))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('twofofcMap', 'Show 2fofc Map', value = TRUE)),
+                                        column(10, sliderInput("iso2fofc", "", min = 0, max = 3, value = 1.5, step = 0.1))
+                                        #column(10, uiOutput('iso2fofcSlider'))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('fofcMap', 'Show fofc Map', value = TRUE)),
+                                        column(10, sliderInput("isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
+                                        #column(10, uiOutput('isofofcSlider'))
+                                    )
+                                ),
+                                column(6,
+                                    imageOutput('ligimage2')
+                                )
                             )
-
                         ),
                         tabPanel(
                             title = 'Ligand Information',
@@ -217,12 +303,12 @@ body <- dashboardBody(
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
-                                    div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
-                                    div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
-                                    
+                                    #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
+                                    #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
+
                                 )
                             ),
-                            column(12,div(style = "margin-top:-15em", 
+                            column(12,div(style = "margin-top:-15em",
                                 fluidRow(
                                     uiOutput('plotElement')
                                 )
@@ -260,27 +346,27 @@ body <- dashboardBody(
                 jqui_draggable(
                     tabBox(
                         tabPanel(
-                            title='Review Plots (wowee)',
+                            title='Review Table',
+                            div(
+                                style='overflow-y:scroll;height:600px;',
+                                DT::DTOutput('reviewtable') # Great Name!
+                            )
+                        ),
+                        tabPanel(
+                            title='Review Plots (Click points to load ligand)',
                             fluidRow(
-                                column(4, 
+                                column(4,
                                         selectInput('fpex', 'x', selected = 'res', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
                                 ),
-                                column(4, 
+                                column(4,
                                     selectInput('fpey', 'y', selected = 'r_free', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
                                 ),
-                                column(4, 
+                                column(4,
                                     selectInput('fpe_target', 'target', selected = '', choices=c('A', 'B', 'C'))
                                 )
                             ),
                             verbatimTextOutput("info"),
                             uiOutput('flexPlotElement')
-                        ),
-                        tabPanel(
-                            title='Review Table',
-                            div(
-                                style='overflow-y:scroll;height:600px;',
-                                DT::dataTableOutput('reviewtable') # Great Name!
-                            )
                         )
                     ), options = list(delay = '1000')
                 )
@@ -328,6 +414,7 @@ server <- function(input, output, session){
     sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
     session$onSessionEnded(sessionDisconnect)
     epochTime <- function() as.integer(Sys.time())
+    humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
 
 
@@ -340,9 +427,9 @@ server <- function(input, output, session){
             if(channellist$response_metadata$next_cursor == 'First'){
                 channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list', body=list(token=api, limit=1000)))
             } else {
-                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list', 
-                                                        body=list(token=api, 
-                                                                    limit=1000, 
+                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list',
+                                                        body=list(token=api,
+                                                                    limit=1000,
                                                                     cursor=channellist$response_metadata$next_cursor)))
             }
             data_to_join <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
@@ -359,7 +446,7 @@ server <- function(input, output, session){
     }
 
     parseConversation <- function(channel){
-        history <- httr::content(httr::POST(url='https://slack.com/api/conversations.history', 
+        history <- httr::content(httr::POST(url='https://slack.com/api/conversations.history',
                 body = list(token = api, channel = channel)))
         convoblock <- do.call('rbind', parseMessageContent(conversations_history = history[[2]], channel=channel))
         return(convoblock[nrow(convoblock):1,])
@@ -401,7 +488,7 @@ server <- function(input, output, session){
     }
 
     userList <- function(){
-        users <- httr::content(httr::POST(url='https://slack.com/api/users.list', 
+        users <- httr::content(httr::POST(url='https://slack.com/api/users.list',
             body = list(token = api)))
         userlist <- t(sapply(users$members, function(x){
             pull <- c(x$id, x$real_name)
@@ -440,11 +527,11 @@ server <- function(input, output, session){
     }
 
     sendMessageToSlack <- function(channel, message, name){
-        httr::content(httr::POST(url='https://slack.com/api/chat.postMessage', 
-            body=list(token=apiuser, 
-                channel=channel, 
-                text= message, 
-                as_user='true', 
+        httr::content(httr::POST(url='https://slack.com/api/chat.postMessage',
+            body=list(token=apiuser,
+                channel=channel,
+                text= message,
+                as_user='true',
                 username=name)))
     }
 
@@ -481,7 +568,7 @@ server <- function(input, output, session){
 With these additional comments:
 %s
 -------------------------------
-If you wish to review this change please go to xchemreview.diamond.ac.uk while 
+If you wish to review this change please go to xchemreview.diamond.ac.uk while
 connected to the diamond VPN or via NX.
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
 If you disagree with this decision please discuss at the in the slack channel: (https://xchemreview.slack.com/archives/%s) or change the outcome by submitting a new response.
@@ -584,10 +671,28 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     updateMainTable <- function(r1, pl=10){
-        DT::renderDataTable(
-        {DT::datatable(r1(), selection = 'single', options = list(
-            pageLength = pl
-        ))}) 
+        DT::renderDataTable({
+            DT::datatable(
+                r1(),
+                selection = 'single',
+                options = list(
+                    pageLength = pl
+                )
+            ) %>% DT::formatStyle(
+                'decision_str',
+                target = 'row',
+                backgroundColor = DT::styleEqual(
+                    c('Release', 'More Refinement', 'More Experiments', 'Reject'),
+                    c('#648FFF', '#FFB000',         '#FE6100',          '#DC267F')
+                )
+            ) %>% DT::formatStyle(
+                'out_of_date',
+                target = 'row',
+                backgroundColor = DT::styleEqual(
+                    c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
+                )
+            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+        })
     }
 
     updateFlexPlot <- function(flexdata){
@@ -616,8 +721,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  'ylab' = input$fpey,
                  'rownames' = rownames(r1())[rowidx],
                  'data' = data.frame(
-                    x=jitter(as.numeric(r1()[rowidx,input$fpex])), 
-                    y=jitter(as.numeric(r1()[rowidx,input$fpey])), 
+                    x=jitter(as.numeric(r1()[rowidx,input$fpex])),
+                    y=jitter(as.numeric(r1()[rowidx,input$fpey])),
                     ligand_name=ligand_name,
                     status=col()$col
                 )
@@ -628,13 +733,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Selector Stuff:
     review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
 
-    updateSelectInput(session, 'protein', selected = '', choices=sort(unique(as.character(review_data$target_name))))
-    updateSelectInput(session, 'fpe_target', selected = '', choices=sort(unique(as.character(review_data$target_name))))
+    updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
+    updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
 
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
     output$reviewtable <- updateMainTable(r1=r1)
-    flexplotData <- flexPlotDataFun(r1=r1, input=input) 
+    flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
     interestingData <- reactive({
@@ -653,7 +758,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             'total_reviewed' = sum(!is.na(di)),
             'to_review' = sum(is.na(di))
         )
-        
+
         return(output)
     })
 
@@ -712,7 +817,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fv_values$molfiles <- as.character(isolate(fragview_table_data()$lig_mol_file))
         fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
         updateSelectInput(session, 'goto', choices = fv_values$molfil)
-        fragview_input <- react_fv_data(fragview_data, input) 
+        fragview_input <- react_fv_data(fragview_data, input)
         output$therow <- updateMainTable(fragview_input, pl=100)
         tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon'), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
@@ -754,7 +859,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     observeEvent(input$goto, {
-        output$metastatus <- renderText({'STATUS: Pending...'}) 
+        output$metastatus <- renderText({'STATUS: Pending...'})
         molfiles <- fv_values$molfiles
         molbase <- fv_values$molfil
         names(molfiles) <- molbase
@@ -797,16 +902,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         rn <- rownames(isolate(fragview_table_data()))
         ids <- isolate(fragview_table_data()$id)
         names(ids) <- rn
-        updateOrCreateRow(ligand_name_id=as.character(ids[input$goto]), 
-                          fragalysis_name=as.character(input$goto), 
-                          original_name=as.character(rsplit(input$goto, '_', 1)[1]), 
+        updateOrCreateRow(ligand_name_id=as.character(ids[input$goto]),
+                          fragalysis_name=as.character(input$goto),
+                          original_name=as.character(rsplit(input$goto, '_', 1)[1]),
                           site_label=as.character(input$site_name),
                           new_smiles=as.character(input$new_smiles),
                           alternate_name=as.character(input$alternate_name),
-                          pdb_id=as.character(input$pdb_entry), 
-                          dbname=db, 
-                          host=host_db, 
-                          port=db_post, 
+                          pdb_id=as.character(input$pdb_entry),
+                          dbname=db,
+                          host=host_db,
+                          port=db_post,
                           user=db_user,
                           password=db_password)
         output$metastatus <- renderText({'STATUS: Written!'})
@@ -841,7 +946,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         infoBox('Number of Ligands', isolate(interestingData()$total_ligands), icon = icon('thumbs-up', lib = 'glyphicon'), color = 'red')
     })
 
-    #total_fragalysis_ligands = 
+    #total_fragalysis_ligands =
     #total_fragalysis_ligands_to_annotate =
 
     sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
@@ -868,7 +973,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
                 user <- mostrecent[as.character(id), 'fedid'][[1]]
 
-                showModal(modalDialog(title = "Someone has recently reviewed this crystal", 
+                showModal(modalDialog(title = "Someone has recently reviewed this crystal",
                     sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user)
                     , footer = tagList(actionButton("ok", "Okay"))
                 ))
@@ -909,9 +1014,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
             decision_int=as.numeric(data[2]),
             decision_str=data[3],
             reason=data[4],
-            time_submitted=data[5], 
+            time_submitted=data[5],
             Ligand_name_id=as.integer(data[6]),
-            crystal_id=as.integer(data[7]), 
+            crystal_id=as.integer(data[7]),
             stringsAsFactors=FALSE
         ), xtalname=xtalname)
     })
@@ -923,7 +1028,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         flexplotData <- flexPlotDataFun(r1=r1, input=input)
         output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
         sessionTime <- reactive({epochTime()})
-        removeModal()  
+        removeModal()
     })
 
     # Upon Main Page Submit
@@ -933,19 +1038,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Submitting Form'))
         if(debug) print(fData)
         if(any(fData %in% c('', ' '))) {
-            showModal(modalDialog(title = "Please fill all fields in the form", 
-                "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit.", 
+            showModal(modalDialog(title = "Please fill all fields in the form",
+                "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit.",
                 easyClose=TRUE, footer = tagList(modalButton("Cancel"))
             ))
         } else {
              # Get ID...
             xId <- fData[ ,'Ligand_name_id']
-            # Check ID 
+            # Check ID
             if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
                 print(atomstoquery$data)
                 if(any(as.character(atomstoquery$data$comment) %in% c('', ' '))){
                     showModal(modalDialog(title = 'You have flagged some atoms',
-                        'Please annotate the selected atoms in the Atom Selection tab by double clicking on the comment cells. If you accidentally flagged an atom, try reloading the structure and resubmitting your review!', 
+                        'Please annotate the selected atoms in the Atom Selection tab by double clicking on the comment cells. If you accidentally flagged an atom, try reloading the structure and resubmitting your review!',
                         easyClose=TRUE))
                 } else {
                     saveData(fData, xtaln, atomstoquery$data)
@@ -956,7 +1061,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     flexplotData <- flexPlotDataFun(r1=r1, input=input)
                     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
                     sessionTime <- reactive({epochTime()})
-                }      
+                }
             } else {
                 displayModalWhoUpdated(id=xId)
             }
@@ -965,8 +1070,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     atomstoquery <- reactiveValues()
     atomstoquery$data <- data.frame(name=character(),
-                 index=character(), 
-                 comment=character(), 
+                 index=character(),
+                 comment=character(),
                  stringsAsFactors=FALSE)
 
     output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
@@ -997,7 +1102,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))))})
     })
 
-    
+
     messageData <- data.frame(
         from = c('Frank', 'Frank'),
         message  = c('Hello', 'Frank Here')
@@ -1031,7 +1136,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$flex1 <- renderUI({
         switch(input$tab,
             review = tagList(
-                selectInput('protein', 'Select Protein', selected = '', choices=sort(unique(as.character(review_data$target_name)))),
+                selectInput('protein', 'Select Protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name))))),
                 div(
                     id = 'form',
                     # Ligand/Xtal Select????
@@ -1069,7 +1174,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     uiOutput('writeButton'),
                         #hr(),
                         #textInput('newCrystalName', 'New Fragment Name', ''),
-                        #actionButton('changeName', 'Change Name of Fragment (will not assign site label)'),             
+                        #actionButton('changeName', 'Change Name of Fragment (will not assign site label)'),
                         #hr(),
                         #textOutput('massChange'),
                         #selectizeInput('site_name2', 'Old label', list(), multiple=FALSE),
@@ -1128,9 +1233,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Control Panel Listeners
     observeEvent(input$controls, ignoreNULL = FALSE, {
+        if(is.null(input$controls)){
+            title = 'As part of setup please confirm NGL Viewer Controls'
+        } else {
+
+        }
         showModal(
             controlPanelModal(
-                values = isolate(ngl_control_values$defaults), 
+                values = isolate(ngl_control_values$defaults),
                 title = 'NGL Viewer Controls'
             )
         )
@@ -1144,15 +1254,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     updateParam <- function(which, what) session$sendCustomMessage('updateaparam', list(which, what))
+
     observeEvent(input$backgroundColor, { updateParam('backgroundColor', as.character(input$backgroundColor)) })
     observeEvent(input$cameraType, { updateParam('cameraType', as.character(input$cameraType)) })
     observeEvent(input$mousePreset, { updateParam('mousePreset', as.character(input$mousePreset)) })
     observeEvent(input$clipDist, { updateParam('clipDist', as.character(input$clipDist)) })
-    observeEvent(input$fogging, { 
+    observeEvent(input$fogging, {
         updateParam('fogNear', as.character(input$fogging[1]) )
         updateParam('fogFar' , as.character(input$fogging[2]) )
     })
-    observeEvent(input$clipping, { 
+    observeEvent(input$clipping, {
         updateParam('clipNear', as.character(input$clipping[1]) )
         updateParam('clipFar' , as.character(input$clipping[2]) )
     })
@@ -1259,11 +1370,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$twofofcMap, { updateVisability('twofofc' , input$twofofcMap) })
     observeEvent(input$fofcMap,    {
         updateVisability('fofcpos', input$fofcMap)
-        updateVisability('fofcneg', input$fofcMap) 
+        updateVisability('fofcneg', input$fofcMap)
     })
 
     updateDensityISO <- function(name, isolevel) session$sendCustomMessage('updateVolumeDensityISO', list(name, isolevel))
-    
+
     observeEvent(input$isoEvent, {updateDensityISO('eventmap', input$isoEvent)})
     observeEvent(input$iso2fofc, {updateDensityISO('twofofc', input$iso2fofc)})
     observeEvent(input$isofofc , {
@@ -1281,36 +1392,27 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$isoEventSlider <- renderUI({
-        if(input$eventMap){
+            #chooseSliderSkin("Modern")
             sliderInput("isoEvent", "",
                     min = 0, max = 3,
                     value = 1, step = 0.1)
-        } else {
-            NULL
-        }
     })
 
     output$iso2fofcSlider <- renderUI({
-        if(input$twofofcMap){
+            #chooseSliderSkin("Modern")
             sliderInput("iso2fofc", "",
                     min = 0, max = 3,
                     value = 1.5, step = 0.1)
-        } else {
-            NULL
-        }
     })
 
     output$isofofcSlider <- renderUI({
-        if(input$fofcMap){
+            #chooseSliderSkin("Modern")
             sliderInput("isofofc", "",
                 min = 0, max = 3,
                 value = 3, step = 0.1)
-        } else {
-            NULL
-        }
     })
 
-    observeEvent(input$reviewtable_rows_selected, { 
+    observeEvent(input$reviewtable_rows_selected, {
         rdat <- r1()[input$reviewtable_rows_selected,,drop=TRUE]
         sessionlist$lig_name <- rdat$ligand_name
         sessionlist$lig_id <- rdat[[1]][1]
@@ -1333,8 +1435,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$ligand, ignoreNULL = TRUE, {
         atomstoquery$data <- data.frame(name=character(),
-                 index=character(), 
-                 comment=character(), 
+                 index=character(),
+                 comment=character(),
                  stringsAsFactors=FALSE)
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
 
@@ -1377,7 +1479,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 output$spiderPlot <- renderImage({
                     if(length(spfile) == 1){
                         list(src = spfile, contentType = 'image/png', width=200, height=200)
-                    } else { 
+                    } else {
                         list(src = '', contentType = 'image/png', width=200, height=200)
                     }
                 }, deleteFile=FALSE)
@@ -1385,7 +1487,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 output$ligimage <- renderImage({
                     if(length(ligfile) == 1){
                         list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                    } else { 
+                    } else {
+                        list(src = '',contentType = 'image/png',width=200,height=200)
+                    }
+                }, deleteFile=FALSE)
+                output$ligimage2 <- renderImage({
+                    if(length(ligfile) == 1){
+                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                    } else {
                         list(src = '',contentType = 'image/png',width=200,height=200)
                     }
                 }, deleteFile=FALSE)
@@ -1432,8 +1541,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
              'ylab' = input$fpey,
              'rownames' = rownames(r1())[rowidx],
              'data' = data.frame(
-                x=jitter(as.numeric(r1()[rowidx,input$fpex])), 
-                y=jitter(as.numeric(r1()[rowidx,input$fpey])), 
+                x=jitter(as.numeric(r1()[rowidx,input$fpex])),
+                y=jitter(as.numeric(r1()[rowidx,input$fpey])),
                 ligand_name=ligand_name,
                 status=col()$col
             )
@@ -1465,26 +1574,30 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
+    perc.rank <- function(x) trunc(rank(x))/length(x)
+    perc.rank2 <- function(x, xo=NULL)  length(x[x <= xo])/length(x)
+
     plotData <- reactive({
-        list('Scope' = as.numeric(review_data[,input$plotType]),
-             'Data' = switch(input$scope,
-                'Global' = {as.numeric(review_data[,input$plotType])},
-                'Experiment' = {as.numeric(review_data[as.character(review_data$target_name) == isolate(sessionlist$target_name) , input$plotType])}
-                ),
-             'xlab' = input$plotType,
-             'current' = as.numeric(isolate(sessionlist[[input$plotType]])),
-             'clickedrow' = input$reviewtable_rows_selected,
-             'main' = sprintf('%s - %s', isolate(sessionlist$lig_name), input$scope),
-             'clickpoint' = event_data("plotly_click")
-             )
+        lapply(c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'),
+            function(x, alldata, extradata){
+                y <- x
+                if(x=='rcryst') y <- 'r_cryst'
+                currentvalue <- as.numeric(extradata[[y]])
+                idx <-  which(as.character(alldata$target_name) == extradata$target_name)
+                return(
+                    c(
+                        # experiment, global, value
+                        perc.rank2(x=as.numeric(alldata[idx, x]), xo=currentvalue),
+                        perc.rank2(x=as.numeric(alldata[,x]), xo=currentvalue),
+                        currentvalue
+                    )
+                )
+            }, alldata=review_data, extradata=isolate(sessionlist)
+        )
     })
 
     output$plottoRender <- renderPlot({
-        plot(density(plotData()$Data, na.rm = TRUE), 
-            xlab = plotData()$xlab, 
-            main = plotData()$main
-            )
-        abline(v=as.numeric(plotData()$current), lty=2)
+        hmapbar(data=plotData(), title = isolate(sessionlist$lig_name), target_name=(isolate(sessionlist$target_name)))
     })
 
     observeEvent(input$updateSlackChannels,{
@@ -1493,7 +1606,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         channelSelect <- channels[,2]
         names(channelSelect) <- channels[,1]
         updateSelectizeInput(session, "channelSelect", select = input$channelSelect, choices = names(channelSelect))
-        refreshChat(channel = channelSelect[input$channelSelect]) 
+        refreshChat(channel = channelSelect[input$channelSelect])
     })
 
     observeEvent(input$channelSelect, {
@@ -1501,7 +1614,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         channels <- getChannelList()
         channelSelect <- channels[,2]
         names(channelSelect) <- channels[,1]
-        refreshChat(channel = channelSelect[input$channelSelect]) 
+        refreshChat(channel = channelSelect[input$channelSelect])
         output$chatURL <- renderText({sprintf('https://xchemreview.slack.com/archives/%s', channelSelect[input$channelSelect])})
     })
 
@@ -1513,11 +1626,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         message(input$channelSelect)
         channels <- getChannelList()
         channelSelect <- as.character(channels[input$channelSelect,2])
-        sendMessageToSlack(channel = channelSelect, 
-                            message = sprintf('on behalf of: %s. \n %s', input$slackUser, input$TextInput), 
+        sendMessageToSlack(channel = channelSelect,
+                            message = sprintf('on behalf of: %s. \n %s', input$slackUser, input$TextInput),
                             name=input$slackUser)
         }
-        refreshChat(channel = channelSelect[input$channelSelect]) 
+        refreshChat(channel = channelSelect[input$channelSelect])
     })
 
     autoInvalidate <- reactiveTimer(10000)
