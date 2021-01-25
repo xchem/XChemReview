@@ -723,6 +723,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 vec = as.character(r1()[rowidx, 'decision_str'])
                 vec[vec == 'NULL'] <- 'Needs Review'
                 vec[is.na(vec)] <- 'Needs Review'
+                vec[vec == 'NA'] <- 'Needs Review'
                 print(vec)
                 list(
                     col=vec
@@ -1541,6 +1542,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             d <- event_data("plotly_click")
             vec = as.character(r1()[rowidx, 'decision_str'])
             vec[vec == 'NULL'] <- 'Needs Review'
+            vec[is.na(vec)] <- 'Needs Review'
+            vec[vec=='NA'] <- 'Needs Review'
             print(vec)
             list(
                 col=vec,
