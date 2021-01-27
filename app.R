@@ -202,8 +202,9 @@ hmapbar <- function(data, title, target_name){
 
     text(x= 0.05, y = .8, labels = 'Resolution')
     text(x= 0.95, y = .8, labels = data[[1]][3])
-    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), data[[1]][1], experimentcolour )
-    legend_image <- changeRasterRank(legend_image, data[[1]][2], globalcolour)
+    # Reverse the Resoluion Ranks...
+    legend_image <- changeRasterRank(as.raster(rbind(colfunc(100))), 1-data[[1]][1], experimentcolour )
+    legend_image <- changeRasterRank(legend_image, 1-data[[1]][2], globalcolour)
     rasterImage(legend_image,.15,.75,.9,.85)
 
     text(x= 0.05, y = .65, labels = 'R Free')
