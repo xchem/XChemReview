@@ -13,10 +13,9 @@ RUN apt-get update && apt-get install -y \
 	libpq-dev
 
 # Install R packages
-RUN R -e "install.packages(c('devtools', 'caTools','shiny','htmlwidgets', 'DT', 'remotes', 'httr', 'sendmailR'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('devtools', 'caTools','shiny','shinydashboard','shinyjqui','shinyWidgets','ggplot2','plotly','htmlwidgets', 'DT', 'remotes', 'httr', 'sendmailR'), repos='http://cran.rstudio.com/')"
 RUN R -e "library(remotes); remotes::install_github('r-dbi/RPostgres')" 
 RUN R -e "install.packages('RPostgres', repos='http://cran.rstudio.com/')"
-
 # Copy App to Image
 # COPY app.R /srv/shiny-server
 COPY Pages /srv/shiny-server/Pages
