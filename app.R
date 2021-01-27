@@ -1,5 +1,4 @@
 local = FALSE
-
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
@@ -138,10 +137,11 @@ updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, si
                     pdb_id=as.character(pdb_id),
                     fragalysis_name=as.character(fragalysis_name),
                     original_name=as.character(original_name),
-                    Ligand_name_id=as.character(ligand_name_id))
+                    Ligand_name_id=as.character(ligand_name_id)
+                    )
     print(df)
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=%s", ligand_name_id))[1,1]
+    id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=%s", df$Ligand_name_id))[1,1]
     if(is.na(id)){
         message('Creating MetaRow')
         dbAppendTable(con, "MetaData", value = df, row.names=NULL)
@@ -928,7 +928,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$write, {
         if(debug) debugMessage(sID=sID, sprintf('Writing a row'))
         rn <- rownames(isolate(fragview_table_data()))
+        print(rn)
         ids <- isolate(fragview_table_data()$id)
+        print(ids)
+        print(input$goto)
         names(ids) <- rn
         updateOrCreateRow(ligand_name_id=as.character(ids[input$goto]),
                           fragalysis_name=as.character(input$goto),
