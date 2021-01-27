@@ -693,8 +693,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 r1(),
                 selection = 'single',
                 options = list(
-                    pageLength = pl,
-                    rownames= FALSE
+                    pageLength = pl
                 )
             ) %>% DT::formatStyle(
                 'decision_str',
@@ -709,7 +708,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 backgroundColor = DT::styleEqual(
                     c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
                 )
-            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap"), rownames= FALSE
         })
     }
 
@@ -719,10 +718,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 r1(),
                 selection = 'single',
                 options = list(
-                    pageLength = pl,
-                    rownames= FALSE
+                    pageLength = pl
                 )
-            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap"), rownames= FALSE
         })
     }
 
