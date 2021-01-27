@@ -227,7 +227,7 @@ hmapbar <- function(data, title, target_name){
     text(x=0.15, y=-0.05, 'Worst')
     text(x=0.9, y=-0.05, 'Best')
 
-    legend(x=0.10, y=-0.05, legend=c(sprintf('Percentile Relative to other %s crystals', target_name), 'Percentile Relative to crystals from all XChem Experiments'), fill=c(experimentcolour , globalcolour), bty='n')
+    legend(x=0.10, y=-0.05, legend=c(sprintf('Percentile Relative to other %s crystals marked as comp. chem ready (or above)', target_name), 'Percentile Relative to crystals marked as comp. chem ready (or above) from all XChem Experiments '), fill=c(experimentcolour , globalcolour), bty='n')
 }
 
 
