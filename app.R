@@ -432,6 +432,7 @@ server <- function(input, output, session){
 
     slackFilters <- c('has joined the channel')
     getChannelList <- function(){
+        return(c('No Channels'))
         channellist <- list()
         channellist$response_metadata$next_cursor <- 'First'
         channels <- data.frame(name = 'welcome', id='abc', stringsAsFactors=F)
@@ -1032,7 +1033,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
+        # This bits are wrong?
+        # data[2] should be: sessionlist$rowname
         xtalname <- data[2]
+        data[2] <- sessionlist$rowname
         data <- c(data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime(), review_data[data[2],'ligand_id'], review_data[data[2],'crystal_id'])
         list(data=data.frame(
             fedid=data[1],
@@ -1439,6 +1443,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$reviewtable_rows_selected, {
         rdat <- r1()[input$reviewtable_rows_selected,,drop=TRUE]
+        sessionlist$rowname <- rownames(r1())[input$reviewtable_rows_selected]
         sessionlist$lig_name <- rdat$ligand_name
         sessionlist$lig_id <- rdat[[1]][1]
         sessionlist$apo_file <- rdat$apo_pdb
