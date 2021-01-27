@@ -125,7 +125,10 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     #output <- output[-todel,]
     dbDisconnect(con)
     #rownames(output) <- as.character(output$ligand_name)
-    rownames(output) <- gsub('[.]', '-', make.names(as.character(output$ligand_name), unique=TRUE))
+    rns <- gsub('[.]', '-', make.names(as.character(output$ligand_name), unique=TRUE))
+    numbers <- grepl('^[0-9]', output$ligand_name)
+    rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
+    rownames(output) <- rns
     return(output)
 }
 
