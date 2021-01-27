@@ -113,7 +113,6 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     targets <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisTarget\" WHERE id IN (%s)", paste(unique(annotatable_fv_dat$fragalysis_target_id), collapse=',')))
     rownames(targets) <- as.character(targets$id)
     output <- cbind(annotatable_fv_dat, targetname=targets[as.character(annotatable_fv_dat$fragalysis_target_id), 'target'], md[as.character(annotatable_fv_dat$id),])
-
     #rids <- 1:nrow(output)
     #multi <- names(which(table(as.character(output$ligand_name))>1))
     #rids2 <- which(output$ligand_name %in% multi)
@@ -798,7 +797,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(!is.null(input$fragSelect)){
                 if(!input$fragSelect == '' | input$fragSelect == 'Select'){
                     toshow <- data()$targetname == input$fragSelect
-                    data()[toshow, ]
+                    dat <- data()[toshow, ]
+                    rn <- rownames(dat)
+                    rownames(dat) <- gsub('-[0-9]$', '', rn)
+                    dat
                 } else {
                     data()[NULL,]
                 }
@@ -811,7 +813,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(!is.null(input$fragSelect)){
                 if(!input$fragSelect == '' | input$fragSelect == 'Select'){
                     toshow <- data()$targetname == input$fragSelect
-                    data()[toshow, c('original_name', 'fragalysis_name', 'alternate_name','Site_Label', 'new_smiles', 'pdb_id')]
+                    dat <- data()[toshow, c('original_name', 'fragalysis_name', 'alternate_name','Site_Label', 'new_smiles', 'pdb_id')]
+                    rn <- rownames(dat)
+                    rownames(dat) <- gsub('-[0-9]$', '', rn)
+                    dat
                 } else {
                     data()[NULL,]
                 }
@@ -931,10 +936,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$write, {
         if(debug) debugMessage(sID=sID, sprintf('Writing a row'))
         rn <- rownames(isolate(fragview_table_data()))
-        print(rn)
-        ids <- isolate(fragview_table_data()$id)
-        print(ids)
-        print(input$goto)
         names(ids) <- rn
         updateOrCreateRow(ligand_name_id=as.character(ids[input$goto]),
                           fragalysis_name=as.character(input$goto),
