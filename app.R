@@ -719,7 +719,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 selection = 'single',
                 options = list(
                     pageLength = pl
-                ), , rownames= FALSE
+                ), , rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
         })
     }
