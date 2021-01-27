@@ -79,16 +79,17 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
     )
 
     # Fix to handle duplicate row names... Use the latest modification date...
-    rids <- 1:nrow(output)
-    multi <- names(which(table(as.character(output$ligand_name)) > 1))
-    rids2 <- which(output$ligand_name %in% multi)
-    dupes <- cbind('id' =rids2, output[rids2, c('ligand_name','modification_date')])
-    todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) {
-        y <- dupes[dupes[,'ligand_name'] %in% x,]
-        y[-which.max(as.numeric(y[,'modification_date'])),1]
-    }))
-    output <- output[-todel,]
-    rownames(output) <- output$ligand_name
+    #rids <- 1:nrow(output)
+    #multi <- names(which(table(as.character(output$ligand_name)) > 1))
+    #rids2 <- which(output$ligand_name %in% multi)
+    #dupes <- cbind('id' =rids2, output[rids2, c('ligand_name','modification_date')])
+    #todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) {
+    #    y <- dupes[dupes[,'ligand_name'] %in% x,]
+    #    y[-which.max(as.numeric(y[,'modification_date'])),1]
+    #}))
+    #output <- output[-todel,]
+    #rownames(output) <- output$ligand_name
+    rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
     dbDisconnect(con)
 
     return(output)
@@ -113,8 +114,19 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     targets <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisTarget\" WHERE id IN (%s)", paste(unique(annotatable_fv_dat$fragalysis_target_id), collapse=',')))
     rownames(targets) <- as.character(targets$id)
     output <- cbind(annotatable_fv_dat, targetname=targets[as.character(annotatable_fv_dat$fragalysis_target_id), 'target'], md[as.character(annotatable_fv_dat$id),])
+
+    #rids <- 1:nrow(output)
+    #multi <- names(which(table(as.character(output$ligand_name))>1))
+    #rids2 <- which(output$ligand_name %in% multi)
+   #dupes <- cbind('id' =rids2, output[rids2, c('ligand_name','modification_date')])
+    #todel <- unlist(sapply(unique(as.character(dupes$ligand_name)), function(x) {
+    #    y <- dupes[dupes[,'ligand_name'] %in% x,]
+    ##    y[-which.max(as.numeric(y[,'modification_date'])),1]
+    #}))
+    #output <- output[-todel,]
     dbDisconnect(con)
-    rownames(output) <- as.character(output$ligand_name)
+    #rownames(output) <- as.character(output$ligand_name)
+    rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
     return(output)
 }
 
