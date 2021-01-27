@@ -1,4 +1,4 @@
-local = FALSE
+local = TRUE
 
 # Generic Shiny Libraries
 library(httr)
@@ -432,7 +432,7 @@ server <- function(input, output, session){
 
     slackFilters <- c('has joined the channel')
     getChannelList <- function(){
-        return(c('No Channels'))
+        #return(c('No Channels'))
         channellist <- list()
         channellist$response_metadata$next_cursor <- 'First'
         channels <- data.frame(name = 'welcome', id='abc', stringsAsFactors=F)
@@ -653,6 +653,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$pdb_latest <- ''
     sessionlist$lig_id <- ''
     sessionlist$xtalroot <- ''
+    sessionlist$rowname <- ''
 
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
@@ -1025,11 +1026,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             dbAppendTable(con, 'BadAtoms', value = newdat, row.names=NULL)
             dbDisconnect(con)
         }
-        sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], input$comments)
+        sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], data[,'comment'])
     }
 
     # Form Handler
-    fieldsAll <- c("name", 'ligand', "decision", "reason")
+    fieldsAll <- c("name", 'ligand', "decision", "reason", "comments")
     formData <- reactive({
         data <- sapply(fieldsAll, function(x) paste0(input[[x]], collapse='; '))
         # Get Crystal ID
@@ -1037,7 +1038,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # data[2] should be: sessionlist$rowname
         xtalname <- data[2]
         data[2] <- sessionlist$rowname
-        data <- c(data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime(), review_data[data[2],'ligand_id'], review_data[data[2],'crystal_id'])
+        data <- c(data[1], possDec_int[data[3]] ,data[3:4], timestamp = epochTime(), review_data[data[2],'ligand_id'], review_data[data[2],'crystal_id'], data[5])
         list(data=data.frame(
             fedid=data[1],
             decision_int=as.numeric(data[2]),
@@ -1046,6 +1047,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             time_submitted=data[5],
             Ligand_name_id=as.integer(data[6]),
             crystal_id=as.integer(data[7]),
+            comment=as.character(data[8]),
             stringsAsFactors=FALSE
         ), xtalname=xtalname)
     })
@@ -1066,7 +1068,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         xtaln <- formData()[[2]]
         if(debug) debugMessage(sID=sID, sprintf('Submitting Form'))
         if(debug) print(fData)
-        if(any(fData %in% c('', ' '))) {
+        if(any(fData[1:7] %in% c('', ' '))) {
             showModal(modalDialog(title = "Please fill all fields in the form",
                 "One or more fields have been left empty. Please provide your FedID, a decision and reason(s) before clicking submit.",
                 easyClose=TRUE, footer = tagList(modalButton("Cancel"))
@@ -1443,6 +1445,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$reviewtable_rows_selected, {
         rdat <- r1()[input$reviewtable_rows_selected,,drop=TRUE]
+        print(rdat)
         sessionlist$rowname <- rownames(r1())[input$reviewtable_rows_selected]
         sessionlist$lig_name <- rdat$ligand_name
         sessionlist$lig_id <- rdat[[1]][1]
