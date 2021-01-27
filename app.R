@@ -687,13 +687,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
-    updateMainTable <- function(r1, pl=10){
+    updateMainTable <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
                 r1(),
                 selection = 'single',
                 options = list(
-                    pageLength = pl
+                    pageLength = pl,
+                    rownames= FALSE
                 )
             ) %>% DT::formatStyle(
                 'decision_str',
@@ -712,13 +713,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
-    updateMainTable2 <- function(r1, pl=10){
+    updateMainTable2 <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
                 r1(),
                 selection = 'single',
                 options = list(
-                    pageLength = pl
+                    pageLength = pl,
+                    rownames= FALSE
                 )
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
         })
