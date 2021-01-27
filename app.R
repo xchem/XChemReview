@@ -1,4 +1,4 @@
-local = FALSE
+local = TRUE
 
 # Generic Shiny Libraries
 library(httr)
@@ -842,8 +842,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         #folderPath <- getAlignedStagingFolder()
         fv_values$apofiles <- as.character(isolate(fragview_table_data()$apo_pdb))
+        print(isolate(fv_values$apofiles))
         fv_values$molfiles <- as.character(isolate(fragview_table_data()$lig_mol_file))
+        print(isolate(fv_values$molfiles))
         fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
+        print(isolate(fv_values$molfil))
         updateSelectInput(session, 'goto', choices = fv_values$molfil)
         fragview_input <- react_fv_data(fragview_data, input)
         output$therow <- updateMainTable2(fragview_input, pl=100)
@@ -898,10 +901,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Fill Form as seen
         updateTextInput(session, 'crysname', value = input$goto)
         updateTextInput(session, 'smiles', value = smilestr)
-        updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
-        updateTextInput(session, 'alternate_name', value = as.character(isolate(fragview_table_data()[input$goto, 'alternate_name'])))
-        updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label'])))
-        updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
+        frag_idx = which(isolate(fragview_table_data()[input$goto, 'fragalysis_name']) == input$goto)
+        updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[frag_idx, 'new_smiles'])))
+        updateTextInput(session, 'alternate_name', value = as.character(isolate(fragview_table_data()[frag_idx, 'alternate_name'])))
+        updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[frag_idx, 'Site_Label'])))
+        updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[frag_idx, 'pdb_id'])))
         # Go to specific ligand do not edit go next loop
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
         if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
@@ -956,7 +960,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selecting Row'))
         molfiles <- fv_values$molfiles
         molbase <- fv_values$molfil
-        choice = isolate(rownames(fragview_input())[input$therow_rows_selected])
+        choice = isolate(fragview_input()[input$therow_rows_selected, 'fragalysis_name'])
         updateSelectizeInput(session, 'goto', selected = choice, choices=molbase)
     })
 
