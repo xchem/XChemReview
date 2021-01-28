@@ -935,9 +935,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$write, {
         if(debug) debugMessage(sID=sID, sprintf('Writing a row'))
-        rn <- rownames(isolate(fragview_table_data()))
-        names(ids) <- rn
-        updateOrCreateRow(ligand_name_id=as.character(ids[input$goto]),
+        updateOrCreateRow(ligand_name_id=as.character(input$goto),
                           fragalysis_name=as.character(input$goto),
                           original_name=as.character(rsplit(input$goto, '_', 1)[1]),
                           site_label=as.character(input$site_name),
