@@ -143,13 +143,13 @@ updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, si
                     )
     print(df)
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=%s", df$Ligand_name_id))[1,1]
+    id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=\"%s\"", df$Ligand_name_id))[1,1]
     if(is.na(id)){
         message('Creating MetaRow')
         dbAppendTable(con, "MetaData", value = df, row.names=NULL)
     } else {
         message('Updating MetaRow!')
-        dbExecute(con, sprintf("UPDATE \"MetaData\" SET %s WHERE \"Ligand_name_id\"=%s",
+        dbExecute(con, sprintf("UPDATE \"MetaData\" SET %s WHERE \"Ligand_name_id\"=\"%s\"",
             sprintf("\"Site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name),
             ligand_name_id)
         )
