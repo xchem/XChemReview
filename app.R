@@ -1,4 +1,4 @@
-local = TRUE
+local = FALSE
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
