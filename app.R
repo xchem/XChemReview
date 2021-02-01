@@ -59,13 +59,17 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
     output <- cbind(
         'ligand_name' = ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),2],
         'decision_str' = sapply(mostrecent[as.character(ligand_data$id),4], function(x) ifelse(is.null(x), NA, as.character(x))),
-        ligand_refinement_data[as.character(ligand_data$crystal_id),3:14],
+        'Review Date' = sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%d/%m/%Y'))),
+        'Review Comment' = sapply(mostrecent[as.character(ligand_data$id),'comment'], function(x) ifelse(is.null(x), NA, as.character(x))),
+        'Current State' = sapply(ligand_refinement_data[as.character(ligand_data$crystal_id), 11], function(x) ifelse(x==4,'Comp Chem Ready', ifelse(x==5, 'Deposition Ready', 'Deposited'))),
+        ligand_refinement_data[as.character(ligand_data$crystal_id),c(9,10,3,4,5,6,7,8,11,12,13,14)],
         ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),3:13],
         'target_name' = as.character(ligand_target_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$target_id),2]),
         'SMILES' = ligand_compound_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$compound_id),2],
         'crystal_name' = ligand_crystal_data[as.character(ligand_data$crystal_id),2],
         'decision_int' = sapply(mostrecent[as.character(ligand_data$id),5], function(x) ifelse(is.null(x), NA, as.character(x))),
         'time_submitted' = sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%Y%m%d%H%M%S'))),
+
         'ligand_id' = ligand_data$id,
         'crystal_id' = ligand_crystal_data[as.character(ligand_data$crystal_id),1],
         'out_of_date' = as.character(mapply(
