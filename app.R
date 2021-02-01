@@ -1,4 +1,4 @@
-local = FALSE
+local = TRUE
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
@@ -303,6 +303,10 @@ body <- dashboardBody(
                                     )
                                 ),
                                 column(6,
+                                    radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
+                                        choiceNames = c('Aligned (what will be in Fragalysis', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
+                                        choiceValues = c('aligned', 'unaligned', 'crystallographic')
+                                    ),
                                     imageOutput('ligimage2')
                                 )
                             )
@@ -1321,7 +1325,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # PBD uploader
     removeNamedComponent <- function(objectname) session$sendCustomMessage(type='removeNamedComponent', list(objectname))
 
-    uploadPDB <- function(filepath){
+    uploadPDB <- function(filepath, input){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
@@ -1329,11 +1333,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             type = 'setPDB2', # See TJGorrie/NGLShiny for details on setPDB2
             message = list(
                 choice,
-                input$clipDist,
-                input$clipping[1],
-                input$clipping[2],
-                input$fogging[1],
-                input$fogging[2]
+                isolate(input$clipDist),
+                isolate(input$clipping)[1],
+                isolate(input$clipping)[2],
+                isolate(input$fogging)[1],
+                isolate(input$fogging)[2]
             )
         )
     }
@@ -1475,74 +1479,178 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateSelectInput(session, 'ligand', choices=isolate(sessionlist$lig_name), selected = isolate(sessionlist$lig_name))
     })
 
+    observeEvent(input$views, {
+        if(is.null(input$views)) updateRadioButtons(session, 'views', selected = 'aligned')
+
+        session$sendCustomMessage(type = 'setup', message = list())
+        updateParam('mousePreset', as.character(input$mousePreset))
+
+        the_pdb_file <- isolate(sessionlist$apo_file)
+        the_mol_file <- isolate(sessionlist$mol_file)
+        the_emaps <- dir(dirname(isolate(sessionlist$apo_file)), pattern='event', full=TRUE)
+        the_2fofc_map <- isolate(sessionlist$twofofc_file)
+        the_fofc_map <- isolate(sessionlist$fofc_file)
+
+        withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
+            if(! isolate(sessionlist$apo_file) == ""){
+                if(input$renderMisc){
+                    incProgress(.1, detail = 'Finding Misc Files...')
+                    spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
+                    output$spiderPlot <- renderImage({
+                        if(length(spfile) == 1){
+                            list(src = spfile, contentType = 'image/png', width=200, height=200)
+                        } else {
+                            list(src = '', contentType = 'image/png', width=200, height=200)
+                        }
+                    }, deleteFile=FALSE)
+                    ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
+                    output$ligimage <- renderImage({
+                        if(length(ligfile) == 1){
+                            list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                        } else {
+                            list(src = '',contentType = 'image/png',width=200,height=200)
+                        }
+                    }, deleteFile=FALSE)
+                    output$ligimage2 <- renderImage({
+                        if(length(ligfile) == 1){
+                            list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                        } else {
+                            list(src = '',contentType = 'image/png',width=200,height=200)
+                        }
+                    }, deleteFile=FALSE)
+                }
+
+                incProgress(.2, detail = 'Uploading Crystal + Ligand')
+                switch(input$views,
+                    ' ' = {
+                        the_pdb_file <- ''
+                        the_mol_file <- ''
+                        the_emaps <- ''
+                        the_2fofc_map <- ''
+                        the_fofc_map <- ''
+                    },
+                    'aligned' = {
+                        # Default Behaviour do not change anything!
+                        try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                    },
+                    'unaligned' = {
+                        the_pdb_file <- gsub('staging_test', 'unaligned_test', the_pdb_file)
+                        the_mol_file <- gsub('staging_test', 'unaligned_test', the_mol_file)
+                        the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
+                        the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
+                        the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
+                        try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                    },
+                    'crystallographic' = {
+                        # From this:
+                        #/dls/science/groups/i04-1/fragprep/staging_test/macro-combi/aligned/macro-combi-x0030_0A/macro-combi-x0030_0A_apo.pdb
+                        #To:
+                        # /dls/science/groups/i04-1/fragprep/staging_test/macro-combi/crystallographic/macro-combi-x0030.pdb etc
+                        splitted <-  rsplit(the_pdb_file, '/')
+                        the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
+                        the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
+
+                        the_pdb_file <- sprintf('%s/%s.pdb', the_folder, the_xtal_name)
+                        try(uploadPDB(the_pdb_file, input=input), silent=T)
+                        the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
+                        the_fofc_map <- sprintf('%s/%s_fofc.map', the_folder, the_xtal_name)
+                        the_emaps <- dir(the_folder, pattern=sprintf('%s_event', the_xtal_name), full=TRUE)
+                        # Switch Changes the FilePaths And Renderer Function?
+                    }
+                )
+
+                names(the_emaps) <- basename(the_emaps)
+                sessionlist$current_emaps <- the_emaps
+                print(the_emaps)
+                incProgress(.2, detail = 'Uploading Event map')
+                updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
+                # Move this to a different part?
+                message('Upload fofcs')
+                incProgress(.2, detail = 'Uploading 2fofc map')
+                try(uploadVolumeDensity(the_2fofc_map,
+                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc'), silent=T)
+                incProgress(.1, detail = 'Uploading fofc map')
+                try(uploadVolumeDensity(the_fofc_map,
+                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos'), silent=T)
+                incProgress(.1, detail = 'Uploading fofc map')
+                try(uploadVolumeDensity(the_fofc_map,
+                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
+            }
+            setProgress(1)
+        })
+    })
+
     observeEvent(input$ligand, ignoreNULL = TRUE, {
         atomstoquery$data <- data.frame(name=character(),
                  index=character(),
                  comment=character(),
                  stringsAsFactors=FALSE)
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
-
-        session$sendCustomMessage(type = 'setup', message = list())
-        updateParam('mousePreset', as.character(input$mousePreset))
-
-        updateSelectizeInput(session, 'channelSelect', select=tolower(gsub('[^[:alnum:]]', '', input$ligand)))
-        withProgress(message = 'Loading Crystal', value = 0,{
-            message('Crystal Updated')
-            print(isolate(sessionlist$apo_file))
-            if(! isolate(sessionlist$apo_file) == ""){
-            try(uploadApoPDB(isolate(sessionlist$apo_file), 'ball+stick'), silent=T)
-            incProgress(.1, detail = 'Uploading PDB file')
-            message('Uploaded APO')
-            try(uploadMolAndFocus(isolate(sessionlist$mol_file), 'mol'), silent=T)
-            incProgress(.1, detail = 'Uploading mol file')
-            message('Upload MOL')
-            emaps <- dir(dirname(isolate(sessionlist$apo_file)), pattern='event', full=TRUE)
-            names(emaps) <- basename(emaps)
-            sessionlist$current_emaps <- emaps
-            print(emaps)
-            incProgress(.2, detail = 'Uploading Event map')
-            updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
-            # Move this to a different part?
-            message('Upload fofcs')
-            incProgress(.2, detail = 'Uploading 2fofc map')
-            try(uploadVolumeDensity(isolate(sessionlist$twofofc_file),
-                color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc'), silent=T)
-            incProgress(.1, detail = 'Uploading fofc map')
-            try(uploadVolumeDensity(isolate(sessionlist$fofc_file),
-                color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos'), silent=T)
-            incProgress(.1, detail = 'Uploading fofc map')
-            try(uploadVolumeDensity(isolate(sessionlist$fofc_file),
-                color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
-            }
-
-            if(input$renderMisc){
-                incProgress(.1, detail = 'Finding Misc Files...')
-                spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
-                output$spiderPlot <- renderImage({
-                    if(length(spfile) == 1){
-                        list(src = spfile, contentType = 'image/png', width=200, height=200)
-                    } else {
-                        list(src = '', contentType = 'image/png', width=200, height=200)
+        previous = isolate(input$views)
+        if(previous == 'aligned'){
+            session$sendCustomMessage(type = 'setup', message = list())
+            updateParam('mousePreset', as.character(input$mousePreset))
+            the_pdb_file <- isolate(sessionlist$apo_file)
+            the_mol_file <- isolate(sessionlist$mol_file)
+            the_emaps <- dir(dirname(isolate(sessionlist$apo_file)), pattern='event', full=TRUE)
+            the_2fofc_map <- isolate(sessionlist$twofofc_file)
+            the_fofc_map <- isolate(sessionlist$fofc_file)
+            withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
+                if(! isolate(sessionlist$apo_file) == ""){
+                    if(input$renderMisc){
+                        incProgress(.1, detail = 'Finding Misc Files...')
+                        spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
+                        output$spiderPlot <- renderImage({
+                            if(length(spfile) == 1){
+                                list(src = spfile, contentType = 'image/png', width=200, height=200)
+                            } else {
+                                list(src = '', contentType = 'image/png', width=200, height=200)
+                            }
+                        }, deleteFile=FALSE)
+                        ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
+                        output$ligimage <- renderImage({
+                            if(length(ligfile) == 1){
+                                list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                            } else {
+                                list(src = '',contentType = 'image/png',width=200,height=200)
+                            }
+                        }, deleteFile=FALSE)
+                        output$ligimage2 <- renderImage({
+                            if(length(ligfile) == 1){
+                                list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                            } else {
+                                list(src = '',contentType = 'image/png',width=200,height=200)
+                            }
+                        }, deleteFile=FALSE)
                     }
-                }, deleteFile=FALSE)
-                ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
-                output$ligimage <- renderImage({
-                    if(length(ligfile) == 1){
-                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                    } else {
-                        list(src = '',contentType = 'image/png',width=200,height=200)
-                    }
-                }, deleteFile=FALSE)
-                output$ligimage2 <- renderImage({
-                    if(length(ligfile) == 1){
-                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                    } else {
-                        list(src = '',contentType = 'image/png',width=200,height=200)
-                    }
-                }, deleteFile=FALSE)
-            }
-            setProgress(1)
-        })
+                    incProgress(.2, detail = 'Uploading Crystal + Ligand')
+                    try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                    try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                    names(the_emaps) <- basename(the_emaps)
+                    sessionlist$current_emaps <- the_emaps
+                    incProgress(.2, detail = 'Uploading Event map')
+                    updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
+                    # Move this to a different part?
+                    message('Upload fofcs')
+                    incProgress(.2, detail = 'Uploading 2fofc map')
+                    try(uploadVolumeDensity(the_2fofc_map,
+                        color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc'), silent=T)
+                    incProgress(.1, detail = 'Uploading fofc map')
+                    try(uploadVolumeDensity(the_fofc_map,
+                        color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos'), silent=T)
+                    incProgress(.1, detail = 'Uploading fofc map')
+                    try(uploadVolumeDensity(the_fofc_map,
+                        color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
+                }
+                setProgress(1)
+            })
+        } else {
+            # There is a problem with observeEvents not rendering stale references therefore we have to manually the loading if the event state does not change.
+            updateRadioButtons(session, 'views', selected = 'aligned')
+        }
+
     })
 
     observeEvent(input$emap, ignoreNULL = TRUE, {
@@ -1553,7 +1661,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             color = 'orange', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap'), silent=T)
         message('Completed!')
     })
-
 
     output$plotElement <- renderUI({
         plotOutput('plottoRender', width = "100%",click = NULL,dblclick = NULL,hover = NULL,brush = NULL,inline = FALSE)
