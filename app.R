@@ -1484,6 +1484,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         session$sendCustomMessage(type = 'setup', message = list())
         updateParam('mousePreset', as.character(input$mousePreset))
+        updateSelectInput(session, 'emap', choices = c('NotAMap.ccp4'), selected = c('NotAMap.ccp4'))
 
         the_pdb_file <- isolate(sessionlist$apo_file)
         the_mol_file <- isolate(sessionlist$mol_file)
@@ -1491,35 +1492,34 @@ If you believe you have been sent this message in error, please email tyler.gorr
         the_2fofc_map <- isolate(sessionlist$twofofc_file)
         the_fofc_map <- isolate(sessionlist$fofc_file)
 
+        if(input$renderMisc & !isolate(sessionlist$apo_file) == ""){
+            spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
+            output$spiderPlot <- renderImage({
+                if(length(spfile) == 1){
+                    list(src = spfile, contentType = 'image/png', width=200, height=200)
+                } else {
+                    list(src = '', contentType = 'image/png', width=200, height=200)
+                }
+            }, deleteFile=FALSE)
+            ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
+            output$ligimage <- renderImage({
+                if(length(ligfile) == 1){
+                    list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                } else {
+                    list(src = '',contentType = 'image/png',width=200,height=200)
+                }
+            }, deleteFile=FALSE)
+            output$ligimage2 <- renderImage({
+                if(length(ligfile) == 1){
+                    list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                } else {
+                    list(src = '',contentType = 'image/png',width=200,height=200)
+                }
+            }, deleteFile=FALSE)
+        }
+
         withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
             if(! isolate(sessionlist$apo_file) == ""){
-                if(input$renderMisc){
-                    incProgress(.1, detail = 'Finding Misc Files...')
-                    spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
-                    output$spiderPlot <- renderImage({
-                        if(length(spfile) == 1){
-                            list(src = spfile, contentType = 'image/png', width=200, height=200)
-                        } else {
-                            list(src = '', contentType = 'image/png', width=200, height=200)
-                        }
-                    }, deleteFile=FALSE)
-                    ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
-                    output$ligimage <- renderImage({
-                        if(length(ligfile) == 1){
-                            list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                        } else {
-                            list(src = '',contentType = 'image/png',width=200,height=200)
-                        }
-                    }, deleteFile=FALSE)
-                    output$ligimage2 <- renderImage({
-                        if(length(ligfile) == 1){
-                            list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                        } else {
-                            list(src = '',contentType = 'image/png',width=200,height=200)
-                        }
-                    }, deleteFile=FALSE)
-                }
-
                 incProgress(.2, detail = 'Uploading Crystal + Ligand')
                 switch(input$views,
                     ' ' = {
@@ -1544,20 +1544,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
                     },
                     'crystallographic' = {
-                        # From this:
-                        #/dls/science/groups/i04-1/fragprep/staging_test/macro-combi/aligned/macro-combi-x0030_0A/macro-combi-x0030_0A_apo.pdb
-                        #To:
-                        # /dls/science/groups/i04-1/fragprep/staging_test/macro-combi/crystallographic/macro-combi-x0030.pdb etc
                         splitted <-  rsplit(the_pdb_file, '/')
                         the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
-
                         the_pdb_file <- sprintf('%s/%s.pdb', the_folder, the_xtal_name)
                         try(uploadPDB(the_pdb_file, input=input), silent=T)
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
                         the_fofc_map <- sprintf('%s/%s_fofc.map', the_folder, the_xtal_name)
                         the_emaps <- dir(the_folder, pattern=sprintf('%s_event', the_xtal_name), full=TRUE)
-                        # Switch Changes the FilePaths And Renderer Function?
                     }
                 )
 
@@ -1597,34 +1591,34 @@ If you believe you have been sent this message in error, please email tyler.gorr
             the_emaps <- dir(dirname(isolate(sessionlist$apo_file)), pattern='event', full=TRUE)
             the_2fofc_map <- isolate(sessionlist$twofofc_file)
             the_fofc_map <- isolate(sessionlist$fofc_file)
+
+            if(input$renderMisc & !isolate(sessionlist$apo_file) == ""){
+                spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
+                output$spiderPlot <- renderImage({
+                    if(length(spfile) == 1){
+                        list(src = spfile, contentType = 'image/png', width=200, height=200)
+                    } else {
+                        list(src = '', contentType = 'image/png', width=200, height=200)
+                    }
+                }, deleteFile=FALSE)
+                ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
+                output$ligimage <- renderImage({
+                    if(length(ligfile) == 1){
+                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                    } else {
+                        list(src = '',contentType = 'image/png',width=200,height=200)
+                    }
+                }, deleteFile=FALSE)
+                output$ligimage2 <- renderImage({
+                    if(length(ligfile) == 1){
+                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                    } else {
+                        list(src = '',contentType = 'image/png',width=200,height=200)
+                    }
+                }, deleteFile=FALSE)
+            }
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
-                    if(input$renderMisc){
-                        incProgress(.1, detail = 'Finding Misc Files...')
-                        spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
-                        output$spiderPlot <- renderImage({
-                            if(length(spfile) == 1){
-                                list(src = spfile, contentType = 'image/png', width=200, height=200)
-                            } else {
-                                list(src = '', contentType = 'image/png', width=200, height=200)
-                            }
-                        }, deleteFile=FALSE)
-                        ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
-                        output$ligimage <- renderImage({
-                            if(length(ligfile) == 1){
-                                list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                            } else {
-                                list(src = '',contentType = 'image/png',width=200,height=200)
-                            }
-                        }, deleteFile=FALSE)
-                        output$ligimage2 <- renderImage({
-                            if(length(ligfile) == 1){
-                                list(src = ligfile,contentType = 'image/png',width=200,height=200)
-                            } else {
-                                list(src = '',contentType = 'image/png',width=200,height=200)
-                            }
-                        }, deleteFile=FALSE)
-                    }
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
                     try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
                     try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
