@@ -308,7 +308,7 @@ body <- dashboardBody(
                                 ),
                                 column(6,
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
-                                        choiceNames = c('Aligned (what will be in Fragalysis', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
+                                        choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
                                     ),
                                     imageOutput('ligimage2')
@@ -1192,7 +1192,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     selectInput('ligand', 'Ligand', selected='', choices = rownames(isolate(r1())), multiple=FALSE),
                     selectInput("decision", "Decision", choices = possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
-                    textInput('comments', 'Additonal  Comments', value = "", width = NULL,placeholder = NULL),
+                    textInput('comments', 'Additional  Comments', value = "", width = NULL,placeholder = NULL),
                     fluidRow(
                         column(6, actionButton('submit', 'Submit', class = 'btn-primary')),
                         column(6, actionButton('clear', 'Clear', class = 'btn-primary'))
