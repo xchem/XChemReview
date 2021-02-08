@@ -307,11 +307,12 @@ body <- dashboardBody(
                                     )
                                 ),
                                 column(6,
+                                    imageOutput('ligimage2'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
                                     ),
-                                    imageOutput('ligimage2')
+                                    selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
                                 )
                             )
                         ),
@@ -1439,6 +1440,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         try(uploadMolAndFocus(isolate(sessionlist$mol_file), 'mol'), silent=T)
     })
 
+    observeEvent(input$asuSwitch, {
+        try(session$sendCustomMessage('updateAssembly', list(isolate(input$asuSwitch))))
+    })
+
     output$isoEventSlider <- renderUI({
             #chooseSliderSkin("Modern")
             sliderInput("isoEvent", "",
@@ -1489,6 +1494,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         session$sendCustomMessage(type = 'setup', message = list())
         updateParam('mousePreset', as.character(input$mousePreset))
         updateSelectInput(session, 'emap', choices = c('NotAMap.ccp4'), selected = c('NotAMap.ccp4'))
+        updateSelectInput(session, 'asuSwitch', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
 
         the_pdb_file <- isolate(sessionlist$apo_file)
         the_mol_file <- isolate(sessionlist$mol_file)
