@@ -307,12 +307,12 @@ body <- dashboardBody(
                                     )
                                 ),
                                 column(6,
-                                    imageOutput('ligimage2'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
                                     ),
-                                    selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
+                                    selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL')),
+                                    imageOutput('ligimage2')
                                 )
                             )
                         ),
