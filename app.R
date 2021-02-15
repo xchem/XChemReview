@@ -312,7 +312,9 @@ body <- dashboardBody(
                             ),
                         ),
                         tabPanel(
-                            title = 'Atom Selection',
+                            title = 'Atom Selection (Alt + Left Click)',
+                            textOutput('as_message'),
+                            actionButton('as_clear', label = 'Clear all selected atoms'),
                             DT::dataTableOutput('atoms')
                         ),
                         tabPanel(title = 'Slack',
@@ -821,6 +823,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$therow <- updateMainTable2(fragview_input, pl=100)
 
+    output$as_message <- renderText({'Alt Click to select Atom'})
+
+    observeEvent(input$as_clear, {
+
+        session$sendCustomMessage(type = 'as_resetclicked', list())
+
+    })
 
     fv_values <- reactiveValues()
     fv_values$apofiles <- c()
