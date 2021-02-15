@@ -828,6 +828,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$as_clear, {
 
         session$sendCustomMessage(type = 'as_resetclicked', list())
+        atomstoquery$data <- data.frame(name = character(),
+            index = character(),
+            comment = character(),
+            stringsAsFactors = FALSE)
 
     })
 
