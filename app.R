@@ -676,7 +676,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 r1(),
                 selection = 'single',
                 options = list(
-                    pageLength = pl
+                    pageLength = pl,
+                    columnDefs = list(list(width='100px', targets=c(4)))
                 ), , rownames= FALSE
             ) %>% DT::formatStyle(
                 'decision_str',
