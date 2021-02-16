@@ -678,7 +678,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 options = list(
                     pageLength = pl,
                     columnDefs = list(list(width='100px', targets=c(4)))
-                ), , rownames= FALSE
+                ), rownames= FALSE
             ) %>% DT::formatStyle(
                 'decision_str',
                 target = 'row',
