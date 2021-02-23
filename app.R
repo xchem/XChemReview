@@ -1529,7 +1529,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'aligned' = {
                         # Default Behaviour do not change anything!
-                        try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
                         try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
                     },
                     'unaligned' = {
@@ -1538,7 +1538,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
                         the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
-                        try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
                         try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
                     },
                     'crystallographic' = {
@@ -1618,7 +1618,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
-                    try(uploadApoPDB(the_pdb_file, 'ball+stick'), silent=T)
+                    try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
                     try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
