@@ -1241,8 +1241,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Default Values for Control panel trick
     loadDefaultParams <- function(){
         list(
-            fogging = c(45,58),
-            clipping = c(47,100),
+            fogging = c(49,63),
+            clipping = c(49,52),
             boxsize = 5,
             clipDist = 10,
             backgroundColor = 'black',
