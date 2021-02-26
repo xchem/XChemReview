@@ -1113,25 +1113,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
     ngl_control_values$defaults <- loadDefaultParams()
 
     # Control Panel Listeners
-    observeEvent(input$controls, ignoreNULL = FALSE, {
-        if(is.null(input$controls) && input$tab == 'Review'){
-            title = 'As part of setup please confirm NGL Viewer Controls'
-            showModal(
-                controlPanelModal(
-                    values = isolate(ngl_control_values$defaults),
-                    title = title
-                )
+    observeEvent(input$controls, ignoreNULL = TRUE, {
+        showModal(
+            controlPanelModal(
+                values = isolate(ngl_control_values$defaults),
+                title = 'NGL Viewer Controls'
             )
-        } else {
-            title = 'NGL Viewer Controls'
+        )
+    })
+
+    observeEvent(input$tab, ignoreNULL=TRUE, {
+        if(input$tab == 'review'){
             showModal(
                 controlPanelModal(
                     values = isolate(ngl_control_values$defaults),
-                    title = title
+                    title = 'As part of setup please confirm NGL Viewer Controls'
                 )
             )
         }
-
     })
 
     observeEvent(input$updateParams, {
