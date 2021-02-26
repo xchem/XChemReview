@@ -570,9 +570,7 @@ With these additional comments:
 If you wish to review this change please go to xchemreview.diamond.ac.uk while
 connected to the diamond VPN or via NX.
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
-If you disagree with this decision please discuss at the in the slack channel: (https://xchemreview.slack.com/archives/%s) or change the outcome by submitting a new response.
 This email was automatically sent by The XChem Review app
-If you have trouble joining the slack channel please use this invitation link: https://join.slack.com/t/xchemreview/shared_invite/zt-fpocaf6e-JQp~U6rcbGrre33E~7~faw
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
             structure, decision, user, reason, comments, structure, protein, channelID), # replace NA with channelID
             control = list(
@@ -1244,7 +1242,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fogging = c(49,63),
             clipping = c(49,52),
             boxsize = 5,
-            clipDist = 20,
+            clipDist = 10,
             backgroundColor = 'black',
             cameraType = 'orthographic',
             mousePreset = 'coot'
@@ -1270,15 +1268,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Control Panel Listeners
     observeEvent(input$controls, ignoreNULL = FALSE, {
-        if(is.null(input$controls)){
+        if(is.null(input$controls) & input$tab %in% c('review', 'fragview')){
             title = 'As part of setup please confirm NGL Viewer Controls'
         } else {
-
+            title = 'NGL Viewer Controls'
         }
         showModal(
             controlPanelModal(
                 values = isolate(ngl_control_values$defaults),
-                title = 'NGL Viewer Controls'
+                title = title
             )
         )
     })
