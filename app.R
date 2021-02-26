@@ -1481,6 +1481,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         session$sendCustomMessage(type = 'setup', message = list())
         updateParam('mousePreset', as.character(input$mousePreset))
+        updateParam('clipDist', as.character(10))
+        updateParam('clipDist', as.character(20))
+        updateParam('clipDist', as.character(input$clipDist))
         updateSelectInput(session, 'emap', choices = c('NotAMap.ccp4'), selected = c('NotAMap.ccp4'))
         updateSelectInput(session, 'asuSwitch', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
 
