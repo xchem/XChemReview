@@ -1114,17 +1114,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Control Panel Listeners
     observeEvent(input$controls, ignoreNULL = FALSE, {
-        if(is.null(input$controls)){
+        if(is.null(input$controls) && input$tab == 'Review'){
             title = 'As part of setup please confirm NGL Viewer Controls'
+            showModal(
+                controlPanelModal(
+                    values = isolate(ngl_control_values$defaults),
+                    title = title
+                )
+            )
         } else {
             title = 'NGL Viewer Controls'
-        }
-        showModal(
-            controlPanelModal(
-                values = isolate(ngl_control_values$defaults),
-                title = title
+            showModal(
+                controlPanelModal(
+                    values = isolate(ngl_control_values$defaults),
+                    title = title
+                )
             )
-        )
+        }
+
     })
 
     observeEvent(input$updateParams, {
