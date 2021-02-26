@@ -30,7 +30,10 @@ sessionInfo()
 
 # I can't believe this doesn't exist in R!
 # Functional equivalent to string.rsplit('_', 1)
-rsplit <- function(string, split_by, n=1){spl <- strsplit(string, split_by)[[1]]; c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))}
+rsplit <- function(string, split_by, n=1){
+    spl <- strsplit(string, split_by)[[1]]
+    c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))
+}
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -316,28 +319,6 @@ body <- dashboardBody(
                             textOutput('as_message'),
                             actionButton('as_clear', label = 'Clear all selected atoms'),
                             DT::dataTableOutput('atoms')
-                        ),
-                        tabPanel(title = 'Slack',
-                            fluidPage(
-                                tags$head(
-                                    tags$style("#chatpanel {overflow: auto;}")
-                                ),
-                                sidebarLayout(
-                                    sidebarPanel(
-                                        actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
-                                        selectizeInput("channelSelect", "", select='', choices = '', multiple=FALSE, width=-100),
-                                        textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
-                                        cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
-                                        textInput('slackUser', label = 'Name', value =''),
-                                        actionButton('slackSubmit', label = 'Submit')
-                                    ), # sidebarpanel
-                                    mainPanel(
-                                            textOutput('chatURL'),
-                                            textOutput('scrollDialog'),
-                                            textOutput('chat')
-                                    )
-                                )
-                            )
                         )
                     )
                 ),
@@ -414,142 +395,7 @@ server <- function(input, output, session){
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
-
-
-    slackFilters <- c('has joined the channel')
-    getChannelList <- function(){
-        #return(c('No Channels'))
-        channellist <- list()
-        channellist$response_metadata$next_cursor <- 'First'
-        channels <- data.frame(name = 'welcome', id='abc', stringsAsFactors=F)
-        while(!channellist$response_metadata$next_cursor == ''){
-            if(channellist$response_metadata$next_cursor == 'First'){
-                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list', body=list(token=api, limit=1000)))
-            } else {
-                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list',
-                                                        body=list(token=api,
-                                                                    limit=1000,
-                                                                    cursor=channellist$response_metadata$next_cursor)))
-            }
-            data_to_join <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
-            channels <- rbind(channels, data_to_join)
-        }
-        channels <- channels[!channels[,1] %in% c('welcome', 'team', 'project', 'i04-1'),]
-        rownames(channels) <- channels[,1]
-        return(channels)
-    }
-
-    getChannel <- function(structure, channels){
-        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
-        ifelse(channelname %in% rownames(channels), channels[channelname, 2], NA)
-    }
-
-    parseConversation <- function(channel){
-        history <- httr::content(httr::POST(url='https://slack.com/api/conversations.history',
-                body = list(token = api, channel = channel)))
-        convoblock <- do.call('rbind', parseMessageContent(conversations_history = history[[2]], channel=channel))
-        return(convoblock[nrow(convoblock):1,])
-    }
-
-    parseMessageContent <- function(conversations_history, channel){
-        messageContent <- lapply(conversations_history, parseIndividualMessage, channel=channel)
-        return(messageContent)
-    }
-
-    parseReply <- function(x, content, ts){
-        user <- content[[x]]$user
-        text <- content[[x]]$text
-        out <- c(user, text, ts)
-        return(out)
-    }
-
-    parseThread <- function(channel, ts, api){
-        thread <- httr::content(httr::POST(url='https://slack.com/api/conversations.replies',
-                            body = list(token = api, channel = channel, ts = ts)))
-        content <- thread[[1]]
-        contentid <- length(content):1
-        out <- t(sapply(contentid, parseReply, content=content, ts=ts))
-        return(out)
-    }
-
-    parseIndividualMessage <- function(message, channel){
-        user <- message$user
-        text <- message$text
-        ts <- message$thread_ts
-        broadcastedreply <- any(grepl('root', names(message)))
-        if(broadcastedreply) return(NULL)
-        if(!is.null(ts)){
-            out <- parseThread(channel = channel, ts = ts, api = api)
-        } else {
-            out <- t(c(user, text, message$ts))
-        }
-        return(out)
-    }
-
-    userList <- function(){
-        users <- httr::content(httr::POST(url='https://slack.com/api/users.list',
-            body = list(token = api)))
-        userlist <- t(sapply(users$members, function(x){
-            pull <- c(x$id, x$real_name)
-            if(length(pull)<2) pull <- c(pull, NA)
-            return(pull)
-        }))
-        users <- userlist[,2]
-        names(users) <- userlist[,1]
-        return(users)
-    }
-
-    refreshChat <- function(channel){
-        users <- userList()
-        convo <- try(parseConversation(channel=channel), silent=T)
-        if(!inherits(convo, 'try-error')){
-            convo <- convo[!convo[,2] == '', ,drop=F]
-            convo <- convo[!grepl(slackFilters, convo[,2]), ,drop=F]
-            convo[,1] <- users[convo[,1]]
-            stamps <- duplicated(convo[,3])
-            textdump <- paste(mapply(X=1:nrow(convo), Y=stamps, function(X,Y){
-                date <- as.POSIXct(as.numeric(convo[X, 3]), origin="1970-01-01")
-                if(Y) sprintf('\t- <%s>: %s', convo[X,1], convo[X,2])
-                else sprintf('[%s] - <%s>: %s ',  date, convo[X,1], convo[X,2])
-            }), collapse='\n')
-            output$chat <- renderText({textdump})
-        } else {
-            output$chat <- renderText({'Select A Channel'})
-        }
-    }
-
-    createChannel <- function(structure){
-        # lowercase and despecial
-        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
-        resp <- httr::POST(url='https://slack.com/api/conversations.create', body=list(token=api, name =channelname))
-        return(httr::content(resp)$channel$id)
-    }
-
-    sendMessageToSlack <- function(channel, message, name){
-        httr::content(httr::POST(url='https://slack.com/api/chat.postMessage',
-            body=list(token=apiuser,
-                channel=channel,
-                text= message,
-                as_user='true',
-                username=name)))
-    }
-
     sendEmail <- function(structure, user, decision, reason, comments){
-        if(debug) debugMessage(sID=sID, sprintf('Communicating to Slack...'))
-        #channels <- getChannelList()
-        #channelID <- getChannel(structure, channels)
-        #if(is.na(channelID)){
-            # Create Channel, then get ID immediately
-        #    channelID <- createChannel(structure=structure)
-        #}
-        # Post comment...
-        #sendMessageToSlack(channel=channelID,
-        #                    message= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
-#With these additional comments:
-#%s', structure, decision, user, reason, comments),
-#                            name = 'xchemreview-bot')
-	channelID <- 'NA'
-
         protein <- gsub('-[a-zA-Z]*[0-9]+_[0-9]*[A-Z]*', '', structure)
         if(is.null(emailListperStructure[[protein]])){
             emaillist <- defaultUsers
@@ -572,7 +418,7 @@ connected to the diamond VPN or via NX.
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
 This email was automatically sent by The XChem Review app
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, comments, structure, protein, channelID), # replace NA with channelID
+            structure, decision, user, reason, comments, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -1268,7 +1114,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Control Panel Listeners
     observeEvent(input$controls, ignoreNULL = FALSE, {
-        if(is.null(input$controls) & input$tab %in% c('review', 'fragview')){
+        if(is.null(input$controls)){
             title = 'As part of setup please confirm NGL Viewer Controls'
         } else {
             title = 'NGL Viewer Controls'
@@ -1742,39 +1588,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$plottoRender <- renderPlot({
         hmapbar(data=plotData(), title = isolate(sessionlist$lig_name), target_name=(isolate(sessionlist$target_name)))
-    })
-
-    observeEvent(input$updateSlackChannels,{
-        channels <- getChannelList()
-        message('ChannelList')
-        channelSelect <- channels[,2]
-        names(channelSelect) <- channels[,1]
-        updateSelectizeInput(session, "channelSelect", select = input$channelSelect, choices = names(channelSelect))
-        refreshChat(channel = channelSelect[input$channelSelect])
-    })
-
-    observeEvent(input$channelSelect, {
-        message(input$channelSelect)
-        channels <- getChannelList()
-        channelSelect <- channels[,2]
-        names(channelSelect) <- channels[,1]
-        refreshChat(channel = channelSelect[input$channelSelect])
-        output$chatURL <- renderText({sprintf('https://xchemreview.slack.com/archives/%s', channelSelect[input$channelSelect])})
-    })
-
-    observeEvent(input$slackSubmit, {
-        if(input$slackUser == '' | input$TextInput == ''){
-            showModal(modalDialog(title = "Cannot send empty messages.",
-                    'Please add some text to the Name and Text Fields.', easyClose=TRUE))
-        } else {
-        message(input$channelSelect)
-        channels <- getChannelList()
-        channelSelect <- as.character(channels[input$channelSelect,2])
-        sendMessageToSlack(channel = channelSelect,
-                            message = sprintf('on behalf of: %s. \n %s', input$slackUser, input$TextInput),
-                            name=input$slackUser)
-        }
-        refreshChat(channel = channelSelect[input$channelSelect])
     })
 
     autoInvalidate <- reactiveTimer(10000)
