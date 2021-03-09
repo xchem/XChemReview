@@ -190,7 +190,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
 
     # Zip File
     zipf <- sprintf('%s/%s.zip', rootf, prot)
-    system('zip -r %s %s', zipf, basef)
+    system(sprintf('zip -r %s %s', zipf, basef))
 
     downloadHandler(filename <- function() { paste(prot, "zip", sep=".")},
     content <- function(file) {
