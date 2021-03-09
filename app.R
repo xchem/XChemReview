@@ -150,6 +150,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/', protsuffix)
     align_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix)
     crys_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix)
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix))
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix))
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix))
     # aligned data copy
