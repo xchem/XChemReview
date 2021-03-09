@@ -6,7 +6,6 @@ library(grDevices)
 library(lubridate)
 library(shinydashboard)
 library(shinyjqui)
-library(shinyjs)
 library(shinyWidgets)
 # DB Lib
 library(DBI)
@@ -21,11 +20,15 @@ if(local) {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
     install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    # For Testing...
+    install.packages('shinyjs', repos='http://cran.rstudio.com/', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    library(shinyjs, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
 # Plotting Libs
 library(ggplot2)
 library(plotly)
+#library(shinyjs)
 
 sessionInfo()
 
