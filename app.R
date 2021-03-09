@@ -154,7 +154,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix))
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix))
     # aligned data copy
-    progress$set(detail = "Copying aligned Files", value = 0)
+    progress$set(message = "Copying aligned Files", value = 0)
     increment = (1/nrow(meta))/2
     for(frag in meta$crystal_name){
         progress$inc(increment, detail=frag)
@@ -167,15 +167,15 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     }
 
     # crystallographic copy
-    progress$set(detail = "Copying aligned Files", value = 0.5)
-    for(frag in meta$RealCrystalName){
-        progress$inc(increment, detail=frag)
-        cf <- sprintf('%scrystallographic/%s', base_root, frag)
+    progress$set(message = "Copying Input Files", value = 0.5)
+    for(rcn in meta$RealCrystalName){
+        progress$inc(increment, detail=rcn)
+        cf <- sprintf('%scrystallographic/', base_root)
         #nf <- paste(crys_dir, frag, sep='/')
         nf <- crys_dir
-        files <- list.files(cf)
+        files <- list.files(cf, pattern=rcn)
         if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
-        file.copy(file.path(cf,files), file.path(nf, crys_dir))
+        file.copy(file.path(cf,files), file.path(nf, files))
     }
 
     write.csv(meta, sprintf("%s/metadata.csv", rootf), quote = FALSE)
