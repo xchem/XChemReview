@@ -1684,7 +1684,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
             actionButton('lp_launcher', "Launch!!!!"),
-            downloadButton("downloadFragData", "Download", style = "visibility: hidden;")
+            downloadButton("downloadFragData", "Download")
         )
     })
 
