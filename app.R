@@ -179,7 +179,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     }
 
     write.csv(meta, sprintf("%s/metadata.csv", rootf), quote = FALSE)
-    write.csv(meta, sprintf("align_dir/metadata.csv", rootf), quote = FALSE)
+    write.csv(meta, sprintf("%s/metadata.csv", align_dir), quote = FALSE)
 }
 
 updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
