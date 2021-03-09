@@ -1667,7 +1667,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$lp_selection, {
-        dbname = db, host=host_db, port=db_port, user=db_user, password=db_password
         meta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
