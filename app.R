@@ -116,6 +116,69 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     return(output)
 }
 
+createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, target){
+    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
+    md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
+    prot <- target
+    md <- md[!md$Site_Label == 'IGNORE',]
+    meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
+    colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
+
+    # Dodgy Hack for DLS
+    rootf = sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/aligned/', prot)
+    for(i in meta$crystal_name){
+        id = meta$crystal_name == i
+        smifi = sprintf('%s%s/%s_smiles.txt', rootf, i,i)
+        if(!file.exists(smifi)){
+            mfile <-  sprintf('%s%s/%s_meta.csv', rootf, i,i)
+            meta$smiles[id] <- strsplit(readLines(mfile), ',')[[1]][4]
+        } else {
+            meta$smiles[id] <- readLines(smifi)[1]
+        }
+    }
+    return(meta)
+}
+
+createFragUploadFolder <- function(meta, target, copymaps=FALSE){
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    progress$set(message = "Creating Fragalysis Folder", value = 0)
+    prot = target
+    base_root <- sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/', prot)
+    protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
+    rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/', protsuffix)
+    align_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix)
+    crys_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix)
+    system2('mkdir', c('-p', sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/{aligned,crystallographic}', protsuffix)))
+
+    # aligned data copy
+    progress$set(detail = "Copying aligned Files", value = 0)
+    increment = (1/nrow(meta))/2
+    for(frag in meta$crystal_name){
+        progress$inc(increment, detail=frag)
+        cf <- sprintf('%saligned/%s', base_root, frag)
+        nf <- paste(align_dir, frag, sep='/')
+        files <- list.files(cf)
+        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+        file.copy(file.path(cf,files), nf)
+    }
+
+    # crystallographic copy
+    progress$set(detail = "Copying aligned Files", value = 0.5)
+    for(frag in meta$RealCrystalName){
+        progress$inc(increment, detail=frag)
+        cf <- sprintf('%scrystallographic/%s', base_root, frag)
+        nf <- paste(crys_dir, frag, sep='/')
+        files <- list.files(cf)
+        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+        file.copy(file.path(cf,files), nf)
+    }
+
+    write.csv(meta, sprintf("%s/metadata.csv", rootf), quote = FALSE)
+    write.csv(meta, sprintf("align_dir/metadata.csv", rootf), quote = FALSE)
+}
+
 updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
     dbname, host, port, user, password){
     df = data.frame(Site_Label=as.character(site_label),
@@ -378,7 +441,7 @@ body <- dashboardBody(
         ),
         tabItem(
             tabName = 'launchpad',
-            h2('LaunchPad - Coming Soon...')
+            uiOutput('launchpad_stuff')
         )
     )
 )
@@ -1592,6 +1655,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     output$plottoRender <- renderPlot({
         hmapbar(data=plotData(), title = isolate(sessionlist$lig_name), target_name=(isolate(sessionlist$target_name)))
+    })
+
+
+    ## Launch Pad Stuff:
+    output$launchpad_stuff <- renderUI({
+        fluidPage(
+            selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
+            actionButton('lp_launcher', "Launch!!!!")
+        )
+    })
+
+    observeEvent(input$lp_selection, {
+        dbname = db, host=host_db, port=db_port, user=db_user, password=db_password
+        meta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
+            db_user = db_user, db_password = db_password,
+            target = isolate(input$lp_selection))
+    })
+
+    observeEvent(input$actionButton,{
+        createFragUploadFolder(meta=meta, target=isolate(input$lp_selection), copymaps=FALSE)
     })
 
     autoInvalidate <- reactiveTimer(10000)
