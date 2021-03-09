@@ -1674,7 +1674,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
-    observeEvent(input$actionButton,{
+    observeEvent(input$lp_launcher,{
+        message('LAUNCH!!!')
         createFragUploadFolder(meta=meta, target=isolate(input$lp_selection), copymaps=FALSE)
     })
 
