@@ -6,6 +6,7 @@ library(grDevices)
 library(lubridate)
 library(shinydashboard)
 library(shinyjqui)
+library(shinyjs)
 library(shinyWidgets)
 # DB Lib
 library(DBI)
@@ -189,15 +190,13 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     progress$set(message = "Zipping File!", value = .9)
 
     # Zip File
-    zipf <- sprintf('%s/%s.zip', rootf, prot)
-    system(sprintf('cd %s && zip -r %s %s', rootf, zipf, protsuffix))
+    zipf <- sprintf('%s.zip', prot)
+    zipcommand <- sprintf("(cd %s && zip -r %s .)", rootf, prot)
+    system(zipcommand)
 
-    downloadHandler(filename <- function() { paste(prot, "zip", sep=".")},
-    content <- function(file) {
-        file.copy(zipf, file)
-    },
-    contentType = "application/zip")
+    full_path_zipf <- sprintf('%s/%s', rootf, zipf)
 
+    return(full_path_zipf)
 }
 
 
@@ -1685,7 +1684,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$launchpad_stuff <- renderUI({
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
-            actionButton('lp_launcher', "Launch!!!!")
+            actionButton('lp_launcher', "Launch!!!!"),
+            downloadButton("downloadFragData", "Download", style = "visibility: hidden;")
         )
     })
 
@@ -1701,9 +1701,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
-        createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
+        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
+        shinyjs::runjs("document.getElementById('downloadFragData').click();")
+
     })
 
+    output$downloadFragData <- downloadHandler(
+        filename = function() {
+            basename(sessionlist$fullpath_frag)
+        },
+        content = function(file) {
+            file.copy(sessionlist$fullpath_frag, file)
+        }
+    )
     autoInvalidate <- reactiveTimer(10000)
     observe({
         autoInvalidate()
