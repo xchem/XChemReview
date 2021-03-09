@@ -20,15 +20,11 @@ if(local) {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
     install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
-    # For Testing...
-    install.packages('shinyjs', repos='http://cran.rstudio.com/', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
-    library(shinyjs, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
 # Plotting Libs
 library(ggplot2)
 library(plotly)
-#library(shinyjs)
 
 sessionInfo()
 
@@ -1705,15 +1701,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
         sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
-        shinyjs::runjs("document.getElementById('downloadFragData').click();")
-
     })
 
     output$downloadFragData <- downloadHandler(
         filename = function() {
-            basename(sessionlist$fullpath_frag)
+            message('Downloading')
+            print(basename(sessionlist$fullpath_frag))
+            return(basename(sessionlist$fullpath_frag))
         },
         content = function(file) {
+            print(sessionlist$fullpath_frag)
+            print(file)
             file.copy(sessionlist$fullpath_frag, file)
         }
     )
