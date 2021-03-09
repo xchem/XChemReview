@@ -147,15 +147,20 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
     prot = target
     base_root <- sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/', prot)
     protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
-    rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/', protsuffix)
-    align_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix)
-    crys_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix)
+
+    rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix)
+    basef <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s', protsuffix, prot)
+    align_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/aligned', protsuffix, prot)
+    crys_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/crystallographic', protsuffix, prot)
+
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix))
-    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/aligned', protsuffix))
-    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/crystallographic', protsuffix))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s', protsuffix, prot))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/aligned', protsuffix, prot))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/crystallographic', protsuffix, prot))
+
     # aligned data copy
     progress$set(message = "Copying aligned Files", value = 0)
-    increment = (1/nrow(meta))/2
+    increment = (1/nrow(meta))/2.2
     for(frag in meta$crystal_name){
         progress$inc(increment, detail=frag)
         cf <- sprintf('%saligned/%s', base_root, frag)
@@ -178,9 +183,23 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
         file.copy(file.path(cf,files), file.path(nf, files))
     }
 
-    write.csv(meta, sprintf("%s/metadata.csv", rootf), quote = FALSE)
+    write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
     write.csv(meta, sprintf("%s/metadata.csv", align_dir), quote = FALSE)
+
+    progress$set(message = "Zipping File!", value = .9)
+
+    # Zip File
+    zipf <- sprintf('%s/%s.zip', rootf, prot)
+    system('zip -r %s %s', zipf, basef)
+
+    downloadHandler(filename <- function() { paste(prot, "zip", sep=".")},
+    content <- function(file) {
+        file.copy(zipf, file)
+    },
+    contentType = "application/zip")
+
 }
+
 
 updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
     dbname, host, port, user, password){
