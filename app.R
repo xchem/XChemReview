@@ -547,6 +547,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$lig_id <- ''
     sessionlist$xtalroot <- ''
     sessionlist$rowname <- ''
+    sessionlist$fumeta <- ''
 
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
@@ -1668,16 +1669,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$lp_selection, {
         if(!isolate(input$lp_selection) == ''){
-        meta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
+        sessionlist$fumeta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
         }
+        print(head(sessionlist$fumeta))
         message('Meta Compiled')
     })
 
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
-        createFragUploadFolder(meta=meta, target=isolate(input$lp_selection), copymaps=FALSE)
+        createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
     })
 
     autoInvalidate <- reactiveTimer(10000)
