@@ -1672,9 +1672,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
         }
+        message('Meta Compiled')
     })
 
-    observeEvent(input$lp_launcher,{
+    observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
         createFragUploadFolder(meta=meta, target=isolate(input$lp_selection), copymaps=FALSE)
     })
