@@ -30,7 +30,10 @@ sessionInfo()
 
 # I can't believe this doesn't exist in R!
 # Functional equivalent to string.rsplit('_', 1)
-rsplit <- function(string, split_by, n=1){spl <- strsplit(string, split_by)[[1]]; c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))}
+rsplit <- function(string, split_by, n=1){
+    spl <- strsplit(string, split_by)[[1]]
+    c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))
+}
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -112,6 +115,89 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     rownames(output) <- rns
     return(output)
 }
+
+createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, target){
+    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
+    md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
+    prot <- target
+    md <- md[!md$Site_Label == 'IGNORE',]
+    meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
+    colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
+
+    # Dodgy Hack for DLS
+    rootf = sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/aligned/', prot)
+    for(i in meta$crystal_name){
+        id = meta$crystal_name == i
+        smifi = sprintf('%s%s/%s_smiles.txt', rootf, i,i)
+        if(!file.exists(smifi)){
+            mfile <-  sprintf('%s%s/%s_meta.csv', rootf, i,i)
+            meta$smiles[id] <- strsplit(readLines(mfile), ',')[[1]][4]
+        } else {
+            meta$smiles[id] <- readLines(smifi)[1]
+        }
+    }
+    return(meta)
+}
+
+createFragUploadFolder <- function(meta, target, copymaps=FALSE){
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    progress$set(message = "Creating Fragalysis Folder", value = 0)
+    prot = target
+    base_root <- sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/', prot)
+    protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
+
+    rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix)
+    basef <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s', protsuffix, prot)
+    align_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/aligned', protsuffix, prot)
+    crys_dir <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/crystallographic', protsuffix, prot)
+
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s', protsuffix, prot))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/aligned', protsuffix, prot))
+    system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/crystallographic', protsuffix, prot))
+
+    # aligned data copy
+    progress$set(message = "Copying aligned Files", value = 0)
+    increment = (1/nrow(meta))/2.2
+    for(frag in meta$crystal_name){
+        progress$inc(increment, detail=frag)
+        cf <- sprintf('%saligned/%s', base_root, frag)
+        nf <- paste(align_dir, frag, sep='/')
+        files <- list.files(cf)
+        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+        system(sprintf('mkdir %s', nf))
+        file.copy(file.path(cf,files), file.path(nf, files))
+    }
+
+    # crystallographic copy
+    progress$set(message = "Copying Input Files", value = 0.5)
+    for(rcn in meta$RealCrystalName){
+        progress$inc(increment, detail=rcn)
+        cf <- sprintf('%scrystallographic/', base_root)
+        #nf <- paste(crys_dir, frag, sep='/')
+        nf <- crys_dir
+        files <- list.files(cf, pattern=rcn)
+        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+        file.copy(file.path(cf,files), file.path(nf, files))
+    }
+
+    write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
+    write.csv(meta, sprintf("%s/metadata.csv", align_dir), quote = FALSE)
+
+    progress$set(message = "Zipping File!", value = .9)
+
+    # Zip File
+    zipf <- sprintf('%s.zip', prot)
+    zipcommand <- sprintf("(cd %s && zip -r %s .)", rootf, prot)
+    system(zipcommand)
+
+    full_path_zipf <- sprintf('%s/%s', rootf, zipf)
+
+    return(full_path_zipf)
+}
+
 
 updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
     dbname, host, port, user, password){
@@ -316,28 +402,6 @@ body <- dashboardBody(
                             textOutput('as_message'),
                             actionButton('as_clear', label = 'Clear all selected atoms'),
                             DT::dataTableOutput('atoms')
-                        ),
-                        tabPanel(title = 'Slack',
-                            fluidPage(
-                                tags$head(
-                                    tags$style("#chatpanel {overflow: auto;}")
-                                ),
-                                sidebarLayout(
-                                    sidebarPanel(
-                                        actionButton('updateSlackChannels', label = 'Update All Slack Channels'),
-                                        selectizeInput("channelSelect", "", select='', choices = '', multiple=FALSE, width=-100),
-                                        textAreaInput('TextInput', 'Message Body', value = "", width = NULL, height = NULL,
-                                        cols = NULL, rows = NULL, placeholder = NULL, resize = 'both'),
-                                        textInput('slackUser', label = 'Name', value =''),
-                                        actionButton('slackSubmit', label = 'Submit')
-                                    ), # sidebarpanel
-                                    mainPanel(
-                                            textOutput('chatURL'),
-                                            textOutput('scrollDialog'),
-                                            textOutput('chat')
-                                    )
-                                )
-                            )
                         )
                     )
                 ),
@@ -397,7 +461,7 @@ body <- dashboardBody(
         ),
         tabItem(
             tabName = 'launchpad',
-            h2('LaunchPad - Coming Soon...')
+            uiOutput('launchpad_stuff')
         )
     )
 )
@@ -414,142 +478,7 @@ server <- function(input, output, session){
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
-
-
-    slackFilters <- c('has joined the channel')
-    getChannelList <- function(){
-        #return(c('No Channels'))
-        channellist <- list()
-        channellist$response_metadata$next_cursor <- 'First'
-        channels <- data.frame(name = 'welcome', id='abc', stringsAsFactors=F)
-        while(!channellist$response_metadata$next_cursor == ''){
-            if(channellist$response_metadata$next_cursor == 'First'){
-                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list', body=list(token=api, limit=1000)))
-            } else {
-                channellist <- httr::content(httr::POST(url='https://slack.com/api/conversations.list',
-                                                        body=list(token=api,
-                                                                    limit=1000,
-                                                                    cursor=channellist$response_metadata$next_cursor)))
-            }
-            data_to_join <- sapply(c('name', 'id'), function(x) sapply(channellist[[2]], '[[', x))
-            channels <- rbind(channels, data_to_join)
-        }
-        channels <- channels[!channels[,1] %in% c('welcome', 'team', 'project', 'i04-1'),]
-        rownames(channels) <- channels[,1]
-        return(channels)
-    }
-
-    getChannel <- function(structure, channels){
-        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
-        ifelse(channelname %in% rownames(channels), channels[channelname, 2], NA)
-    }
-
-    parseConversation <- function(channel){
-        history <- httr::content(httr::POST(url='https://slack.com/api/conversations.history',
-                body = list(token = api, channel = channel)))
-        convoblock <- do.call('rbind', parseMessageContent(conversations_history = history[[2]], channel=channel))
-        return(convoblock[nrow(convoblock):1,])
-    }
-
-    parseMessageContent <- function(conversations_history, channel){
-        messageContent <- lapply(conversations_history, parseIndividualMessage, channel=channel)
-        return(messageContent)
-    }
-
-    parseReply <- function(x, content, ts){
-        user <- content[[x]]$user
-        text <- content[[x]]$text
-        out <- c(user, text, ts)
-        return(out)
-    }
-
-    parseThread <- function(channel, ts, api){
-        thread <- httr::content(httr::POST(url='https://slack.com/api/conversations.replies',
-                            body = list(token = api, channel = channel, ts = ts)))
-        content <- thread[[1]]
-        contentid <- length(content):1
-        out <- t(sapply(contentid, parseReply, content=content, ts=ts))
-        return(out)
-    }
-
-    parseIndividualMessage <- function(message, channel){
-        user <- message$user
-        text <- message$text
-        ts <- message$thread_ts
-        broadcastedreply <- any(grepl('root', names(message)))
-        if(broadcastedreply) return(NULL)
-        if(!is.null(ts)){
-            out <- parseThread(channel = channel, ts = ts, api = api)
-        } else {
-            out <- t(c(user, text, message$ts))
-        }
-        return(out)
-    }
-
-    userList <- function(){
-        users <- httr::content(httr::POST(url='https://slack.com/api/users.list',
-            body = list(token = api)))
-        userlist <- t(sapply(users$members, function(x){
-            pull <- c(x$id, x$real_name)
-            if(length(pull)<2) pull <- c(pull, NA)
-            return(pull)
-        }))
-        users <- userlist[,2]
-        names(users) <- userlist[,1]
-        return(users)
-    }
-
-    refreshChat <- function(channel){
-        users <- userList()
-        convo <- try(parseConversation(channel=channel), silent=T)
-        if(!inherits(convo, 'try-error')){
-            convo <- convo[!convo[,2] == '', ,drop=F]
-            convo <- convo[!grepl(slackFilters, convo[,2]), ,drop=F]
-            convo[,1] <- users[convo[,1]]
-            stamps <- duplicated(convo[,3])
-            textdump <- paste(mapply(X=1:nrow(convo), Y=stamps, function(X,Y){
-                date <- as.POSIXct(as.numeric(convo[X, 3]), origin="1970-01-01")
-                if(Y) sprintf('\t- <%s>: %s', convo[X,1], convo[X,2])
-                else sprintf('[%s] - <%s>: %s ',  date, convo[X,1], convo[X,2])
-            }), collapse='\n')
-            output$chat <- renderText({textdump})
-        } else {
-            output$chat <- renderText({'Select A Channel'})
-        }
-    }
-
-    createChannel <- function(structure){
-        # lowercase and despecial
-        channelname <- tolower(gsub('[^[:alnum:]]', '', structure))
-        resp <- httr::POST(url='https://slack.com/api/conversations.create', body=list(token=api, name =channelname))
-        return(httr::content(resp)$channel$id)
-    }
-
-    sendMessageToSlack <- function(channel, message, name){
-        httr::content(httr::POST(url='https://slack.com/api/chat.postMessage',
-            body=list(token=apiuser,
-                channel=channel,
-                text= message,
-                as_user='true',
-                username=name)))
-    }
-
     sendEmail <- function(structure, user, decision, reason, comments){
-        if(debug) debugMessage(sID=sID, sprintf('Communicating to Slack...'))
-        #channels <- getChannelList()
-        #channelID <- getChannel(structure, channels)
-        #if(is.na(channelID)){
-            # Create Channel, then get ID immediately
-        #    channelID <- createChannel(structure=structure)
-        #}
-        # Post comment...
-        #sendMessageToSlack(channel=channelID,
-        #                    message= sprintf('%s has been labelled as %s by %s for the following reason(s): %s.
-#With these additional comments:
-#%s', structure, decision, user, reason, comments),
-#                            name = 'xchemreview-bot')
-	channelID <- 'NA'
-
         protein <- gsub('-[a-zA-Z]*[0-9]+_[0-9]*[A-Z]*', '', structure)
         if(is.null(emailListperStructure[[protein]])){
             emaillist <- defaultUsers
@@ -570,11 +499,9 @@ With these additional comments:
 If you wish to review this change please go to xchemreview.diamond.ac.uk while
 connected to the diamond VPN or via NX.
 Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
-If you disagree with this decision please discuss at the in the slack channel: (https://xchemreview.slack.com/archives/%s) or change the outcome by submitting a new response.
 This email was automatically sent by The XChem Review app
-If you have trouble joining the slack channel please use this invitation link: https://join.slack.com/t/xchemreview/shared_invite/zt-fpocaf6e-JQp~U6rcbGrre33E~7~faw
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
-            structure, decision, user, reason, comments, structure, protein, channelID), # replace NA with channelID
+            structure, decision, user, reason, comments, structure, protein),
             control = list(
                 smtpServer = 'exchsmtp.stfc.ac.uk',
                 smtpPort = 25
@@ -640,6 +567,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$lig_id <- ''
     sessionlist$xtalroot <- ''
     sessionlist$rowname <- ''
+    sessionlist$fumeta <- ''
 
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
@@ -827,7 +755,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$as_message <- renderText({'Alt Click to select Atom'})
 
     observeEvent(input$as_clear, {
-
         session$sendCustomMessage(type = 'as_resetclicked', list())
         atomstoquery$data <- data.frame(name = character(),
             index = character(),
@@ -1031,6 +958,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
             con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
             dbAppendTable(con, 'BadAtoms', value = newdat, row.names=NULL)
             dbDisconnect(con)
+        }
+        # Write atom data to .mol file???
+        badidsstr = paste(atomstoquery$data[,'index'], collapse=';')
+        badcommentstr = paste(atomstoquery$data[,'comment'], collapse=';')
+        if(!badidsstr == ''){
+            lines <- readLines(isolate(sessionlist$mol_file))
+            if(any(lines == '> <BADATOMS>')){
+                badid_line <- which(lines == '> <BADATOMS>') + 1
+                badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
+                lines[badid_line] <- badidsstr
+                lines[badcomment_line] <- badcommentstr
+            } else {
+                lines <- c(lines, '> <BADATOMS>', badidsstr, '> <BADCOMMENTS>', badcommentstr)
+            }
+            cat(paste(lines, collapse='\n'), file = isolate(sessionlist$mol_file))
         }
         sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], data[,'comment'])
     }
@@ -1244,7 +1186,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fogging = c(49,63),
             clipping = c(49,52),
             boxsize = 5,
-            clipDist = 20,
+            clipDist = 5,
             backgroundColor = 'black',
             cameraType = 'orthographic',
             mousePreset = 'coot'
@@ -1269,18 +1211,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
     ngl_control_values$defaults <- loadDefaultParams()
 
     # Control Panel Listeners
-    observeEvent(input$controls, ignoreNULL = FALSE, {
-        if(is.null(input$controls)){
-            title = 'As part of setup please confirm NGL Viewer Controls'
-        } else {
-
-        }
+    observeEvent(input$controls, ignoreNULL = TRUE, {
         showModal(
             controlPanelModal(
                 values = isolate(ngl_control_values$defaults),
                 title = 'NGL Viewer Controls'
             )
         )
+    })
+
+    observeEvent(input$tab, ignoreNULL=TRUE, {
+        if(input$tab == 'review'){
+            showModal(
+                controlPanelModal(
+                    values = isolate(ngl_control_values$defaults),
+                    title = 'As part of setup please confirm NGL Viewer Controls'
+                )
+            )
+        }
     })
 
     observeEvent(input$updateParams, {
@@ -1481,8 +1429,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         session$sendCustomMessage(type = 'setup', message = list())
         updateParam('mousePreset', as.character(input$mousePreset))
-        #updateParam('clipDist', as.character(10))
-        #updateParam('clipDist', as.character(20))
         updateParam('clipDist', as.character(input$clipDist))
         updateSelectInput(session, 'emap', choices = c('NotAMap.ccp4'), selected = c('NotAMap.ccp4'))
         updateSelectInput(session, 'asuSwitch', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
@@ -1746,39 +1692,43 @@ If you believe you have been sent this message in error, please email tyler.gorr
         hmapbar(data=plotData(), title = isolate(sessionlist$lig_name), target_name=(isolate(sessionlist$target_name)))
     })
 
-    observeEvent(input$updateSlackChannels,{
-        channels <- getChannelList()
-        message('ChannelList')
-        channelSelect <- channels[,2]
-        names(channelSelect) <- channels[,1]
-        updateSelectizeInput(session, "channelSelect", select = input$channelSelect, choices = names(channelSelect))
-        refreshChat(channel = channelSelect[input$channelSelect])
+
+    ## Launch Pad Stuff:
+    output$launchpad_stuff <- renderUI({
+        fluidPage(
+            selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
+            actionButton('lp_launcher', "Launch!!!!"),
+            downloadButton("downloadFragData", "Download")
+        )
     })
 
-    observeEvent(input$channelSelect, {
-        message(input$channelSelect)
-        channels <- getChannelList()
-        channelSelect <- channels[,2]
-        names(channelSelect) <- channels[,1]
-        refreshChat(channel = channelSelect[input$channelSelect])
-        output$chatURL <- renderText({sprintf('https://xchemreview.slack.com/archives/%s', channelSelect[input$channelSelect])})
-    })
-
-    observeEvent(input$slackSubmit, {
-        if(input$slackUser == '' | input$TextInput == ''){
-            showModal(modalDialog(title = "Cannot send empty messages.",
-                    'Please add some text to the Name and Text Fields.', easyClose=TRUE))
-        } else {
-        message(input$channelSelect)
-        channels <- getChannelList()
-        channelSelect <- as.character(channels[input$channelSelect,2])
-        sendMessageToSlack(channel = channelSelect,
-                            message = sprintf('on behalf of: %s. \n %s', input$slackUser, input$TextInput),
-                            name=input$slackUser)
+    observeEvent(input$lp_selection, {
+        if(!isolate(input$lp_selection) == ''){
+        sessionlist$fumeta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
+            db_user = db_user, db_password = db_password,
+            target = isolate(input$lp_selection))
         }
-        refreshChat(channel = channelSelect[input$channelSelect])
+        print(head(sessionlist$fumeta))
+        message('Meta Compiled')
     })
 
+    observeEvent(input$lp_launcher, {
+        message('LAUNCH!!!')
+        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
+    })
+
+    output$downloadFragData <- downloadHandler(
+        filename = function() {
+            message('Downloading')
+            print(basename(sessionlist$fullpath_frag))
+            return(basename(sessionlist$fullpath_frag))
+        },
+        content = function(file) {
+            print(sessionlist$fullpath_frag)
+            print(file)
+            file.copy(sessionlist$fullpath_frag, file)
+        }
+    )
     autoInvalidate <- reactiveTimer(10000)
     observe({
         autoInvalidate()
