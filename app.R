@@ -84,6 +84,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
+    output <- output[output$target_name %in% c('Mpro', 'PlPro'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -113,6 +114,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
+    output <- output[output$targetname %in% c('Mpro', 'PlPro'), ]
     return(output)
 }
 
@@ -365,12 +367,12 @@ body <- dashboardBody(
                                     )
                                 ),
                                 column(6,
+                                    imageOutput('ligimage2'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
                                     ),
-                                    selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL')),
-                                    imageOutput('ligimage2')
+                                    selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
                                 )
                             )
                         ),
@@ -400,7 +402,12 @@ body <- dashboardBody(
                         tabPanel(
                             title = 'Atom Selection (Alt + Left Click)',
                             textOutput('as_message'),
-                            actionButton('as_clear', label = 'Clear all selected atoms'),
+                            fluidRow(
+                                column(3, actionButton('as_clear', label = 'Clear Atoms')),
+                                column(3, checkboxInput('write_all', 'Write to All Atoms?', value=FALSE)),
+                                column(3, actionButton('write_selected', label = 'Write to selected rows')),
+                                column(3, textInput('atom_text', 'Comment', value='', placeholder='e.g. Weak Density'))
+                            ),
                             DT::dataTableOutput('atoms')
                         )
                     )
@@ -1053,7 +1060,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  comment=character(),
                  stringsAsFactors=FALSE)
 
-    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
+    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
 
     observeEvent(input$clickedAtoms, {
         newdat <- isolate(atomstoquery$data)
@@ -1066,7 +1073,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         newdat <- newdat[tokeep,]
         atomstoquery$data <- newdat
         print(atomstoquery$data)
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
     observeEvent(input$atoms_cell_edit, {
@@ -1078,7 +1085,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
         update <- isolate(atomstoquery$data)
         update[i, j] <- as.character(v)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+    })
+
+
+    observeEvent(input$write_selected, {
+        idx <- isolate(input$atoms_rows_selected)
+        update <- isolate(atomstoquery$data)
+        if(input$write_all) idx <- 1:nrow(update)
+        update[idx, 3] <- as.character(input$atom_text)
+        atomstoquery$data <- update
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
 
@@ -1183,10 +1200,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Default Values for Control panel trick
     loadDefaultParams <- function(){
         list(
-            fogging = c(49,63),
-            clipping = c(49,52),
+            fogging = c(50,62),
+            clipping = c(42,100),
             boxsize = 5,
-            clipDist = 5,
+            clipDist = 10,
             backgroundColor = 'black',
             cameraType = 'orthographic',
             mousePreset = 'coot'
