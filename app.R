@@ -84,7 +84,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('Mpro', 'PlPro'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -114,7 +114,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('Mpro'), ]
+    output <- output[output$targetname %in% c('Mpro', 'PlPro'), ]
     return(output)
 }
 
@@ -1185,10 +1185,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Default Values for Control panel trick
     loadDefaultParams <- function(){
         list(
-            fogging = c(49,63),
-            clipping = c(49,52),
+            fogging = c(50,62),
+            clipping = c(42,100),
             boxsize = 5,
-            clipDist = 5,
+            clipDist = 10,
             backgroundColor = 'black',
             cameraType = 'orthographic',
             mousePreset = 'coot'
