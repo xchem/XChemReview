@@ -402,7 +402,12 @@ body <- dashboardBody(
                         tabPanel(
                             title = 'Atom Selection (Alt + Left Click)',
                             textOutput('as_message'),
-                            actionButton('as_clear', label = 'Clear all selected atoms'),
+                            fluidRow(
+                                column(3, actionButton('as_clear', label = 'Clear Atoms')),
+                                column(3, checkboxInput('write_all', 'Write to All Atoms?', value=FALSE)),
+                                column(3, actionButton('write_selected', label = 'Write to selected rows')),
+                                column(3, textInput('atom_text', 'Comment', value='', placeholder='e.g. Weak Density'))
+                            ),
                             DT::dataTableOutput('atoms')
                         )
                     )
@@ -1079,6 +1084,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
         v = info$value
         update <- isolate(atomstoquery$data)
         update[i, j] <- as.character(v)
+        atomstoquery$data <- update
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+    })
+
+
+    observeEvent(input$write_selected, {
+        idx <- isolate(input$atoms_rows_selected)
+        update <- isolate(atomstoquery$data)
+        if(input$write_all) idx <- 1:nrow(update)
+        update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
