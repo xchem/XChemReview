@@ -688,7 +688,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
     output$reviewtable <- updateMainTable(r1=r1)
-    reviewtableproxy <- dataTableProxy('reviewtable')
+    reviewtableproxy <- DT::dataTableProxy('reviewtable')
     flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
@@ -759,7 +759,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fragview_table_data <- react_fv_data2(fragview_data, input)
 
     output$therow <- updateMainTable2(fragview_input, pl=100)
-    fragviewproxy <- dataTableProxy('therow')
+    fragviewproxy <- DT::dataTableProxy('therow')
     output$as_message <- renderText({'Alt Click to select Atom'})
 
     observeEvent(input$as_clear, {
