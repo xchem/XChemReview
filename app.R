@@ -7,6 +7,7 @@ library(lubridate)
 library(shinydashboard)
 library(shinyjqui)
 library(shinyWidgets)
+library(DT)
 # DB Lib
 library(DBI)
 library(sendmailR)
