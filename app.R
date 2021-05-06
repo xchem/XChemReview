@@ -368,7 +368,7 @@ body <- dashboardBody(
                                     )
                                 ),
                                 column(6,
-                                    imageOutput('ligimage2'),
+                                    imageOutput('ligimage2', height='300px'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
