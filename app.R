@@ -85,7 +85,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro', 'PlPro'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('Mpro', 'PlPro', '70X'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -785,7 +785,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
         updateSelectInput(session, 'goto', choices = fv_values$molfil)
         fragview_input <- react_fv_data(fragview_data, input)
-        fragviewproxy %>% replaceData(fragview_input(), rownames = FALSE, resetPaging = FALSE)
+        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         #output$therow <- updateMainTable2(fragview_input, pl=100)
         tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon'), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
@@ -864,7 +864,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
-        fragviewproxy %>% replaceData(fragview_input(), rownames = FALSE, resetPaging = FALSE)
+        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         #output$therow <- updateMainTable2(fragview_input, pl=100)
     })
 
@@ -890,7 +890,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
-            fragviewproxy %>% replaceData(fragview_input(), rownames = FALSE, resetPaging = FALSE)
+            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
             #output$therow <- updateMainTable2(fragview_input, pl=100)
         }
     })
