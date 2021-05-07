@@ -85,7 +85,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro', 'PlPro', '70X'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('Mpro', 'PlPro'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
