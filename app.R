@@ -85,7 +85,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro', 'PlPro', '70X'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('Mpro', 'PlPro', 'PHIPA'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -115,7 +115,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('Mpro', 'PlPro'), ]
+    output <- output[output$targetname %in% c('Mpro', 'PlPro', 'PHIPA'), ]
     return(output)
 }
 
@@ -751,7 +751,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-    fragfolders <- c('', sort(unique(fvd$targetname)))
+    #fragfolders <- c('', sort(unique(fvd$targetname)))
+    fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA')
     print('Print FragFolders?')
     print(fragfolders)
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
@@ -1722,6 +1723,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
             actionButton('lp_launcher', "Launch!!!!"),
+	    checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
             downloadButton("downloadFragData", "Download")
         )
     })
@@ -1738,7 +1740,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
-        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
+        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps)
     })
 
     output$downloadFragData <- downloadHandler(
