@@ -39,8 +39,9 @@ rsplit <- function(string, split_by, n=1){
 }
 
 get_residues <- function(pdb_file){
-    struc <- bio3d::read.pdb(pdb_file)
-    c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_')))
+    struc <- try(bio3d::read.pdb(pdb_file), silent=T)
+    if(inherits(struc, 'try-error')) return('')
+    return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
 }
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
@@ -150,7 +151,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
     return(meta)
 }
 
-createFragUploadFolder <- function(meta, target, copymaps=FALSE){
+createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Creating Fragalysis Folder", value = 0)
@@ -191,6 +192,15 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
         files <- list.files(cf, pattern=rcn)
         if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
         file.copy(file.path(cf,files), file.path(nf, files))
+        if(copymaps){
+		# IF RCN is in mtz
+		mtz_file = mtz[,1] == rcn
+                if(sum(mtz_file)>0){
+                	id <- which(mtz_file)[1]
+                        mtz_file <- mtz[id,2]
+			file.copy(mtz_file, file.path(nf, sprintf('%s.mtz', rcn)))
+		}
+	}
     }
 
     write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
@@ -362,7 +372,7 @@ body <- dashboardBody(
                                 column(6,checkboxInput('autocenter', 'Automatically Center on load', value=TRUE))
                             ),
                             fluidRow(
-                                chooseSliderSkin("Flat", color='#112446'),
+                               chooseSliderSkin("Flat", color='#112446'),
                                 column(6,
                                     fluidRow(
                                         column(2, checkboxInput('eventMap', 'Show Event Map', value = TRUE)),
@@ -378,7 +388,9 @@ body <- dashboardBody(
                                         column(2, checkboxInput('fofcMap', 'Show fofc Map', value = TRUE)),
                                         column(10, sliderInput("isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
                                         #column(10, uiOutput('isofofcSlider'))
-                                    )
+                                    ),
+                            	    selectInput('gotores', 'Go to Residue:', choices = '', multiple=FALSE),
+                            	    selectizeInput('highlight_res', 'Highlight Residues:', choices = '', multiple=TRUE)
                                 ),
                                 column(6,
                                     imageOutput('ligimage2', height='300px'),
@@ -388,20 +400,6 @@ body <- dashboardBody(
                                     ),
                                     selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
                                 )
-                            ),
-                            fluidRow(
-                            selectInput(
-                                'gotores',
-                                'Go to Residue:',
-                                choices = '',
-                                multiple = FALSE
-                            ),
-                            selectizeInput(
-                                'highlight_res',
-                                'Highlight Residues:',
-                                choices = '',
-                                multiple = TRUE
-                            )
                             )
                         ),
                         tabPanel(
@@ -711,7 +709,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Selector Stuff:
     review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-
+    mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
     updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
     updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
 
@@ -1554,8 +1552,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
                         the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
-                        try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
-                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=TRUE), silent=T)
                     },
                     'crystallographic' = {
                         session$sendCustomMessage(type = 'save_camera_pos', message = list())
@@ -1806,7 +1804,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
-        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps)
+        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
     })
 
     output$downloadFragData <- downloadHandler(
