@@ -13,6 +13,8 @@ library(DBI)
 library(sendmailR)
 # Read Binaries to encode to b64
 library(caTools)
+# Read Pdb files
+library(bio3d)
 # Render structures in ngl window
 if(local) {
     library(nglShiny)
@@ -34,6 +36,11 @@ sessionInfo()
 rsplit <- function(string, split_by, n=1){
     spl <- strsplit(string, split_by)[[1]]
     c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))
+}
+
+get_residues <- function(pdb_file){
+    struc <- bio3d::read.pdb(pdb_file)
+    c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_')))
 }
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
@@ -347,7 +354,13 @@ body <- dashboardBody(
                     tabBox(
                         tabPanel(
                             title = 'NGL Controls',
-                            actionButton("fitButton", "Center on Ligand"),
+                            fluidRow(
+                                column(6, actionButton(
+                                    "fitButton",
+                                    "Center on Ligand"
+                                )),
+                                column(6,checkboxInput('autocenter', 'Automatically Center on load', value=TRUE))
+                            ),
                             fluidRow(
                                 chooseSliderSkin("Flat", color='#112446'),
                                 column(6,
@@ -375,6 +388,20 @@ body <- dashboardBody(
                                     ),
                                     selectInput('asuSwitch', 'Assembly Type (Only in Raw and Unalign)', selected='AU', choices=c('AU', 'UNITCELL', 'SUPERCELL'))
                                 )
+                            ),
+                            fluidRow(
+                            selectInput(
+                                'gotores',
+                                'Go to Residue:',
+                                choices = '',
+                                multiple = FALSE
+                            ),
+                            selectizeInput(
+                                'highlight_res',
+                                'Highlight Residues:',
+                                choices = '',
+                                multiple = TRUE
+                            )
                             )
                         ),
                         tabPanel(
@@ -405,9 +432,11 @@ body <- dashboardBody(
                             textOutput('as_message'),
                             fluidRow(
                                 column(3, actionButton('as_clear', label = 'Clear Atoms')),
-                                column(3, checkboxInput('write_all', 'Write to All Atoms?', value=FALSE)),
-                                column(3, actionButton('write_selected', label = 'Write to selected rows')),
-                                column(3, textInput('atom_text', 'Comment', value='', placeholder='e.g. Weak Density'))
+                                column(3, fluidRow(
+                                actionButton('write_all', 'Write to All Atoms?', value=FALSE),
+                                actionButton('write_selected', label = 'Write to selected rows')
+                                )),
+                                column(3, selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations'), options=list(create=TRUE)))
                             ),
                             DT::dataTableOutput('atoms')
                         )
@@ -788,7 +817,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_input <- react_fv_data(fragview_data, input)
         fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         #output$therow <- updateMainTable2(fragview_input, pl=100)
-        tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon'), silent=T)
+        tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
 
     })
@@ -1100,7 +1129,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$write_selected, {
         idx <- isolate(input$atoms_rows_selected)
         update <- isolate(atomstoquery$data)
-        if(input$write_all) idx <- 1:nrow(update)
+        update[idx, 3] <- as.character(input$atom_text)
+        atomstoquery$data <- update
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+    })
+
+    observeEvent(input$write_all,{
+        update <- isolate(atomstoquery$data)
+        idx <- 1:nrow(update)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
@@ -1308,7 +1344,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    uploadApoPDB <- function(filepath, repr){
+
+    tcl <- function(x) tolower(as.character(as.logical(x)))
+
+    uploadApoPDB <- function(filepath, repr, focus){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
@@ -1316,18 +1355,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
             type = 'setapoPDB',
             message = list(
                 choice,
-                repr
+                repr,
+                tcl(focus)
             )
         )
     }
 
-    uploadMolAndFocus <- function(filepath, ext){
+    uploadMolAndFocus <- function(filepath, ext, focus){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
         session$sendCustomMessage(
             type = 'addMolandfocus',
-            list(choice,ext)
+            list(choice,ext, tcl(focus))
         )
     }
 
@@ -1341,7 +1381,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    tcl <- function(x) tolower(as.character(as.logical(x)))
 
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 
@@ -1398,7 +1437,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$fitButton, {
-        try(uploadMolAndFocus(isolate(sessionlist$mol_file), 'mol'), silent=T)
+        #try(uploadMolAndFocus(session = session, filepath = isolate(session_data$selected)$mol_file, ext = 'mol', focus=TRUE), silent = TRUE)
+        try(session$sendCustomMessage(type='focus_on_mol', list()), silent=TRUE)
     })
 
     observeEvent(input$asuSwitch, {
@@ -1503,19 +1543,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'aligned' = {
                         # Default Behaviour do not change anything!
-                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                        session$sendCustomMessage(type = 'restore_camera_pos', message = list())
                     },
                     'unaligned' = {
+                        session$sendCustomMessage(type = 'save_camera_pos', message = list())
                         the_pdb_file <- gsub('staging_test', 'unaligned_test', the_pdb_file)
                         the_mol_file <- gsub('staging_test', 'unaligned_test', the_mol_file)
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
                         the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
-                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     },
                     'crystallographic' = {
+                        session$sendCustomMessage(type = 'save_camera_pos', message = list())
                         splitted <-  rsplit(the_pdb_file, '/')
                         the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
@@ -1592,8 +1635,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
-                    try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                    try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                    try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                    try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
                     incProgress(.2, detail = 'Uploading Event map')
@@ -1611,6 +1654,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
                 }
                 setProgress(1)
+                residues <- get_residues(the_pdb_file)
+                updateSelectInput(session, 'gotores', choices=residues)
+                updateSelectizeInput(session, 'highlight_res', choices=residues, selected=input$highlight_res)
+                if(!is.null(input$highlight_res)){
+                    if(!input$highlight_res == ''){
+                    pos <- paste(sapply(strsplit(input$highlight_res, '_'), '[', 2), collapse=', ')
+                    try(session$sendCustomMessage(type='highlight_residues', list(pos)))
+                }}
             })
         } else {
             # There is a problem with observeEvents not rendering stale references therefore we have to manually the loading if the event state does not change.
@@ -1619,6 +1670,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     })
 
+    observeEvent(input$gotores, ignoreNULL=TRUE, {
+        if(!input$gotores == ''){
+            pos <- strsplit(input$gotores, '_')[[1]][2]
+            print(pos)
+            try(session$sendCustomMessage(type='go_to_residue', list(pos)))
+        }
+    })
+
+    observeEvent(input$highlight_res, ignoreNULL=TRUE,{
+        if(!input$highlight_res == ''){
+            pos <- paste(sapply(strsplit(input$highlight_res, '_'), '[', 2), collapse=', ')
+            print(pos)
+            try(session$sendCustomMessage(type='highlight_residues', list(pos)))
+        }
+    })
     observeEvent(input$emap, ignoreNULL = TRUE, {
         message('Upload EMAPS')
         sel <- isolate(sessionlist$current_emaps)[input$emap]
