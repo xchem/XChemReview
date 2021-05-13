@@ -359,7 +359,7 @@ body <- dashboardBody(
         tabItem(
             tabName = 'review',
             fluidRow(
-                nglShinyOutput('nglShiny', height = '500px'),
+                shinyWidgets::nglShinyOutput('nglShiny', height = '500px'),
                 jqui_draggable(
                     tabBox(
                         tabPanel(
@@ -372,22 +372,19 @@ body <- dashboardBody(
                                 column(6,checkboxInput('autocenter', 'Automatically Center on load', value=TRUE))
                             ),
                             fluidRow(
-                               chooseSliderSkin("Flat", color='#112446'),
+                                chooseSliderSkin("Flat", color='#112446'),
                                 column(6,
                                     fluidRow(
                                         column(2, checkboxInput('eventMap', 'Show Event Map', value = TRUE)),
                                         column(10, sliderInput("isoEvent", "", min = 0, max = 3, value = 1, step = 0.1))
-                                        #column(10, uiOutput('isoEventSlider'))
                                     ),
                                     fluidRow(
                                         column(2, checkboxInput('twofofcMap', 'Show 2fofc Map', value = TRUE)),
                                         column(10, sliderInput("iso2fofc", "", min = 0, max = 3, value = 1.5, step = 0.1))
-                                        #column(10, uiOutput('iso2fofcSlider'))
                                     ),
                                     fluidRow(
                                         column(2, checkboxInput('fofcMap', 'Show fofc Map', value = TRUE)),
                                         column(10, sliderInput("isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
-                                        #column(10, uiOutput('isofofcSlider'))
                                     ),
                             	    selectInput('gotores', 'Go to Residue:', choices = '', multiple=FALSE),
                             	    selectizeInput('highlight_res', 'Highlight Residues:', choices = '', multiple=TRUE)
@@ -438,7 +435,7 @@ body <- dashboardBody(
                             ),
                             DT::dataTableOutput('atoms')
                         )
-                    )
+                    ), options = list(delay = '1000', cancel = '.selectize-control')
                 ),
                 jqui_draggable(
                     tabBox(
@@ -1444,21 +1441,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$isoEventSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("isoEvent", "",
                     min = 0, max = 3,
                     value = 1, step = 0.1)
     })
 
     output$iso2fofcSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("iso2fofc", "",
                     min = 0, max = 3,
                     value = 1.5, step = 0.1)
     })
 
     output$isofofcSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("isofofc", "",
                 min = 0, max = 3,
                 value = 3, step = 0.1)
