@@ -359,7 +359,7 @@ body <- dashboardBody(
         tabItem(
             tabName = 'review',
             fluidRow(
-                shinyWidgets::nglShinyOutput('nglShiny', height = '500px'),
+                nglShinyOutput('nglShiny', height = '500px'),
                 jqui_draggable(
                     tabBox(
                         tabPanel(
@@ -372,7 +372,7 @@ body <- dashboardBody(
                                 column(6,checkboxInput('autocenter', 'Automatically Center on load', value=TRUE))
                             ),
                             fluidRow(
-                                chooseSliderSkin("Flat", color='#112446'),
+                                shinyWidgets::chooseSliderSkin("Flat", color='#112446'),
                                 column(6,
                                     fluidRow(
                                         column(2, checkboxInput('eventMap', 'Show Event Map', value = TRUE)),
