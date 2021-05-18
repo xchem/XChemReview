@@ -177,9 +177,24 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
         cf <- sprintf('%saligned/%s', base_root, frag)
         nf <- paste(align_dir, frag, sep='/')
         files <- list.files(cf)
-        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
-        system(sprintf('mkdir %s', nf))
-        file.copy(file.path(cf,files), file.path(nf, files))
+	files2 <- files
+        if(copymaps){
+		# Copy event_0 and save it as event.cpp4
+                event_0 <- grepl('event_0', files)
+                event_19 <- grepl('event_[1-9]', files)
+		if(sum(event_0) == 1) files2[event_0] <- gsub('event_0.ccp4', 'event.ccp4', files[event_0])
+		if(sum(event_19) > 0){
+			files[event_19] <- NA
+			files2[event_19] <- NA
+			files <- na.omit(files)
+			files2 <- na.omit(files2)
+		}
+        } else {
+		files <- files[!grepl("(.map$|.ccp4$)", files)]
+		files2 <- files
+	}
+	system(sprintf('mkdir %s', nf))
+        file.copy(file.path(cf,files), file.path(nf, files2))
     }
 
     # crystallographic copy
@@ -190,15 +205,31 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
         #nf <- paste(crys_dir, frag, sep='/')
         nf <- crys_dir
         files <- list.files(cf, pattern=rcn)
-        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+	# Remove maps from crystallographic...
+        files <- files[!grepl("(.map$|.ccp4$)", files)]
         file.copy(file.path(cf,files), file.path(nf, files))
         if(copymaps){
+		# Replace uncut maps with mtz files...
 		# IF RCN is in mtz
 		mtz_file = mtz[,1] == rcn
                 if(sum(mtz_file)>0){
                 	id <- which(mtz_file)[1]
                         mtz_file <- mtz[id,2]
-			file.copy(mtz_file, file.path(nf, sprintf('%s.mtz', rcn)))
+			file.copy(mtz_file, file.path(nf, sprintf('%s_refine.mtz', rcn)))
+			# Find event.mtz
+			print(mtz_file)
+			print(dirname(mtz_file))
+			print(dirname(dirname(mtz_file)))
+			rootmtz <- dir(dirname(dirname(mtz_file)), pattern='.mtz')
+			print(rootmtz)
+			event_mtz <- rootmtz[grep('event',rootmtz)]
+			print(event_mtz)
+			if(length(event_mtz)>0){
+				newnames <- basename(event_mtz)
+				ends <- sapply(strsplit(newnames, '_'), tail, 1)
+				print(ends)
+				file.copy(file.path(dirname(dirname(mtz_file)), event_mtz), file.path(nf, sprintf('%s_event_%s', rcn, ends)))
+			}
 		}
 	}
     }
@@ -488,7 +519,7 @@ body <- dashboardBody(
             fluidRow(
                 nglShinyOutput('FragViewnglShiny', height = '500px'),
                 jqui_draggable(tabBox(
-                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow'))))
+                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow')), width=10)), textOutput('fv_warn')
             )
         ),
         tabItem(
@@ -600,6 +631,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$xtalroot <- ''
     sessionlist$rowname <- ''
     sessionlist$fumeta <- ''
+    sessionlist$fv_warn <- ''
+
+    output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
@@ -635,7 +669,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             DT::datatable(
                 r1(),
                 selection = 'single',
-                options = list(
+                options = list(serverSide=FALSE,
                     pageLength = pl,
                     columnDefs = list(list(width='100px', targets=c(4)))
                 ), rownames= FALSE
@@ -653,7 +687,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
                 )
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        })
+        }, server=FALSE)
     }
 
     updateMainTable2 <- function(r1, pl=25){
@@ -661,11 +695,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             DT::datatable(
                 r1(),
                 selection = 'single',
-                options = list(
+                options = list(serverSide=FALSE,
                     pageLength = pl
                 ), , rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        })
+        }, server=FALSE)
     }
 
     updateFlexPlot <- function(flexdata){
@@ -873,6 +907,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
         if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
         gogogo <- try(uploadMolAndFocus2(mol_file), silent=T)
+        if(!file.exists(mol_file)){
+            sessionlist$fv_warn <- 'WARNING: .mol File is MISSING SET TO IGNORE OR INVESTIGATE' 
+	} else {
+	    sessionlist$fv_warn <- '.mol File found!'
+	}
     })
 
     output$writeButton <- renderUI({
@@ -1092,7 +1131,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  comment=character(),
                  stringsAsFactors=FALSE)
 
-    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options = list(serverSide=FALSE, autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
 
     observeEvent(input$clickedAtoms, {
         newdat <- isolate(atomstoquery$data)
@@ -1105,7 +1144,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         newdat <- newdat[tokeep,]
         atomstoquery$data <- newdat
         print(atomstoquery$data)
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=FALSE,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
     })
 
     observeEvent(input$atoms_cell_edit, {
@@ -1117,7 +1156,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         update <- isolate(atomstoquery$data)
         update[i, j] <- as.character(v)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=FALSE,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
     })
 
 
@@ -1126,7 +1165,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         update <- isolate(atomstoquery$data)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=F,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
     })
 
     observeEvent(input$write_all,{
@@ -1134,7 +1173,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         idx <- 1:nrow(update)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=F,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
     })
 
 
@@ -1588,7 +1627,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  index=character(),
                  comment=character(),
                  stringsAsFactors=FALSE)
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options=list(serverSide=F))}, server=FALSE)
         previous = isolate(input$views)
         if(previous == 'aligned'){
             session$sendCustomMessage(type = 'setup', message = list())
