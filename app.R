@@ -7,18 +7,21 @@ library(lubridate)
 library(shinydashboard)
 library(shinyjqui)
 library(shinyWidgets)
+library(DT)
 # DB Lib
 library(DBI)
 library(sendmailR)
 # Read Binaries to encode to b64
 library(caTools)
+# Read Pdb files
+library(bio3d)
 # Render structures in ngl window
 if(local) {
     library(nglShiny)
     source('./my_config.R')
 } else {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
-    install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    #install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
@@ -33,6 +36,12 @@ sessionInfo()
 rsplit <- function(string, split_by, n=1){
     spl <- strsplit(string, split_by)[[1]]
     c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))
+}
+
+get_residues <- function(pdb_file){
+    struc <- try(bio3d::read.pdb(pdb_file), silent=T)
+    if(inherits(struc, 'try-error')) return('')
+    return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
 }
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password){
@@ -84,7 +93,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro', 'PlPro'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('ACVR1A','70X','Mpro', 'PlPro', 'PHIPA'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -114,7 +123,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('Mpro', 'PlPro'), ]
+    output <- output[output$targetname %in% c('70X','Mpro', 'PlPro', 'PHIPA'), ]
     return(output)
 }
 
@@ -142,7 +151,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
     return(meta)
 }
 
-createFragUploadFolder <- function(meta, target, copymaps=FALSE){
+createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Creating Fragalysis Folder", value = 0)
@@ -168,9 +177,24 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
         cf <- sprintf('%saligned/%s', base_root, frag)
         nf <- paste(align_dir, frag, sep='/')
         files <- list.files(cf)
-        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
-        system(sprintf('mkdir %s', nf))
-        file.copy(file.path(cf,files), file.path(nf, files))
+	files2 <- files
+        if(copymaps){
+		# Copy event_0 and save it as event.cpp4
+                event_0 <- grepl('event_0', files)
+                event_19 <- grepl('event_[1-9]', files)
+		if(sum(event_0) == 1) files2[event_0] <- gsub('event_0.ccp4', 'event.ccp4', files[event_0])
+		if(sum(event_19) > 0){
+			files[event_19] <- NA
+			files2[event_19] <- NA
+			files <- na.omit(files)
+			files2 <- na.omit(files2)
+		}
+        } else {
+		files <- files[!grepl("(.map$|.ccp4$)", files)]
+		files2 <- files
+	}
+	system(sprintf('mkdir %s', nf))
+        file.copy(file.path(cf,files), file.path(nf, files2))
     }
 
     # crystallographic copy
@@ -181,8 +205,33 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE){
         #nf <- paste(crys_dir, frag, sep='/')
         nf <- crys_dir
         files <- list.files(cf, pattern=rcn)
-        if(!copymaps) files <- files[!grepl("(.map$|.ccp4$)", files)]
+	# Remove maps from crystallographic...
+        files <- files[!grepl("(.map$|.ccp4$)", files)]
         file.copy(file.path(cf,files), file.path(nf, files))
+        if(copymaps){
+		# Replace uncut maps with mtz files...
+		# IF RCN is in mtz
+		mtz_file = mtz[,1] == rcn
+                if(sum(mtz_file)>0){
+                	id <- which(mtz_file)[1]
+                        mtz_file <- mtz[id,2]
+			file.copy(mtz_file, file.path(nf, sprintf('%s_refine.mtz', rcn)))
+			# Find event.mtz
+			print(mtz_file)
+			print(dirname(mtz_file))
+			print(dirname(dirname(mtz_file)))
+			rootmtz <- dir(dirname(dirname(mtz_file)), pattern='.mtz')
+			print(rootmtz)
+			event_mtz <- rootmtz[grep('event',rootmtz)]
+			print(event_mtz)
+			if(length(event_mtz)>0){
+				newnames <- basename(event_mtz)
+				ends <- sapply(strsplit(newnames, '_'), tail, 1)
+				print(ends)
+				file.copy(file.path(dirname(dirname(mtz_file)), event_mtz), file.path(nf, sprintf('%s_event_%s', rcn, ends)))
+			}
+		}
+	}
     }
 
     write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
@@ -336,38 +385,44 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
+	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
     tabItems(
         # First Tab
         tabItem(
             tabName = 'review',
-            fluidRow(
+            fluidRow( 
                 nglShinyOutput('nglShiny', height = '500px'),
                 jqui_draggable(
                     tabBox(
                         tabPanel(
                             title = 'NGL Controls',
-                            actionButton("fitButton", "Center on Ligand"),
                             fluidRow(
-                                chooseSliderSkin("Flat", color='#112446'),
+                                column(6, actionButton(
+                                    "fitButton",
+                                    "Center on Ligand"
+                                )),
+                                column(6,checkboxInput('autocenter', 'Automatically Center on load', value=TRUE))
+                            ),
+                            fluidRow(
+                                shinyWidgets::chooseSliderSkin("Flat", color='#112446'),
                                 column(6,
                                     fluidRow(
                                         column(2, checkboxInput('eventMap', 'Show Event Map', value = TRUE)),
                                         column(10, sliderInput("isoEvent", "", min = 0, max = 3, value = 1, step = 0.1))
-                                        #column(10, uiOutput('isoEventSlider'))
                                     ),
                                     fluidRow(
                                         column(2, checkboxInput('twofofcMap', 'Show 2fofc Map', value = TRUE)),
                                         column(10, sliderInput("iso2fofc", "", min = 0, max = 3, value = 1.5, step = 0.1))
-                                        #column(10, uiOutput('iso2fofcSlider'))
                                     ),
                                     fluidRow(
                                         column(2, checkboxInput('fofcMap', 'Show fofc Map', value = TRUE)),
                                         column(10, sliderInput("isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
-                                        #column(10, uiOutput('isofofcSlider'))
-                                    )
+                                    ),
+                            	    selectInput('gotores', 'Go to Residue:', choices = '', multiple=FALSE),
+                            	    selectizeInput('highlight_res', 'Highlight Residues:', choices = '', multiple=TRUE)
                                 ),
                                 column(6,
-                                    imageOutput('ligimage2'),
+                                    imageOutput('ligimage2', height='300px'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
                                         choiceValues = c('aligned', 'unaligned', 'crystallographic')
@@ -404,13 +459,15 @@ body <- dashboardBody(
                             textOutput('as_message'),
                             fluidRow(
                                 column(3, actionButton('as_clear', label = 'Clear Atoms')),
-                                column(3, checkboxInput('write_all', 'Write to All Atoms?', value=FALSE)),
-                                column(3, actionButton('write_selected', label = 'Write to selected rows')),
-                                column(3, textInput('atom_text', 'Comment', value='', placeholder='e.g. Weak Density'))
+                                column(3, fluidRow(
+                                actionButton('write_all', 'Write to All Atoms?', value=FALSE),
+                                actionButton('write_selected', label = 'Write to selected rows')
+                                )),
+                                column(3, selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations'), options=list(create=TRUE)))
                             ),
                             DT::dataTableOutput('atoms')
                         )
-                    )
+                    ), options = list(delay = '1000', cancel = '.selectize-control')
                 ),
                 jqui_draggable(
                     tabBox(
@@ -463,7 +520,7 @@ body <- dashboardBody(
             fluidRow(
                 nglShinyOutput('FragViewnglShiny', height = '500px'),
                 jqui_draggable(tabBox(
-                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow'))))
+                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow')), width=10)), textOutput('fv_warn')
             )
         ),
         tabItem(
@@ -575,6 +632,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$xtalroot <- ''
     sessionlist$rowname <- ''
     sessionlist$fumeta <- ''
+    sessionlist$fv_warn <- ''
+
+    output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
@@ -608,7 +668,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     updateMainTable <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
-                r1(),
+                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
                 options = list(
                     pageLength = pl,
@@ -634,7 +694,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     updateMainTable2 <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
-                r1(),
+                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
                 options = list(
                     pageLength = pl
@@ -681,13 +741,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     # Selector Stuff:
     review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-
+    mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
     updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
     updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
 
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
     output$reviewtable <- updateMainTable(r1=r1)
+    reviewtableproxy <- DT::dataTableProxy('reviewtable')
     flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
@@ -749,7 +810,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-    fragfolders <- c('', sort(unique(fvd$targetname)))
+    #fragfolders <- c('', sort(unique(fvd$targetname)))
+    fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA')
     print('Print FragFolders?')
     print(fragfolders)
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
@@ -758,7 +820,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fragview_table_data <- react_fv_data2(fragview_data, input)
 
     output$therow <- updateMainTable2(fragview_input, pl=100)
-
+    fragviewproxy <- DT::dataTableProxy('therow')
     output$as_message <- renderText({'Alt Click to select Atom'})
 
     observeEvent(input$as_clear, {
@@ -783,8 +845,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
         updateSelectInput(session, 'goto', choices = fv_values$molfil)
         fragview_input <- react_fv_data(fragview_data, input)
-        output$therow <- updateMainTable2(fragview_input, pl=100)
-        tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon'), silent=T)
+        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+        #output$therow <- updateMainTable2(fragview_input, pl=100)
+        tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
 
     })
@@ -845,6 +908,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
         if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
         gogogo <- try(uploadMolAndFocus2(mol_file), silent=T)
+        if(!file.exists(mol_file)){
+            sessionlist$fv_warn <- 'WARNING: .mol File is MISSING SET TO IGNORE OR INVESTIGATE' 
+	} else {
+	    sessionlist$fv_warn <- '.mol File found!'
+	}
     })
 
     output$writeButton <- renderUI({
@@ -861,7 +929,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
-        output$therow <- updateMainTable2(fragview_input, pl=100)
+        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+        #output$therow <- updateMainTable2(fragview_input, pl=100)
     })
 
     observeEvent(input$write, {
@@ -886,7 +955,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
-            output$therow <- updateMainTable2(fragview_input, pl=100)
+            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            #output$therow <- updateMainTable2(fragview_input, pl=100)
         }
     })
 
@@ -1010,7 +1080,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$ok, {
         inputData <- restartSessionKeepOptions()
         r1 <- reactiviseData(inputData=inputData, input=input)
-        output$reviewtable <- updateMainTable(r1=r1)
+        reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+        #output$reviewtable <- updateMainTable(r1=r1)
         flexplotData <- flexPlotDataFun(r1=r1, input=input)
         output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
         sessionTime <- reactive({epochTime()})
@@ -1043,7 +1114,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     message(sessionTime())
                     inputData <- resetForm()
                     r1 <- reactiviseData(inputData=inputData, input=input)
-                    output$reviewtable <- updateMainTable(r1=r1)
+                    #output$reviewtable <- updateMainTable(r1=r1)
+                    reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
                     flexplotData <- flexPlotDataFun(r1=r1, input=input)
                     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
                     sessionTime <- reactive({epochTime()})
@@ -1092,7 +1164,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$write_selected, {
         idx <- isolate(input$atoms_rows_selected)
         update <- isolate(atomstoquery$data)
-        if(input$write_all) idx <- 1:nrow(update)
+        update[idx, 3] <- as.character(input$atom_text)
+        atomstoquery$data <- update
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
+    })
+
+    observeEvent(input$write_all,{
+        update <- isolate(atomstoquery$data)
+        idx <- 1:nrow(update)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
@@ -1300,7 +1379,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    uploadApoPDB <- function(filepath, repr){
+
+    tcl <- function(x) tolower(as.character(as.logical(x)))
+
+    uploadApoPDB <- function(filepath, repr, focus){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
@@ -1308,18 +1390,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
             type = 'setapoPDB',
             message = list(
                 choice,
-                repr
+                repr,
+                tcl(focus)
             )
         )
     }
 
-    uploadMolAndFocus <- function(filepath, ext){
+    uploadMolAndFocus <- function(filepath, ext, focus){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
         session$sendCustomMessage(
             type = 'addMolandfocus',
-            list(choice,ext)
+            list(choice,ext, tcl(focus))
         )
     }
 
@@ -1333,7 +1416,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    tcl <- function(x) tolower(as.character(as.logical(x)))
 
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 
@@ -1390,7 +1472,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$fitButton, {
-        try(uploadMolAndFocus(isolate(sessionlist$mol_file), 'mol'), silent=T)
+        #try(uploadMolAndFocus(session = session, filepath = isolate(session_data$selected)$mol_file, ext = 'mol', focus=TRUE), silent = TRUE)
+        try(session$sendCustomMessage(type='focus_on_mol', list()), silent=TRUE)
     })
 
     observeEvent(input$asuSwitch, {
@@ -1398,21 +1481,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$isoEventSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("isoEvent", "",
                     min = 0, max = 3,
                     value = 1, step = 0.1)
     })
 
     output$iso2fofcSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("iso2fofc", "",
                     min = 0, max = 3,
                     value = 1.5, step = 0.1)
     })
 
     output$isofofcSlider <- renderUI({
-            #chooseSliderSkin("Modern")
             sliderInput("isofofc", "",
                 min = 0, max = 3,
                 value = 3, step = 0.1)
@@ -1495,19 +1575,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'aligned' = {
                         # Default Behaviour do not change anything!
-                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                        session$sendCustomMessage(type = 'restore_camera_pos', message = list())
                     },
                     'unaligned' = {
+                        session$sendCustomMessage(type = 'save_camera_pos', message = list())
                         the_pdb_file <- gsub('staging_test', 'unaligned_test', the_pdb_file)
                         the_mol_file <- gsub('staging_test', 'unaligned_test', the_mol_file)
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
                         the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
-                        try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                        try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                        try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
+                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=TRUE), silent=T)
                     },
                     'crystallographic' = {
+                        session$sendCustomMessage(type = 'save_camera_pos', message = list())
                         splitted <-  rsplit(the_pdb_file, '/')
                         the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
@@ -1584,8 +1667,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
-                    try(uploadApoPDB(the_pdb_file, 'line'), silent=T)
-                    try(uploadMolAndFocus(the_mol_file, 'mol'), silent=T)
+                    try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                    try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
                     incProgress(.2, detail = 'Uploading Event map')
@@ -1603,6 +1686,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
                 }
                 setProgress(1)
+                residues <- get_residues(the_pdb_file)
+                updateSelectInput(session, 'gotores', choices=residues)
+                updateSelectizeInput(session, 'highlight_res', choices=residues, selected=input$highlight_res)
+                if(!is.null(input$highlight_res)){
+                    if(!input$highlight_res == ''){
+                    pos <- paste(sapply(strsplit(input$highlight_res, '_'), '[', 2), collapse=', ')
+                    try(session$sendCustomMessage(type='highlight_residues', list(pos)))
+                }}
             })
         } else {
             # There is a problem with observeEvents not rendering stale references therefore we have to manually the loading if the event state does not change.
@@ -1611,6 +1702,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     })
 
+    observeEvent(input$gotores, ignoreNULL=TRUE, {
+        if(!input$gotores == ''){
+            pos <- strsplit(input$gotores, '_')[[1]][2]
+            print(pos)
+            try(session$sendCustomMessage(type='go_to_residue', list(pos)))
+        }
+    })
+
+    observeEvent(input$highlight_res, ignoreNULL=TRUE,{
+        if(!input$highlight_res == ''){
+            pos <- paste(sapply(strsplit(input$highlight_res, '_'), '[', 2), collapse=', ')
+            print(pos)
+            try(session$sendCustomMessage(type='highlight_residues', list(pos)))
+        }
+    })
     observeEvent(input$emap, ignoreNULL = TRUE, {
         message('Upload EMAPS')
         sel <- isolate(sessionlist$current_emaps)[input$emap]
@@ -1715,6 +1821,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
             actionButton('lp_launcher', "Launch!!!!"),
+	    checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
             downloadButton("downloadFragData", "Download")
         )
     })
@@ -1731,7 +1838,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$lp_launcher, {
         message('LAUNCH!!!')
-        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=FALSE)
+        sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
     })
 
     output$downloadFragData <- downloadHandler(
