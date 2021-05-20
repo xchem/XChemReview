@@ -21,7 +21,7 @@ if(local) {
     source('./my_config.R')
 } else {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
-    install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    #install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
@@ -93,7 +93,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('Mpro', 'PlPro', 'PHIPA'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('ACVR1A','70X','Mpro', 'PlPro', 'PHIPA'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -123,7 +123,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('Mpro', 'PlPro', 'PHIPA'), ]
+    output <- output[output$targetname %in% c('70X','Mpro', 'PlPro', 'PHIPA'), ]
     return(output)
 }
 
@@ -385,11 +385,12 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
+	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
     tabItems(
         # First Tab
         tabItem(
             tabName = 'review',
-            fluidRow(
+            fluidRow( 
                 nglShinyOutput('nglShiny', height = '500px'),
                 jqui_draggable(
                     tabBox(
@@ -667,9 +668,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     updateMainTable <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
-                r1(),
+                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
-                options = list(serverSide=FALSE,
+                options = list(
                     pageLength = pl,
                     columnDefs = list(list(width='100px', targets=c(4)))
                 ), rownames= FALSE
@@ -687,19 +688,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
                 )
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=FALSE)
+        })
     }
 
     updateMainTable2 <- function(r1, pl=25){
         DT::renderDataTable({
             DT::datatable(
-                r1(),
+                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
-                options = list(serverSide=FALSE,
+                options = list(
                     pageLength = pl
                 ), , rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=FALSE)
+        })
     }
 
     updateFlexPlot <- function(flexdata){
@@ -1131,7 +1132,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  comment=character(),
                  stringsAsFactors=FALSE)
 
-    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options = list(serverSide=FALSE, autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
+    output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
 
     observeEvent(input$clickedAtoms, {
         newdat <- isolate(atomstoquery$data)
@@ -1144,7 +1145,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         newdat <- newdat[tokeep,]
         atomstoquery$data <- newdat
         print(atomstoquery$data)
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=FALSE,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
     observeEvent(input$atoms_cell_edit, {
@@ -1156,7 +1157,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         update <- isolate(atomstoquery$data)
         update[i, j] <- as.character(v)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=FALSE,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
 
@@ -1165,7 +1166,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         update <- isolate(atomstoquery$data)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=F,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
     observeEvent(input$write_all,{
@@ -1173,7 +1174,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         idx <- 1:nrow(update)
         update[idx, 3] <- as.character(input$atom_text)
         atomstoquery$data <- update
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(serverSide=F,autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))}, server=FALSE)
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, editable = list(target = 'cell', disable = list(columns = c(1,2))), options = list(autoWidth = TRUE, columnDefs = list(list(width='50px', targets=c(1,2)))))})
     })
 
 
@@ -1627,7 +1628,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  index=character(),
                  comment=character(),
                  stringsAsFactors=FALSE)
-        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data, options=list(serverSide=F))}, server=FALSE)
+        output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)})
         previous = isolate(input$views)
         if(previous == 'aligned'){
             session$sendCustomMessage(type = 'setup', message = list())
