@@ -21,7 +21,7 @@ spec:
           path: /dls
           type: Directory
       containers:
-      - name: xchemstructurereview
+      - name: xchemstructurereview    
         securityContext:
             privileged: false
         image: gcr.io/diamond-privreg/xchemapps/xchemstructurereview:latest
