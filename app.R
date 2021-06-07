@@ -1037,17 +1037,28 @@ If you believe you have been sent this message in error, please email tyler.gorr
             dbDisconnect(con)
         }
         # Write atom data to .mol file???
+        badnamestr = paste(atomstoquery$data[,'name'], collapse=';')
         badidsstr = paste(atomstoquery$data[,'index'], collapse=';')
         badcommentstr = paste(atomstoquery$data[,'comment'], collapse=';')
         if(!badidsstr == ''){
             lines <- readLines(isolate(sessionlist$mol_file))
             if(any(lines == '> <BADATOMS>')){
                 badid_line <- which(lines == '> <BADATOMS>') + 1
-                badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
                 lines[badid_line] <- badidsstr
-                lines[badcomment_line] <- badcommentstr
             } else {
-                lines <- c(lines, '> <BADATOMS>', badidsstr, '> <BADCOMMENTS>', badcommentstr)
+                lines <- c(lines, '> <BADATOMS>', badidsstr)
+	    }
+            if(any(lines == '> <BADCOMMENTS>')){
+                badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
+                lines[badcomment_line] <- badcommentstr
+	    } else {
+		lines <- c(lines, '> <BADCOMMENTS>', badcommentstr)
+	    }
+            if(any(lines == '> <BADATOMNAMES>')){
+		an_line <- which(lines == '> <BADATOMNAMES>') + 1
+                lines[an_line] <- badnamestr
+            } else {
+                lines <- c(lines, '> <BADATOMNAMES>', badnamesstr)
             }
             cat(paste(lines, collapse='\n'), file = isolate(sessionlist$mol_file))
         }
