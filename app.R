@@ -440,7 +440,7 @@ body <- dashboardBody(
                                     column(6,imageOutput('spiderPlot'))
                                 ),
                                 column(4,
-                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = TRUE, width = NULL)),
+                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = FALSE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
                                     #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
                                     #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
