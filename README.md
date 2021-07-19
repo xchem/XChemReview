@@ -16,6 +16,5 @@ If you have made changes to the `tjgorrie/nglshiny` or `app.R` run `restart_pod.
 While connected to the VPN you should be able to access xchemreview.diamond.ac.uk and use the website.
 
 ## Using staging
-Click on buttons to make things happen, it shouldn't crash! If it does, email me.
-
+Click on buttons to make things happen, it shouldn't crash! If it does, email me..
 
