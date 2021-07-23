@@ -31,6 +31,57 @@ library(plotly)
 
 sessionInfo()
 
+
+# Update existing mol_files with latest atom comments
+con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+atoms <- dbGetQuery(con, 'SELECT * from "BadAtoms"')
+reviews <- dbGetQuery(con, 'SELECT * from "review_responses_new"')
+fligands <- dbGetQuery(con, 'SELECT * from "FragalysisLigand"')
+fligand_id <- fligands$id
+rownames(fligands) <- as.character(fligand_id)
+ligands <- dbGetQuery(con, 'SELECT * from "ligand"')
+dbDisconnect(con)
+ligand_id <- ligands$id
+rownames(ligands) <- as.character(ligand_id)
+latest_review <-  t(sapply(split(reviews, reviews$Ligand_name_id), function(x) x[which.max(x$time_submitted),]))
+
+
+
+write_to_mol_file <- function(mol_file, id_str, comment_str){
+    lines <- readLines(mol_file)
+    if(any(lines == '> <BADATOMS>')){
+        # Don't update
+        #badid_line <- which(lines == '> <BADATOMS>') + 1
+        #lines[badid_line] <- id_str
+    } else {
+        lines <- c(lines, '> <BADATOMS>', id_str)
+    }
+    if(any(lines == '> <BADCOMMENTS>')){
+        #badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
+        #        lines[badcomment_line] <- badcommentstr
+    } else {
+        lines <- c(lines, '> <BADCOMMENTS>', comment_str)
+    }
+    # And bad atom names...
+    cat(paste(lines, collapse='\n'), file = mol_file)
+}
+
+for(i in 1:nrow(latest_review)){
+    lig <- latest_review[i,'Ligand_name_id']
+    rev <- latest_review[i,'id']
+    mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
+    ids_to_grab <- which(atoms$Review_id==rev)
+    if(length(ids_to_grab)>0){
+	print(mol_file)
+        id_str <- atoms[ids_to_grab, 'atomid']
+        comment_str <- atoms[ids_to_grab, 'comment']
+        id_str2 <- paste0(id_str, collapse=';')
+        comment_str2 <- paste0(comment_str, collapse=';')
+        write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
+    }
+}
+
+
 # I can't believe this doesn't exist in R!
 # Functional equivalent to string.rsplit('_', 1)
 rsplit <- function(string, split_by, n=1){
