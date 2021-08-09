@@ -491,8 +491,9 @@ body <- dashboardBody(
                                     column(6,imageOutput('spiderPlot'))
                                 ),
                                 column(4,
-                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = FALSE, width = NULL)),
+                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
+                                    actionButton('buster', 'Buster Report'),
                                     #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
                                     #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
 
@@ -1109,7 +1110,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 		an_line <- which(lines == '> <BADATOMNAMES>') + 1
                 lines[an_line] <- badnamestr
             } else {
-                lines <- c(lines, '> <BADATOMNAMES>', badnamesstr)
+                lines <- c(lines, '> <BADATOMNAMES>', badnamestr)
             }
             cat(paste(lines, collapse='\n'), file = isolate(sessionlist$mol_file))
         }
@@ -1387,6 +1388,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             )
         }
+    })
+
+    observeEvent(input$buster, {
+    #old_dir <- getwd()
+    #html_files = list.files(isolate(sessionlist$xtalroot), rec=T, pattern='index.html', full=T)
+    html_files = list.files(isolate(sessionlist$xtalroot), rec=T, pattern='report.pdf', full=T)
+    html_file = tail(html_files,1)
+    #temp <- tempfile(fileext = ".pdf", tmpdir = "pdf_folder")
+    #file.copy(html_file, temp)
+    addResourcePath("pdf_folder", dirname(html_file))
+    #print(temp)
+    #print(dirname(temp))
+    #print(basename(temp))
+    output$pdfview <- renderUI({
+      tags$iframe(style="height:600px; width:100%", src=file.path('pdf_folder', basename(html_file)))
+    })
+    showModal(
+    modalDialog(title='BUSTER Report', uiOutput("pdfview"), size='l', easyClose=TRUE)
+    )
+    #setwd(old_dir)
     })
 
     observeEvent(input$updateParams, {
