@@ -589,7 +589,11 @@ server <- function(input, output, session){
     debug = TRUE
     if(debug) debugMessage(sID=sID, sprintf('Session init'))
     session$allowReconnect(FALSE)
-    sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
+    sessionDisconnect <- function(){
+        # Clean-up:
+        try(file.remove(sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID)), silent=T)
+        debugMessage(sID=sID, 'Disconnected')
+    }
     session$onSessionEnded(sessionDisconnect)
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
@@ -1404,10 +1408,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
       		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
     	})
     	showModal(
-    		modalDialog(title=pdf_file, uiOutput("pdfview"), size='l', easyClose=TRUE)
+    		modalDialog(title=pdf_file, 
+                if(length(pdf_file)>0) uiOutput("pdfview")
+                else 'Unable to find Buster Report', size='l', easyClose=TRUE)
    	    )
-        #file.remove(sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID))
-        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
     })
 
     observeEvent(input$updateParams, {
