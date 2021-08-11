@@ -439,7 +439,7 @@ sidebar <- dashboardSidebar(
 customDraggableModalDialog <- function(..., title = NULL,
                                  footer = shiny::modalButton("Dismiss"),
                                  size = c("m", "s", "l"),
-                                 easyClose = FALSE, fade = TRUE) {
+                                 easyClose = FALSE, fade = FALSE) {
   size <- match.arg(size)
   cls <- if (fade) { "modal fade" } else { "modal" }
   shiny::div(
@@ -472,13 +472,13 @@ customDraggableModalDialog <- function(..., title = NULL,
 body <- dashboardBody(
     tags$head(
     tags$style(HTML("
-    .shiny-modal-backdrop {  # hide backdrop
+    .modal-backdrop {  # hide backdrop
       display: none;
     }
-    .shiny-modal {  # pass through clicks etc. on the overlay
+    .modal {  # pass through clicks etc. on the overlay
       pointer-events: none;
     }
-    .shiny-modal-content {  # do capture mouse events on the modal itself
+    .modal-content {  # do capture mouse events on the modal itself
       pointer-events: all;
     }"
     ))),
