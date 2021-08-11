@@ -446,8 +446,8 @@ customDraggableModalDialog <- function(..., title = NULL,
     id = "shiny-modal",
     class = cls,
     # tabindex = "-1", This line should be commented out or removed
-    `data-backdrop` = if (!easyClose) { "static" } ,
-    `data-keyboard` = if (!easyClose) { "false" } ,
+    #`data-backdrop` = if (!easyClose) { "static" } ,
+    #`data-keyboard` = if (!easyClose) { "false" } ,
     shiny::div(
       class = "modal-dialog",
       class = switch(size, s = "modal-sm", m = NULL, l = "modal-lg"),
