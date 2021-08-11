@@ -1,5 +1,5 @@
 local = FALSE
-mkdir('www')
+dir.create('www')
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
