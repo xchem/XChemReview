@@ -685,6 +685,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$rowname <- ''
     sessionlist$fumeta <- ''
     sessionlist$fv_warn <- ''
+    sessionlist$busterReport <- ''
 
     output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
@@ -1390,24 +1391,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
-    observeEvent(input$buster, {
-    #old_dir <- getwd()
-    #html_files = list.files(isolate(sessionlist$xtalroot), rec=T, pattern='index.html', full=T)
-    html_files = list.files(isolate(sessionlist$xtalroot), rec=T, pattern='report.pdf', full=T)
-    html_file = tail(html_files,1)
-    #temp <- tempfile(fileext = ".pdf", tmpdir = "pdf_folder")
-    #file.copy(html_file, temp)
-    addResourcePath("pdf_folder", dirname(html_file))
-    #print(temp)
-    #print(dirname(temp))
-    #print(basename(temp))
-    output$pdfview <- renderUI({
-      tags$iframe(style="height:600px; width:100%", src=file.path('pdf_folder', basename(html_file)))
-    })
-    showModal(
-    modalDialog(title='BUSTER Report', uiOutput("pdfview"), size='l', easyClose=TRUE)
-    )
-    #setwd(old_dir)
+
+    observeEvent(input$buster, ignoreNULL=TRUE, {
+    	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
+    	pdf_file = tail(pdf_files,1)
+   	addResourcePath("pdf_folder", dirname(pdf_file))
+    	output$pdfview <- renderUI({
+		#includeHTML(file.path('pdf_folder','index.html'))
+      		tags$iframe(style="height:800px; width:100%", src=file.path('pdf_folder', 'report.pdf'))
+    	})
+    	showModal(
+    		modalDialog(title=isolate(sessionlist$xtalroot), uiOutput("pdfview"), size='l', easyClose=TRUE)
+   	) 
+    	#removeResourcePath('pdf_folder')
     })
 
     observeEvent(input$updateParams, {
