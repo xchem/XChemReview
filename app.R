@@ -472,7 +472,7 @@ customDraggableModalDialog <- function(..., title = NULL,
 body <- dashboardBody(
     tags$head(
     tags$style(HTML("
-    .modal-backdrop {  # hide backdrop
+    .modal-backdrop in{  # hide backdrop
       display: none;
     }
     .modal {  # pass through clicks etc. on the overlay
