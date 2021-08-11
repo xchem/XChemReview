@@ -467,13 +467,13 @@ customDraggableModalDialog <- function(..., title = NULL,
     ),
     shiny::tags$script("$('#shiny-modal').modal().focus();"),
     shiny::tags$style(HTML("
-    .modal-backdrop{  # hide backdrop
+    .modal-backdrop{
       display: none;
     }
-    .modal {  # pass through clicks etc. on the overlay
+    .modal {
       pointer-events: none;
     }
-    .modal-content {  # do capture mouse events on the modal itself
+    .modal-content {
       pointer-events: all;
     }"))
   )
@@ -481,6 +481,16 @@ customDraggableModalDialog <- function(..., title = NULL,
 
 body <- dashboardBody(
 	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
+    tags$head(shiny::tags$style(HTML("
+    .modal-backdrop{
+      display: none;
+    }
+    .modal {
+      pointer-events: none;
+    }
+    .modal-content {
+      pointer-events: all;
+    }"))),
     tabItems(
         # First Tab
         tabItem(
