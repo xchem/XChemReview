@@ -1402,7 +1402,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
       		tags$iframe(style="height:800px; width:100%", src=normalizePath('pdf_folder/report.pdf'))
     	})
     	showModal(
-    		modalDialog(title=isolate(sessionlist$xtalroot), uiOutput("pdfview"), size='l', easyClose=TRUE)
+    		modalDialog(title=pdf_file, uiOutput("pdfview"), size='l', easyClose=TRUE)
    	) 
     })
 
