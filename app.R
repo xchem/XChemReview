@@ -1395,8 +1395,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$buster, ignoreNULL=TRUE, {
     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
     	pdf_file = tail(pdf_files,1)
-   	    addResourcePath("www", '/srv/shiny-server/Pages')
-        file.copy(from=pdf_file, to='/srv/shiny-server/Pages/report.pdf', overwrite=TRUE)
+   	    addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
+        file.copy(from=pdf_file, to='/dls/science/groups/i04-1/software/xchemreview/www/report.pdf', overwrite=TRUE)
     	output$pdfview <- renderUI({
 		    #includeHTML(file.path('pdf_folder','index.html'))
       		tags$iframe(style="height:800px; width:100%", src='www/report.pdf')
