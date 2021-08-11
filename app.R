@@ -465,9 +465,9 @@ customDraggableModalDialog <- function(..., title = NULL,
         }
       ))
     ),
-    shiny::tags$script("$('#shiny-modal').modal().focus();")
+    shiny::tags$script("$('#shiny-modal').modal().focus();"),
     shiny::tags$style(HTML("
-    .modal-backdrop in{  # hide backdrop
+    .modal-backdrop{  # hide backdrop
       display: none;
     }
     .modal {  # pass through clicks etc. on the overlay
