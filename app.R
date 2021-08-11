@@ -1,5 +1,4 @@
 local = FALSE
-dir.create('www')
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
@@ -1396,8 +1395,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$buster, ignoreNULL=TRUE, {
     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
     	pdf_file = tail(pdf_files,1)
-   	    #addResourcePath("www", 'www')
-        file.copy(from=pdf_file, to='www/report.pdf', overwrite=TRUE)
+   	    addResourcePath("www", '/srv/shiny-server/Pages')
+        file.copy(from=pdf_file, to='/srv/shiny-server/Pages/report.pdf', overwrite=TRUE)
     	output$pdfview <- renderUI({
 		    #includeHTML(file.path('pdf_folder','index.html'))
       		tags$iframe(style="height:800px; width:100%", src='www/report.pdf')
