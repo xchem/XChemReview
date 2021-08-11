@@ -1396,10 +1396,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$buster, ignoreNULL=TRUE, {
     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
     	pdf_file = tail(pdf_files,1)
-   	    addResourcePath("pdf_folder", dirname(normalizePath(pdf_file)))
+   	    #addResourcePath("pdf_folder", dirname(normalizePath(pdf_file)))
+        file.copy(from=pdf_file, to='www/report.pdf', overwrite=TRUE)
     	output$pdfview <- renderUI({
 		    #includeHTML(file.path('pdf_folder','index.html'))
-      		tags$iframe(style="height:800px; width:100%", src=normalizePath('pdf_folder/report.pdf'))
+      		tags$iframe(style="height:800px; width:100%", src=normalizePath('www/report.pdf'))
     	})
     	showModal(
     		modalDialog(title=pdf_file, uiOutput("pdfview"), size='l', easyClose=TRUE)
