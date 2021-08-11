@@ -470,7 +470,9 @@ customDraggableModalDialog <- function(..., title = NULL,
 }
 
 body <- dashboardBody(
-    tags$head(tags$style(HTML("
+    tags$head(
+    tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});"),
+    tags$style(HTML("
     .modal-backdrop {  # hide backdrop
       display: none;
     }
@@ -481,7 +483,6 @@ body <- dashboardBody(
       pointer-events: all;
     }"
     ))),
-	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
     tabItems(
         # First Tab
         tabItem(
