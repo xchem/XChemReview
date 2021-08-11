@@ -585,7 +585,6 @@ body <- dashboardBody(
 ui <- dashboardPage(header, sidebar, body)
 
 server <- function(input, output, session){
-    addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
     sID <- sample(1:100000, 1)
     debug = TRUE
     if(debug) debugMessage(sID=sID, sprintf('Session init'))
@@ -1397,6 +1396,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
     	pdf_file = tail(pdf_files,1)
         file.copy(from=pdf_file, to=sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID), overwrite=TRUE)
+        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
     	output$pdfview <- renderUI({
 		    #includeHTML(file.path('pdf_folder','index.html'))
       		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
@@ -1405,7 +1405,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     		modalDialog(title=pdf_file, uiOutput("pdfview"), size='l', easyClose=TRUE)
    	    )
         file.remove(sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID))
-        
+        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
     })
 
     observeEvent(input$updateParams, {
