@@ -341,7 +341,7 @@ debugMessage <- function(sID, text){
 
 controlPanelModal <- function(values, title){
     # Function that opens up a modal dialog to contain accessory ngl controls that are not needed to be accessed immediately.
-    draggableModalDialog(
+    customDraggableModalDialog(
         title=title,
         numericInput('boxsize', 'Box Size', value = values$boxsize, min = 0, max = 100, width = '100px'),
         numericInput('clipDist', 'Clipping Distance', value = values$clipDist, min = 0, max = 100, width = '100px'),
@@ -435,8 +435,62 @@ sidebar <- dashboardSidebar(
     )
 )
 
+# Copied from SO
+customDraggableModalDialog <- function(..., title = NULL,
+                                 footer = shiny::modalButton("Dismiss"),
+                                 size = c("m", "s", "l"),
+                                 easyClose = FALSE, fade = FALSE) {
+  size <- match.arg(size)
+  cls <- if (fade) { "modal fade" } else { "modal" }
+  shiny::div(
+    id = "shiny-modal",
+    class = cls,
+    # tabindex = "-1", This line should be commented out or removed
+    #`data-backdrop` = if (!easyClose) { "static" } ,
+    #`data-keyboard` = if (!easyClose) { "false" } ,
+    shiny::div(
+      class = "modal-dialog",
+      class = switch(size, s = "modal-sm", m = NULL, l = "modal-lg"),
+      jqui_draggable(shiny::div(
+        class = "modal-content",
+        if (!is.null(title)) {
+          shiny::div(
+            class = "modal-header",
+            shiny::tags$h4(class = "modal-title",  title)
+          )
+        },
+        shiny::div(class = "modal-body", ...),
+        if (!is.null(footer)) {
+          shiny::div(class = "modal-footer", footer)
+        }
+      ))
+    ),
+    shiny::tags$script("$('#shiny-modal').modal().focus();"),
+    shiny::tags$style(HTML("
+    .modal-backdrop{
+      display: none;
+    }
+    .modal {
+      pointer-events: none;
+    }
+    .modal-content {
+      pointer-events: all;
+    }"))
+  )
+}
+
 body <- dashboardBody(
 	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
+    tags$head(shiny::tags$style(HTML("
+    .modal-backdrop{
+      display: none;
+    }
+    .modal {
+      pointer-events: none;
+    }
+    .modal-content {
+      pointer-events: all;
+    }"))),
     tabItems(
         # First Tab
         tabItem(
@@ -589,7 +643,11 @@ server <- function(input, output, session){
     debug = TRUE
     if(debug) debugMessage(sID=sID, sprintf('Session init'))
     session$allowReconnect(FALSE)
-    sessionDisconnect <- function() debugMessage(sID=sID, 'Disconnected')
+    sessionDisconnect <- function(){
+        # Clean-up:
+        try(file.remove(sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID)), silent=T)
+        debugMessage(sID=sID, 'Disconnected')
+    }
     session$onSessionEnded(sessionDisconnect)
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
@@ -1395,15 +1453,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$buster, ignoreNULL=TRUE, {
     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
     	pdf_file = tail(pdf_files,1)
-   	addResourcePath("pdf_folder", dirname(pdf_file))
+        message(pdf_file)
+        copied <- file.copy(from=pdf_file, to=sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID), overwrite=TRUE)
+        message(copied)
+        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
     	output$pdfview <- renderUI({
-		#includeHTML(file.path('pdf_folder','index.html'))
-      		tags$iframe(style="height:800px; width:100%", src=file.path('pdf_folder', 'report.pdf'))
+		    #includeHTML(file.path('pdf_folder','index.html'))
+      		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
     	})
     	showModal(
-    		modalDialog(title=isolate(sessionlist$xtalroot), uiOutput("pdfview"), size='l', easyClose=TRUE)
-   	) 
-    	#removeResourcePath('pdf_folder')
+    		customDraggableModalDialog(title=pdf_file, 
+                if(length(pdf_file)>0) uiOutput("pdfview")
+                else 'Unable to find Buster Report', size='l', easyClose=FALSE)
+   	    )
     })
 
     observeEvent(input$updateParams, {
