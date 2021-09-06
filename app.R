@@ -144,7 +144,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA'), ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -174,7 +174,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16'), ]
+    output <- output[output$targetname %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA'), ]
     return(output)
 }
 
@@ -428,8 +428,8 @@ sidebar <- dashboardSidebar(
     sidebarMenu(
         id = 'tab',
         menuItem('Summary', tabName = 'summary', icon=icon('th'), badgeLabel = 'new', badgeColor = 'green'),
-        menuItem('Review', tabName = 'review', icon = icon('dashboard')),
         menuItem('FragView', tabName = 'fragview', icon = icon('dashboard')),
+        menuItem('Review', tabName = 'review', icon = icon('dashboard')),
         menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'new', badgeColor = 'green'),
         menuItem('Help', tabName = 'help', icon = icon('th')),
         hr(),
