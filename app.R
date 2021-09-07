@@ -25,6 +25,8 @@ if(local) {
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
+fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
+target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA')
 # Plotting Libs
 library(ggplot2)
 library(plotly)
@@ -144,7 +146,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA'), ] # Add to list as more targets needed?
+    output <- output[output$target_name %in% target_list, ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -161,11 +163,8 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
     md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
     rownames(md) <- md$Ligand_name_id
-    # Now we work on this exclusively...
-    # This means we only annotate data which has been reviewed
-    # AND has been marked as RELEASE...
-    # This will also hide data that then becomes rejected down the line.
-    annotatable_fv_dat <- fvdat[!fvdat$id %in% liganded_ligands[!ind, 1], ]
+    # Show all even if not reviewed...
+    annotatable_fv_dat <- fvdat#fvdat[!fvdat$id %in% liganded_ligands[!ind, 1], ]
     targets <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisTarget\" WHERE id IN (%s)", paste(unique(annotatable_fv_dat$fragalysis_target_id), collapse=',')))
     rownames(targets) <- as.character(targets$id)
     output <- cbind(annotatable_fv_dat, targetname=targets[as.character(annotatable_fv_dat$fragalysis_target_id), 'target'], md[as.character(annotatable_fv_dat$id),])
@@ -174,7 +173,7 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA'), ]
+    output <- output[output$targetname %in% target_list, ]
     return(output)
 }
 
@@ -925,9 +924,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     #fragfolders <- c('', sort(unique(fvd$targetname)))
-    fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
-    print('Print FragFolders?')
-    print(fragfolders)
+    #fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
 
     fragview_input <- react_fv_data(fragview_data, input)
