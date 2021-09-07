@@ -1011,6 +1011,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         molfiles <- fv_values$molfiles
         molbase <- fv_values$molfil
         names(molfiles) <- molbase
+        print(molfiles)
+        print(molbase)
+        print(input$goto)
         folder <- dirname(molfiles[input$goto])
         mol_file <- molfiles[input$goto]
         smi_file <- gsub('.mol', '_smiles.txt', mol_file)
@@ -1030,9 +1033,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         gogogo <- try(uploadMolAndFocus2(mol_file), silent=T)
         if(!file.exists(mol_file)){
             sessionlist$fv_warn <- 'WARNING: .mol File is MISSING SET TO IGNORE OR INVESTIGATE' 
-	} else {
-	    sessionlist$fv_warn <- '.mol File found!'
-	}
+	    } else {
+	        sessionlist$fv_warn <- '.mol File found!'
+	    }
     })
 
     output$writeButton <- renderUI({
