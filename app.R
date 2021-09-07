@@ -964,8 +964,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
             fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
             updateSelectInput(session, 'goto', choices = fv_values$molfil)
-            fragview_input <- react_fv_data(fragview_data[molfiles_existing, ], input) # Filter missing files here??
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            fragview_input <- react_fv_data(fragview_data, input) # Filter missing files here??
+            fragviewproxy %>% replaceData(fragview_input()[molfiles_existing, ], rownames = TRUE, resetPaging = FALSE)
             #output$therow <- updateMainTable2(fragview_input, pl=100)
             tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
             molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
