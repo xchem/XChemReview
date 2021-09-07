@@ -951,6 +951,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$fragSelect,{
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         #folderPath <- getAlignedStagingFolder()
+        if(input$fragSelect == ''){
+            message('nothing selected')
+        } else {
         fv_values$apofiles <- as.character(isolate(fragview_table_data()$apo_pdb))
         apo_existing <- sapply(fv_values$apofiles, file.exists)
         fv_values$molfiles <- as.character(isolate(fragview_table_data()$lig_mol_file))
@@ -966,7 +969,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         #output$therow <- updateMainTable2(fragview_input, pl=100)
         tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
         molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
-
+        }   
     })
 
     observeEvent(input$gonext, {
