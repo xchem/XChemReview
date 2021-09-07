@@ -30,7 +30,7 @@ library(ggplot2)
 library(plotly)
 
 sessionInfo()
-
+#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
 
 # Update existing mol_files with latest atom comments
 con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -925,7 +925,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
     #fragfolders <- c('', sort(unique(fvd$targetname)))
-    fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA')
+    fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
     print('Print FragFolders?')
     print(fragfolders)
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
