@@ -1569,7 +1569,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 
     # Map Uploader
-    uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname){
+    uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype='value'){
         volume_bin <- readBin(filepath, what='raw', file.info(filepath)$size)
         volume_b64 <- base64encode(volume_bin, size=NA, endian=.Platform$endian)
         session$sendCustomMessage(
@@ -1582,7 +1582,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 as.character(getExt(filepath)),
                 as.character(boxsize),
                 tcl(visable),
-                as.character(windowname)
+                as.character(windowname),
+                as.character(isotype)
             )
         )
     }
@@ -1760,13 +1761,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 message('Upload fofcs')
                 incProgress(.2, detail = 'Uploading 2fofc map')
                 try(uploadVolumeDensity(the_2fofc_map,
-                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc'), silent=T)
+                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype='sigma'), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos'), silent=T)
+                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype='sigma'), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
+                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype='sigma'), silent=T)
             }
             setProgress(1)
         })
