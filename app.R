@@ -1011,31 +1011,30 @@ If you believe you have been sent this message in error, please email tyler.gorr
         molfiles <- fv_values$molfiles
         molbase <- fv_values$molfil
         names(molfiles) <- molbase
-        print(molfiles)
-        print(molbase)
-        print(input$goto)
-        folder <- dirname(molfiles[input$goto])
-        mol_file <- molfiles[input$goto]
-        smi_file <- gsub('.mol', '_smiles.txt', mol_file)
-        smilestr <- system(sprintf('cat %s', smi_file), intern=T)
+        if(!input$goto == ''){
+            folder <- dirname(molfiles[input$goto])
+            mol_file <- molfiles[input$goto]
+            smi_file <- gsub('.mol', '_smiles.txt', mol_file)
+            smilestr <- system(sprintf('cat %s', smi_file), intern=T)
 
-        choices <- unique(c('', as.character(isolate(fragview_table_data()[, 'Site_Label']))))
-        # Fill Form as seen
-        updateTextInput(session, 'crysname', value = input$goto)
-        updateTextInput(session, 'smiles', value = smilestr)
-        updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
-        updateTextInput(session, 'alternate_name', value = as.character(isolate(fragview_table_data()[input$goto, 'alternate_name'])))
-        updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label'])), choices=choices)
-        updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
-        # Go to specific ligand do not edit go next loop
-        if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
-        if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
-        gogogo <- try(uploadMolAndFocus2(mol_file), silent=T)
-        if(!file.exists(mol_file)){
-            sessionlist$fv_warn <- 'WARNING: .mol File is MISSING SET TO IGNORE OR INVESTIGATE' 
-	    } else {
-	        sessionlist$fv_warn <- '.mol File found!'
-	    }
+            choices <- unique(c('', as.character(isolate(fragview_table_data()[, 'Site_Label']))))
+            # Fill Form as seen
+            updateTextInput(session, 'crysname', value = input$goto)
+            updateTextInput(session, 'smiles', value = smilestr)
+            updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
+            updateTextInput(session, 'alternate_name', value = as.character(isolate(fragview_table_data()[input$goto, 'alternate_name'])))
+            updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label'])), choices=choices)
+            updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
+            # Go to specific ligand do not edit go next loop
+            if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
+            if(debug) debugMessage(sID=sID, sprintf('trying to view: %s', molfiles[input$goto]))
+            gogogo <- try(uploadMolAndFocus2(mol_file), silent=T)
+            if(!file.exists(mol_file)){
+                sessionlist$fv_warn <- 'WARNING: .mol File is MISSING SET TO IGNORE OR INVESTIGATE' 
+	        } else {
+	            sessionlist$fv_warn <- '.mol File found!'
+	        }
+        }
     })
 
     output$writeButton <- renderUI({
