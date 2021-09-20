@@ -29,7 +29,7 @@ if(local) {
 #target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA', 'CD44MMA')
 target_list <- sort(c(
 	#'CD44MMA'
-	'Mpro',
+	'Mpro'
 	#'PlPro',
 	#'NSP16',
 	#'PGN_RS02895PGA',
@@ -660,6 +660,11 @@ server <- function(input, output, session){
         debugMessage(sID=sID, 'Disconnected')
     }
     session$onSessionEnded(sessionDisconnect)
+    query <- parseQueryString(session$clientData$url_search)
+    if(!is.null(query[['target']])){
+        target_list <- sort(c(query[['target'])))
+        fragfolders <- c('', target_list)
+    }
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
