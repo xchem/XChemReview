@@ -662,7 +662,7 @@ server <- function(input, output, session){
     session$onSessionEnded(sessionDisconnect)
     query <- parseQueryString(session$clientData$url_search)
     if(!is.null(query[['target']])){
-        target_list <- sort(c(query[['target'])))
+        target_list <- sort(c(query[['target']]))
         fragfolders <- c('', target_list)
     }
     epochTime <- function() as.integer(Sys.time())
