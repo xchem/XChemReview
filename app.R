@@ -106,7 +106,7 @@ get_residues <- function(pdb_file){
     return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
 }
 
-getReviewData <- function(db, host_db, db_port, db_user, db_password){
+getReviewData <- function(db, host_db, db_port, db_user, db_password, target_list){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     ligand_data <- dbGetQuery(con, "SELECT * from ligand")
     lig_crys_ids <- paste(ligand_data[,'crystal_id'], collapse=',')
@@ -161,7 +161,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password){
     return(output)
 }
 
-getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password){
+getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password, target_list){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     # Get All ligands that are reviewed as release or above. Mandatory...
     ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
@@ -769,7 +769,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Loading Data Gubbins:
     restartSessionKeepOptions <- function(){
         message('Updating Data')
-        dbdat <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+        dbdat <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
         print(dim(dbdat))
         inputData <- reactive({dbdat})
         return(inputData)
@@ -870,7 +870,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     # Selector Stuff:
-    review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+    review_data <- getReviewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
     mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
     updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
     updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
@@ -934,12 +934,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
-    reactivegetFragalysisViewData <- function(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password){
-        reactive({getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)})
+    reactivegetFragalysisViewData <- function(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list){
+        reactive({getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)})
     }
 
-    fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-    fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+    fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
+    fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
     #fragfolders <- c('', sort(unique(fvd$targetname)))
     #fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
     updateSelectInput(session, 'fragSelect', selected='', choices=fragfolders)
@@ -1062,7 +1062,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$updateTable,{
-        fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+        fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
         fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
