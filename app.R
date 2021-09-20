@@ -660,13 +660,14 @@ server <- function(input, output, session){
         debugMessage(sID=sID, 'Disconnected')
     }
     session$onSessionEnded(sessionDisconnect)
-    observe({
-    query <- parseQueryString(session$clientData$url_search)
+    #observe({
+    query <- parseQueryString(isolate(session$clientData$url_search))
     if(!is.null(query[['target']])){
+        print(query[['target']])
         target_list <- sort(c(query[['target']]))
         fragfolders <- c('', target_list)
     }
-    })
+    #})
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
