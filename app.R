@@ -25,8 +25,17 @@ if(local) {
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
-fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
-target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA')
+#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA', 'CD44MMA')
+#target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA', 'CD44MMA')
+target_list <- sort(c(
+	#'CD44MMA'
+	'Mpro',
+	#'PlPro',
+	#'NSP16',
+	#'PGN_RS02895PGA',
+	#'PHIPA'
+))
+fragfolders <- c('', target_list)
 # Plotting Libs
 library(ggplot2)
 library(plotly)
