@@ -554,11 +554,11 @@ body <- dashboardBody(
                                 column(8,
                                     column(6, 
                                         helpText('Input Ligand'),
-                                        imageOutput('ligimage', height='200px')
+                                        imageOutput('ligimage')
                                     ),
                                     column(6, 
                                         helpText('Modelled Ligand'),
-                                        imageOutput('rendered_ligimage', height='200px')
+                                        imageOutput('renderedligimage')
                                     )
                                 ),
                                 column(4,
@@ -1717,8 +1717,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
             rendered_ligfile <- tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE), 1)
-            message(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE))
-            message(rendered_ligfile)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
@@ -1733,7 +1731,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     list(src = '',contentType = 'image/png',width=200,height=200)
                 }
             }, deleteFile=FALSE)
-            output$rendered_ligimage <- renderImage({
+            output$renderedligimage <- renderImage({
                 if(length(rendered_ligfile) == 1){
                     list(src=rendered_ligfile, contentType='image/png', width=200, height=200)
                 } else {
