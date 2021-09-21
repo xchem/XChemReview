@@ -554,15 +554,15 @@ body <- dashboardBody(
                                 column(8,
                                     column(6, 
                                         helpText('Input Ligand'),
-                                        imageOutput('ligimage')
+                                        imageOutput('ligimage', height='200px')
                                     ),
                                     column(6, 
                                         helpText('Modelled Ligand'),
-                                        imageOutput('rendered_ligimage')
+                                        imageOutput('rendered_ligimage', height='200px')
                                     )
                                 ),
                                 column(4,
-                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Image/Spider Plot', value = TRUE, width = NULL)),
+                                    div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
                                     actionButton('buster', 'Buster Report'),
                                     #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
@@ -1717,6 +1717,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
             rendered_ligfile <- tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE), 1)
+            print(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE))
+            print(rendered_ligfile)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
