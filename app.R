@@ -1091,7 +1091,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                           password=db_password)
         output$metastatus <- renderText({'STATUS: Written!'})
         if(!input$desync){
-            fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+            fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
             fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
