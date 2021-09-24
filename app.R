@@ -1781,7 +1781,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                             other_mols <- other_mols[!other_mols %in% the_mol_file]
                             for(i in other_mols){
                                 debugMessage(sID=sID, sprintf('Rendering: %s', i))
-                                uploadMolNoFocus(i, 'orange')
+                                uploadMolNoFocus(i, 'pink')
                             }
                         } 
                         session$sendCustomMessage(type = 'restore_camera_pos', message = list())
@@ -1803,7 +1803,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                             other_mols <- other_mols[!other_mols %in% the_mol_file]
                             for(i in other_mols){
                                 debugMessage(sID=sID, sprintf('Rendering: %s', i))
-                                uploadMolNoFocus(i, 'orange')
+                                uploadMolNoFocus(i, 'pink')
                             }
                         } 
                     },
@@ -1895,7 +1895,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         other_mols <- other_mols[!other_mols %in% the_mol_file]
                         for(i in other_mols){
                             debugMessage(sID=sID, sprintf('Rendering: %s', i))
-                            uploadMolNoFocus(i, 'orange')
+                            uploadMolNoFocus(i, 'pink')
                         }
                     } 
                     names(the_emaps) <- basename(the_emaps)
