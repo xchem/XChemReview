@@ -1023,6 +1023,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
+    uploadMolNoFocus <- function(filepath, color){
+        syscall <- sprintf('cat %s', filepath)
+        pdbstrings <- system(syscall, intern = TRUE)
+        choice <- paste0(pdbstrings, collapse = '\n')
+        session$sendCustomMessage(
+            type = 'fv_addMolandfocus_withcolor',
+            list(choice, color)
+        )
+    }
+
+    clearWindowField <- function(id='othermol'){
+        session$sendCustomMessage(
+            type = 'clear_window_field',
+            list(id)
+        )
+    }
+
     observeEvent(input$goto, {
         output$metastatus <- renderText({'STATUS: Pending...'})
         molfiles <- fv_values$molfiles
@@ -1755,6 +1772,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         # Default Behaviour do not change anything!
                         try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
                         try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                        # Add stuff here:
+                        clearWindowField(id='othermol')
+                        glob = sprintf('%s*/*.mol', rsplit(dirname(the_mol_file), '_')[1])
+                        other_mols = Sys.glob(glob)
+                        if(length(other_mols) > 1){
+                            other_mols <- other_mols[!other_mols %in% the_mol_file]
+                            for(i in other_mols){
+                                uploadMolNoFocus(i, 'orange')
+                            }
+                        } 
                         session$sendCustomMessage(type = 'restore_camera_pos', message = list())
                     },
                     'unaligned' = {
@@ -1766,6 +1793,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
                         try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
                         try(uploadMolAndFocus(the_mol_file, 'mol', focus=TRUE), silent=T)
+                        # Add stuff here:
+                        clearWindowField(id='othermol')
+                        glob = sprintf('%s*/*.mol', rsplit(dirname(the_mol_file), '_')[1])
+                        other_mols = Sys.glob(glob)
+                        if(length(other_mols) > 1){
+                            other_mols <- other_mols[!other_mols %in% the_mol_file]
+                            for(i in other_mols){
+                                uploadMolNoFocus(i, 'orange')
+                            }
+                        } 
                     },
                     'crystallographic' = {
                         session$sendCustomMessage(type = 'save_camera_pos', message = list())
@@ -1847,6 +1884,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
                     try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
                     try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                    # Add stuff here:
+                    clearWindowField(id='othermol')
+                    glob = sprintf('%s*/*.mol', rsplit(dirname(the_mol_file), '_')[1])
+                    other_mols = Sys.glob(glob)
+                    if(length(other_mols) > 1){
+                        other_mols <- other_mols[!other_mols %in% the_mol_file]
+                        for(i in other_mols){
+                            uploadMolNoFocus(i, 'orange')
+                        }
+                    } 
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
                     incProgress(.2, detail = 'Uploading Event map')
