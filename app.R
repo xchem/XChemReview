@@ -1773,12 +1773,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
                         try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                         # Add stuff here:
+                        debugMessage(sID=sID, sprintf('Render others?'))
                         clearWindowField(id='othermol')
                         glob = sprintf('%s*/*.mol', rsplit(dirname(the_mol_file), '_')[1])
                         other_mols = Sys.glob(glob)
                         if(length(other_mols) > 1){
                             other_mols <- other_mols[!other_mols %in% the_mol_file]
                             for(i in other_mols){
+                                debugMessage(sID=sID, sprintf('Rendering: %s', i))
                                 uploadMolNoFocus(i, 'orange')
                             }
                         } 
@@ -1800,6 +1802,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         if(length(other_mols) > 1){
                             other_mols <- other_mols[!other_mols %in% the_mol_file]
                             for(i in other_mols){
+                                debugMessage(sID=sID, sprintf('Rendering: %s', i))
                                 uploadMolNoFocus(i, 'orange')
                             }
                         } 
@@ -1891,6 +1894,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     if(length(other_mols) > 1){
                         other_mols <- other_mols[!other_mols %in% the_mol_file]
                         for(i in other_mols){
+                            debugMessage(sID=sID, sprintf('Rendering: %s', i))
                             uploadMolNoFocus(i, 'orange')
                         }
                     } 
