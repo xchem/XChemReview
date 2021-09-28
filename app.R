@@ -589,6 +589,13 @@ body <- dashboardBody(
                                 column(3, selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations'), options=list(create=TRUE)))
                             ),
                             DT::dataTableOutput('atoms')
+                        ),
+                        tabPanel(
+                            title = 'Ligand Relationships + Sites',
+                            fluidRow(
+                                column(6, DT::dataTableOutput('relationship_table')),
+                                column(6, DT::dataTableOutput('site_table'))
+                            )
                         )
                     ), options = list(delay = '1000', cancel = '.selectize-control')
                 ),
@@ -605,7 +612,7 @@ body <- dashboardBody(
                             title='Review Plots (Click points to load ligand)',
                             fluidRow(
                                 column(4,
-                                        selectInput('fpex', 'x', selected = 'res', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
+                                    selectInput('fpex', 'x', selected = 'res', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
                                 ),
                                 column(4,
                                     selectInput('fpey', 'y', selected = 'r_free', choices=c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds'))
@@ -1914,6 +1921,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     incProgress(.1, detail = 'Uploading fofc map')
                     try(uploadVolumeDensity(the_fofc_map,
                         color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
+                    sites_df <- rel_df <- data.frame()
+                    if(file.exists(gsub('.mol', '_sites.json', the_mol_file))){
+                        js <- jsonlite::read_json(gsub('.mol', '_sites.json', the_mol_file)
+                        sites_df <- data.frame(names(js), sapply(js, function(x) paste(unlist(x[['site_id']]), collapse=';')), row.names=NULL)
+                        colnames(sites_df) <- c('Site Type', 'Site Indicies')
+                    }
+                    if(file.exists(gsub('.mol', '_relationships.json', the_mol_file))){
+                        js <- jsonlite::read_json(gsub('.mol', '_relationships.json', the_mol_file)
+                        rel_df <- data.frame(names(js), t(sapply(js, unlist)),row.names=NULL)
+                        colnames(rel_df) <- c('Related Ligand', 'Similarity', 'COM_Distance', 'Nearest Atom Distance', 'Relationship')
+                    }
+                    output$site_table <- DT::renderDataTable({DT::datatable(sites_df)})
+                    output$relationship_table <- DT::renderDataTable({DT::datatable(rel_df)})
                 }
                 setProgress(1)
                 residues <- get_residues(the_pdb_file)
