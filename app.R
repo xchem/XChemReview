@@ -1923,12 +1923,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
                     sites_df <- rel_df <- data.frame()
                     if(file.exists(gsub('.mol', '_sites.json', the_mol_file))){
-                        js <- jsonlite::read_json(gsub('.mol', '_sites.json', the_mol_file)
+                        js <- jsonlite::read_json(gsub('.mol', '_sites.json', the_mol_file))
                         sites_df <- data.frame(names(js), sapply(js, function(x) paste(unlist(x[['site_id']]), collapse=';')), row.names=NULL)
                         colnames(sites_df) <- c('Site Type', 'Site Indicies')
                     }
                     if(file.exists(gsub('.mol', '_relationships.json', the_mol_file))){
-                        js <- jsonlite::read_json(gsub('.mol', '_relationships.json', the_mol_file)
+                        js <- jsonlite::read_json(gsub('.mol', '_relationships.json', the_mol_file))
                         rel_df <- data.frame(names(js), t(sapply(js, unlist)),row.names=NULL)
                         colnames(rel_df) <- c('Related Ligand', 'Similarity', 'COM_Distance', 'Nearest Atom Distance', 'Relationship')
                     }
