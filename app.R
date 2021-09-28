@@ -592,17 +592,19 @@ body <- dashboardBody(
                         ),
                         tabPanel(
                             title = 'Ligand Relationships + Sites',
-                            tabsetPanel(
-                                tabPanel(
-                                    title = 'Relationships',
-                                    column(12, DT::dataTableOutput('relationship_table'))
-                                ),
-                                tabPanel(
-                                    title = 'Sites (WIP)',
-                                    column(12, DT::dataTableOutput('site_table'))
+                            fluidRow(
+                                tabBox(
+                                    tabPanel(
+                                        title = 'Relationships',
+                                        fluidRow(column(12, DT::dataTableOutput('relationship_table')))
+                                    ),
+                                    tabPanel(
+                                        title = 'Sites (WIP)',
+                                        fluidRow(column(12, DT::dataTableOutput('site_table')))
+                                    )
                                 )
                             )
-                        )
+                        )    
                     ), options = list(delay = '1000', cancel = '.selectize-control')
                 ),
                 jqui_draggable(
