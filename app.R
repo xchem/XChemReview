@@ -595,11 +595,11 @@ body <- dashboardBody(
                             tabBox(
                                 tabPanel(
                                     title = 'Relationships',
-                                    DT::dataTableOutput('relationship_table')
+                                    column(12, DT::dataTableOutput('relationship_table'))
                                 ),
                                 tabPanel(
                                     title = 'Sites (WIP)',
-                                    DT::dataTableOutput('site_table')
+                                    column(12, DT::dataTableOutput('site_table'))
                                 )
                             )
                         )
