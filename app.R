@@ -592,7 +592,7 @@ body <- dashboardBody(
                         ),
                         tabPanel(
                             title = 'Ligand Relationships + Sites',
-                            tabBox(
+                            tabsetPanel(
                                 tabPanel(
                                     title = 'Relationships',
                                     column(12, DT::dataTableOutput('relationship_table'))
