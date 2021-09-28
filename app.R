@@ -1055,6 +1055,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
+    blankNAorNull <- function(x){
+        ifelse(is.null(x), TRUE, is.na(x) | x == '')
+    }
+
     observeEvent(input$goto, {
         output$metastatus <- renderText({'STATUS: Pending...'})
         molfiles <- fv_values$molfiles
@@ -1070,8 +1074,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             # Fill Form as seen
             updateTextInput(session, 'crysname', value = input$goto)
             updateTextInput(session, 'smiles', value = smilestr)
+            tofilldata <- inputData()[inputData()$ligand_name == input$goto,]
+
+            alt_name = as.character(isolate(fragview_table_data()[input$goto, 'alternate_name']))
+            if(blankNAorNull(alt_name)) alt_name = tools::file_path_sans_ext(basename(tofilldata$cif))
+            updateTextInput(session, 'alternate_name', value = alt_name)
             updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
-            updateTextInput(session, 'alternate_name', value = as.character(isolate(fragview_table_data()[input$goto, 'alternate_name'])))
             updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label'])), choices=choices)
             updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
             # Go to specific ligand do not edit go next loop
