@@ -592,9 +592,15 @@ body <- dashboardBody(
                         ),
                         tabPanel(
                             title = 'Ligand Relationships + Sites',
-                            fluidRow(
-                                column(6, DT::dataTableOutput('relationship_table')),
-                                column(6, DT::dataTableOutput('site_table'))
+                            tabBox(
+                                tabPanel(
+                                    title = 'Relationships',
+                                    DT::dataTableOutput('relationship_table')
+                                ),
+                                tabPanel(
+                                    title = 'Sites (WIP)',
+                                    DT::dataTableOutput('site_table')
+                                )
                             )
                         )
                     ), options = list(delay = '1000', cancel = '.selectize-control')
