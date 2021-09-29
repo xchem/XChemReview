@@ -1868,7 +1868,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 names(the_emaps) <- basename(the_emaps)
                 sessionlist$current_emaps <- the_emaps
                 print(the_emaps)
-                if(input$bfactor) uploadBFactors(sessionlist$apo_file)
+                if(input$bfactor) uploadBFactors(gsub('_apo.pdb', '_bound.pdb',sessionlist$apo_file))
                 incProgress(.2, detail = 'Uploading Event map')
                 updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                 # Move this to a different part?
@@ -1948,7 +1948,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
-                    if(input$bfactor) uploadBFactors(sessionlist$apo_file)
+                    if(input$bfactor) uploadBFactors(gsub('_apo.pdb', '_bound.pdb',sessionlist$apo_file))
                     incProgress(.2, detail = 'Uploading Event map')
                     updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                     # Move this to a different part?
