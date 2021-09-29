@@ -88,7 +88,7 @@ for(i in 1:nrow(latest_review)){
         comment_str <- atoms[ids_to_grab, 'comment']
         id_str2 <- paste0(id_str, collapse=';')
         comment_str2 <- paste0(comment_str, collapse=';')
-        write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
+        #write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
     }
 }
 
@@ -564,7 +564,7 @@ body <- dashboardBody(
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
-                                    fluidRow(actionButton('buster', 'Buster Report'), switchInput(inputId = "BFactors", value = FALSE))
+                                    fluidRow(actionButton('buster', 'Buster Report'), materialSwitch(inputId = "bfactor", label = "Render B Factors", value = FALSE))
                                     #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
                                     #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
 
