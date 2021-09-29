@@ -781,6 +781,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     sessionlist$fumeta <- ''
     sessionlist$fv_warn <- ''
     sessionlist$busterReport <- ''
+    sessionlist$isotype <- 'value'
 
     output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
@@ -1732,6 +1733,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$views, {
+        sessionlist$isotype='value'
         if(is.null(input$views)) updateRadioButtons(session, 'views', selected = 'aligned')
 
         session$sendCustomMessage(type = 'setup', message = list())
@@ -1829,6 +1831,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                             }
                         } 
                         try(uploadMolAndFocus(the_mol_file, 'mol', focus=TRUE), silent=T)
+                        
                     },
                     'crystallographic' = {
                         session$sendCustomMessage(type = 'save_camera_pos', message = list())
@@ -1840,6 +1843,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
                         the_fofc_map <- sprintf('%s/%s_fofc.map', the_folder, the_xtal_name)
                         the_emaps <- dir(the_folder, pattern=sprintf('%s_event', the_xtal_name), full=TRUE)
+                        sessionlist$isotype='sigma'
                     }
                 )
 
@@ -1852,19 +1856,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 message('Upload fofcs')
                 incProgress(.2, detail = 'Uploading 2fofc map')
                 try(uploadVolumeDensity(the_2fofc_map,
-                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype='sigma'), silent=T)
+                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=isolate(sessionlist$isotype)), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype='sigma'), silent=T)
+                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=isolate(sessionlist$isotype)), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype='sigma'), silent=T)
+                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=isolate(sessionlist$isotype)), silent=T)
             }
             setProgress(1)
         })
     })
 
     observeEvent(input$ligand, ignoreNULL = TRUE, {
+        sessionlist$isotype <- 'value'
         atomstoquery$data <- data.frame(name=character(),
                  index=character(),
                  comment=character(),
@@ -1930,13 +1935,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     message('Upload fofcs')
                     incProgress(.2, detail = 'Uploading 2fofc map')
                     try(uploadVolumeDensity(the_2fofc_map,
-                        color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc'), silent=T)
+                        color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=sessionlist$isotype), silent=T)
                     incProgress(.1, detail = 'Uploading fofc map')
                     try(uploadVolumeDensity(the_fofc_map,
-                        color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos'), silent=T)
+                        color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=sessionlist$isotype), silent=T)
                     incProgress(.1, detail = 'Uploading fofc map')
                     try(uploadVolumeDensity(the_fofc_map,
-                        color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg'), silent=T)
+                        color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=sessionlist$isotype), silent=T)
                     sites_df <- rel_df <- data.frame()
                     if(file.exists(gsub('.mol', '_sites.json', the_mol_file))){
                         js <- jsonlite::read_json(gsub('.mol', '_sites.json', the_mol_file))
@@ -1988,7 +1993,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         sel <- isolate(sessionlist$current_emaps)[input$emap]
         message(sel)
         try(uploadVolumeDensity(sel,
-            color = 'orange', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap'), silent=T)
+            color = 'orange', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap', isotype=sessionlist$isotype), silent=T)
         message('Completed!')
     })
 
