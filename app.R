@@ -564,7 +564,7 @@ body <- dashboardBody(
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
-                                    actionButton('buster', 'Buster Report'),
+                                    fluidRow(actionButton('buster', 'Buster Report'), switchInput(inputId = "BFactors", value = FALSE))
                                     #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
                                     #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
 
@@ -1003,6 +1003,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
             molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
         }   
+    })
+
+    observeEvent(input$bfactor, {
+        if(input$bfactor){
+            uploadBFactors(sessionlist$apo_file)
+        } else {
+            clearWindowField(id='bfactor')
+        }
     })
 
     observeEvent(input$gonext, {
@@ -1606,6 +1614,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
+    uploadBFactors <- function(filepath){
+        clearWindowField(id='bfactor')
+        syscall <- sprintf('cat %s', filepath)
+        pdbstrings <- system(syscall, intern = TRUE)
+        choice <- paste0(pdbstrings, collapse = '\n')
+        session$sendCustomMessage(
+            type = 'setBFactor',
+            message = list(
+                choice
+            )
+        )
+    }
+
     uploadMolAndFocus <- function(filepath, ext, focus){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
@@ -1850,6 +1871,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 names(the_emaps) <- basename(the_emaps)
                 sessionlist$current_emaps <- the_emaps
                 print(the_emaps)
+                if(input$bfactor) uploadBFactors(sessionlist$apo_file)
                 incProgress(.2, detail = 'Uploading Event map')
                 updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                 # Move this to a different part?
@@ -1929,6 +1951,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
+                    if(input$bfactor) uploadBFactors(sessionlist$apo_file)
                     incProgress(.2, detail = 'Uploading Event map')
                     updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                     # Move this to a different part?
