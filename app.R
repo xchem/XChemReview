@@ -564,10 +564,7 @@ body <- dashboardBody(
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
-                                    fluidRow(actionButton('buster', 'Buster Report'), materialSwitch(inputId = "bfactor", label = "Render B Factors", value = FALSE))
-                                    #div(style = "margin-top:-1em", selectInput('scope', 'Scope', c('Experiment', 'Global'))),
-                                    #div(style = "margin-top:-1em", selectInput('plotType', 'Statistic', c('res', 'r_free', 'rcryst', 'ramachandran_outliers', 'rmsd_angles', 'rmsd_bonds')))
-
+                                    fluidRow(actionButton('buster', 'Buster Report'), materialSwitch(inputId = "bfactor", label = "Render B Factors", status='success', value = FALSE))
                                 )
                             ),
                             column(12,div(style = "margin-top:-15em",
