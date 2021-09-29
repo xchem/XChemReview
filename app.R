@@ -1009,7 +1009,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(input$bfactor){
             uploadBFactors(sessionlist$apo_file)
         } else {
-            clearWindowField(id='bfactor')
+            clearWindowField(id='bfactors')
         }
     })
 
