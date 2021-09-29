@@ -1630,21 +1630,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
     getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 
     # Map Uploader
-    uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype='value'){
+    uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype='sigma'){
         volume_bin <- readBin(filepath, what='raw', file.info(filepath)$size)
         volume_b64 <- base64encode(volume_bin, size=NA, endian=.Platform$endian)
         session$sendCustomMessage(
             type = 'addVolumeDensity',
             message = list(
-                as.character(volume_b64),
-                as.character(isolevel),
-                as.character(color),
-                tcl(negateiso),
-                as.character(getExt(filepath)),
-                as.character(boxsize),
-                tcl(visable),
-                as.character(windowname),
-                as.character(isotype)
+                as.character(volume_b64), #0
+                as.character(isolevel),#1
+                as.character(color),#2
+                tcl(negateiso),#3
+                as.character(getExt(filepath)),#4
+                as.character(boxsize),#5
+                tcl(visable),#6
+                as.character(windowname),#7
+                as.character(isotype)#8
             )
         )
     }
@@ -1856,13 +1856,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 message('Upload fofcs')
                 incProgress(.2, detail = 'Uploading 2fofc map')
                 try(uploadVolumeDensity(the_2fofc_map,
-                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=isolate(sessionlist$isotype)), silent=T)
+                    color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=sessionlist$isotype), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=isolate(sessionlist$isotype)), silent=T)
+                    color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=sessionlist$isotype), silent=T)
                 incProgress(.1, detail = 'Uploading fofc map')
                 try(uploadVolumeDensity(the_fofc_map,
-                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=isolate(sessionlist$isotype)), silent=T)
+                    color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=sessionlist$isotype), silent=T)
             }
             setProgress(1)
         })
