@@ -88,7 +88,7 @@ for(i in 1:nrow(latest_review)){
         comment_str <- atoms[ids_to_grab, 'comment']
         id_str2 <- paste0(id_str, collapse=';')
         comment_str2 <- paste0(comment_str, collapse=';')
-        write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
+        try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
     }
 }
 
