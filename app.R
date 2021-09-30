@@ -25,15 +25,10 @@ if(local) {
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
-#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA', 'CD44MMA')
-#target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA', 'CD44MMA')
 target_list <- sort(c(
-	#'CD44MMA'
-	'Mpro'
+	'Mpro',
 	#'PlPro',
-	#'NSP16',
-	#'PGN_RS02895PGA',
-	#'PHIPA'
+	'NSP16'
 ))
 fragfolders <- c('', target_list)
 # Plotting Libs
@@ -41,7 +36,6 @@ library(ggplot2)
 library(plotly)
 
 sessionInfo()
-#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
 
 # Update existing mol_files with latest atom comments
 con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
