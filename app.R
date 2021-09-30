@@ -564,7 +564,8 @@ body <- dashboardBody(
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
                                     div(style = "margin-top:-1em", selectInput('emap', 'Select Eventmap', choices='', multiple=FALSE)),
-                                    fluidRow(actionButton('buster', 'Buster Report'), materialSwitch(inputId = "bfactor", label = "Render B Factors", status='success', value = FALSE))
+                                    fluidRow(actionButton('buster', 'Buster Report'), materialSwitch(inputId = "bfactor", label = "Render B Factors", status='success', value = FALSE)),
+                                    fluidRow(actionButton('interactions', 'Visualise Interactions'))
                                 )
                             ),
                             column(12,div(style = "margin-top:-15em",
@@ -1543,6 +1544,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(length(pdf_file)>0) uiOutput("pdfview")
                 else 'Unable to find Buster Report', size='l', easyClose=FALSE)
    	    )
+    })
+
+    observeEvent(input$interactoins, ignoreNULL=TRUE,{
+        pliphtml = gsub('.mol', '_plip.html', sessionlist$mol_file)
+        showModal(
+            customDraggableModalDialog(title = 'PLIP',
+            if(file.exists(pliphtml)) includeHTML(pliphtml)
+            else 'Unable to find PLIP', size='l', easyClose=FALSE)
+        )
     })
 
     observeEvent(input$updateParams, {
