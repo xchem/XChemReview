@@ -25,15 +25,10 @@ if(local) {
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
-#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA', 'CD44MMA')
-#target_list <- c('PGN_RS02895PGA','Mpro', 'PlPro', 'PHIPA', 'NSP16', 'XX02KALRNA', 'CD44MMA')
 target_list <- sort(c(
-	#'CD44MMA'
-	'Mpro'
+	'Mpro',
 	#'PlPro',
-	#'NSP16',
-	#'PGN_RS02895PGA',
-	#'PHIPA'
+	'NSP16'
 ))
 fragfolders <- c('', target_list)
 # Plotting Libs
@@ -41,7 +36,6 @@ library(ggplot2)
 library(plotly)
 
 sessionInfo()
-#fragfolders <- c('', 'Mpro', 'PlPro', 'PHIPA', 'NSP16','PGN_RS02895PGA', 'XX02KALRNA')
 
 # Update existing mol_files with latest atom comments
 con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
@@ -707,7 +701,6 @@ With these additional comments:
 -------------------------------
 If you wish to review this change please go to xchemreview.diamond.ac.uk while
 connected to the diamond VPN or via NX.
-Direct Link (must be connected to diamond VPN): https://xchemreview.diamond.ac.uk/?xtal=%s&protein=%s
 This email was automatically sent by The XChem Review app
 If you believe you have been sent this message in error, please email tyler.gorrie-stone@diamond.ac.uk',
             structure, decision, user, reason, comments, structure, protein),
@@ -1546,12 +1539,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
    	    )
     })
 
-    observeEvent(input$interactoins, ignoreNULL=TRUE,{
+    observeEvent(input$interactions, ignoreNULL=TRUE,{
         pliphtml = gsub('.mol', '_plip.html', sessionlist$mol_file)
+        copied <- file.copy(from=pliphtml, to=sprintf('www/plip_%s.html', sID), overwrite=TRUE)
+        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
+        output$plipview <- renderUI({
+		    tags$iframe(style="height:800px; width:100%", src=sprintf('www/plip_%s.html', sID))
+    	})
         showModal(
-            customDraggableModalDialog(title = 'PLIP',
-            if(file.exists(pliphtml)) includeHTML(pliphtml)
-            else 'Unable to find PLIP', size='l', easyClose=FALSE)
+            customDraggableModalDialog(title = 'Protein Ligand Interactions',
+                if(file.exists(pliphtml)) uiOutput("plipview")
+                else 'Unable to find Protein-Ligand Interactions (plot not generated)', size='l', easyClose=FALSE)
         )
     })
 
