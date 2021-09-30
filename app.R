@@ -88,7 +88,7 @@ for(i in 1:nrow(latest_review)){
         comment_str <- atoms[ids_to_grab, 'comment']
         id_str2 <- paste0(id_str, collapse=';')
         comment_str2 <- paste0(comment_str, collapse=';')
-        #write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
+        write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2)
     }
 }
 
@@ -1004,7 +1004,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$bfactor, {
         if(input$bfactor){
-            uploadBFactors(sessionlist$apo_file)
+            uploadBFactors(sessionlist$apo_file, clear=TRUE)
+            uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
         } else {
             clearWindowField(id='bfactors')
         }
@@ -1611,8 +1612,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    uploadBFactors <- function(filepath){
-        clearWindowField(id='bfactor')
+    uploadBFactors <- function(filepath, clear=TRUE){
+        if(clear) clearWindowField(id='bfactor')
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
@@ -1868,7 +1869,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 names(the_emaps) <- basename(the_emaps)
                 sessionlist$current_emaps <- the_emaps
                 print(the_emaps)
-                if(input$bfactor) uploadBFactors(gsub('_apo.pdb', '_bound.pdb',sessionlist$apo_file))
+                if(input$bfactor){
+                    uploadBFactors(sessionlist$apo_file)
+                    uploadBFactors(gsub('.mol', '.pdb', sessionlist$the_mol_file), clear=FALSE)
+                }
                 incProgress(.2, detail = 'Uploading Event map')
                 updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                 # Move this to a different part?
@@ -1948,7 +1952,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
-                    if(input$bfactor) uploadBFactors(gsub('_apo.pdb', '_bound.pdb',sessionlist$apo_file))
+                    if(input$bfactor){
+                        uploadBFactors(sessionlist$apo_file)
+                        uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
+                    }
                     incProgress(.2, detail = 'Uploading Event map')
                     updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                     # Move this to a different part?
