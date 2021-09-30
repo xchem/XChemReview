@@ -1005,9 +1005,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$bfactor, {
         if(input$bfactor){
             uploadBFactors(sessionlist$apo_file, clear=TRUE)
+            updateVisability('mol', FALSE) 
             uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
         } else {
             clearWindowField(id='bfactors')
+            updateVisability('mol', TRUE) 
         }
     })
 
@@ -1871,6 +1873,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 print(the_emaps)
                 if(input$bfactor){
                     uploadBFactors(sessionlist$apo_file)
+                    updateVisability('mol', FALSE) 
                     uploadBFactors(gsub('.mol', '.pdb', sessionlist$the_mol_file), clear=FALSE)
                 }
                 incProgress(.2, detail = 'Uploading Event map')
@@ -1954,6 +1957,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     sessionlist$current_emaps <- the_emaps
                     if(input$bfactor){
                         uploadBFactors(sessionlist$apo_file)
+                        updateVisability('mol', FALSE) 
                         uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
                     }
                     incProgress(.2, detail = 'Uploading Event map')
