@@ -1541,7 +1541,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$interactions, ignoreNULL=TRUE,{
         pliphtml = gsub('.mol', '_plip.html', sessionlist$mol_file)
-        copied <- file.copy(from=pliphtml, to=sprintf('www/plip_%s.html', sID), overwrite=TRUE)
+        copied <- file.copy(from=pliphtml, to=sprintf('/dls/science/groups/i04-1/software/xchemreview/www/plip_%s.html', sID), overwrite=TRUE)
         addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
         output$plipview <- renderUI({
 		    tags$iframe(style="height:800px; width:100%", src=sprintf('www/plip_%s.html', sID))
