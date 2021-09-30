@@ -1549,7 +1549,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         showModal(
             customDraggableModalDialog(title = 'Protein Ligand Interactions',
                 if(file.exists(pliphtml)) uiOutput("plipview")
-                else 'Unable to find Protein-Ligand Interactions', size='l', easyClose=FALSE)
+                else 'Unable to find Protein-Ligand Interactions (plot not generated)', size='l', easyClose=FALSE)
         )
     })
 
