@@ -1083,6 +1083,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(blankNAorNull(alt_name)) alt_name = tools::file_path_sans_ext(basename(tofilldata$cif))
             updateTextInput(session, 'alternate_name', value = alt_name)
             updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
+
+            site_name = as.character(isolate(fragview_table_data()[input$goto, 'site_name']))
+            if(blankNAorNull(site_name)) site_name = as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7]
             updateSelectizeInput(session, 'site_name', selected = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label'])), choices=choices)
             updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
             # Go to specific ligand do not edit go next loop
