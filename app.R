@@ -1085,9 +1085,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
 
             site_name = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label']))
-            if(blankNAorNull(site_name)) site_name = as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7]
-            updateSelectizeInput(session, 'site_name', selected = site_name, choices=choices)
-            
+            if(blankNAorNull(site_name)){
+                site_name = as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7]
+                print(site_name)
+            }
+            updateSelectizeInput(session, 'site_name', selected = site_name, choices=c(site_name,choices))
+
             updateTextInput(session, 'pdb_entry', value = as.character(isolate(fragview_table_data()[input$goto, 'pdb_id'])))
             # Go to specific ligand do not edit go next loop
             if(debug) debugMessage(sID=sID, sprintf('Selected: %s', input$goto))
