@@ -837,13 +837,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
                 options = list(
-                    pageLength = pl,
-                    rowCallback = JS(
-            "function(row, data) {",
-            "var full_text = 'This rows values are :' + data[0] + ',' + data[1] + '...'",
-            "$('td', row).attr('title', full_text);",
-            "Shiny.setInputValue(fv_hover, full_text);",
-            "}")
+                    pageLength = pl
                 ), rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
         })
