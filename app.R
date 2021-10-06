@@ -1629,6 +1629,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
+    uploadContacts <- function(filepath){
+        syscall <- sprintf('cat %s', filepath)
+        pdbstrings <- system(syscall, intern = TRUE)
+        choice <- paste0(pdbstrings, collapse = '\n')
+        session$sendCustomMessage(
+            type = 'addContacts',
+            message = list(
+                choice
+            )
+        )
+    }
+
     uploadBFactors <- function(filepath, clear=TRUE){
         if(clear) clearWindowField(id='bfactor')
         syscall <- sprintf('cat %s', filepath)
@@ -1832,6 +1844,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     'aligned' = {
                         # Default Behaviour do not change anything!
                         try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                        try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
                         debugMessage(sID=sID, sprintf('Render others?'))
                         clearWindowField(id='othermol')
@@ -1855,6 +1868,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
                         the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
                         try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
+                        try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
                         clearWindowField(id='othermol')
                         glob = sprintf('%s*/*.mol', rsplit(dirname(the_mol_file), '_')[1])
@@ -1876,6 +1890,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
                         the_pdb_file <- sprintf('%s/%s.pdb', the_folder, the_xtal_name)
                         try(uploadPDB(the_pdb_file, input=input), silent=T)
+                        try(addContacts(the_pdb_file), silent=TRUE)
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
                         the_fofc_map <- sprintf('%s/%s_fofc.map', the_folder, the_xtal_name)
                         the_emaps <- dir(the_folder, pattern=sprintf('%s_event', the_xtal_name), full=TRUE)
@@ -1955,6 +1970,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
                     try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                    try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                     
                     # Add stuff here:
                     clearWindowField(id='othermol')
