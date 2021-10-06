@@ -1629,7 +1629,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
-    uploadContacts <- function(filepath){
+    addContacts <- function(filepath){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
