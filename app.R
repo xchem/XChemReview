@@ -225,6 +225,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     # aligned data copy
     progress$set(message = "Copying aligned Files", value = 0)
     increment = (1/nrow(meta))/2.2
+    print(meta)
     for(frag in meta$crystal_name){
         progress$inc(increment, detail=frag)
         cf <- sprintf('%saligned/%s', base_root, frag)
@@ -232,21 +233,21 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
         files <- list.files(cf)
 	    files2 <- files
         if(copymaps){
-		# Copy event_0 and save it as event.cpp4
-        event_0 <- grepl('event_0', files)
-        event_19 <- grepl('event_[1-9]', files)
-		if(sum(event_0) == 1) files2[event_0] <- gsub('event_0.ccp4', 'event.ccp4', files[event_0])
-		if(sum(event_19) > 0){
-			files[event_19] <- NA
-			files2[event_19] <- NA
-			files <- na.omit(files)
-			files2 <- na.omit(files2)
-		}
+		    # Copy event_0 and save it as event.cpp4
+            event_0 <- grepl('event_0', files)
+            event_19 <- grepl('event_[1-9]', files)
+		    if(sum(event_0) == 1) files2[event_0] <- gsub('event_0.ccp4', 'event.ccp4', files[event_0])
+		    if(sum(event_19) > 0){
+			    files[event_19] <- NA
+			    files2[event_19] <- NA
+			    files <- na.omit(files)
+			    files2 <- na.omit(files2)
+		    }
         } else {
-		files <- files[!grepl("(.map$|.ccp4$)", files)]
-		files2 <- files
-	}
-	system(sprintf('mkdir %s', nf))
+		    files <- files[!grepl("(.map$|.ccp4$)", files)]
+		    files2 <- files
+	    }   
+	    system(sprintf('mkdir %s', nf))
         file.copy(file.path(cf,files), file.path(nf, files2))
     }
 
@@ -258,7 +259,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
         #nf <- paste(crys_dir, frag, sep='/')
         nf <- crys_dir
         files <- list.files(cf, pattern=rcn)
-	# Remove maps from crystallographic...
+	    # Remove maps from crystallographic...
         files <- files[!grepl("(.map$|.ccp4$)", files)]
         file.copy(file.path(cf,files), file.path(nf, files))
         if(copymaps){
