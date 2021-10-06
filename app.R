@@ -185,7 +185,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
     fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
     md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
     prot <- target
-    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_label)),]
+    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),]
     meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
