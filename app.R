@@ -296,7 +296,12 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     # Zip File
     zipf <- sprintf('%s.zip', prot)
     zipcommand <- sprintf("(cd %s && zip -r %s .)", rootf, prot)
-    system(zipcommand)
+    system(zipcommand, wait=FALSE)
+    while(!file.exists(sprintf('%s/%s', rootf, zipf))){
+        autoInvalidate()
+        cat("")
+        Sys.sleep(5) # Try again in 5 seconds
+    }
     system(sprintf('chmod 775 %s', rootf))
     system(sprintf('chmod 775 %s/%s', rootf, prot))
     system(sprintf('chmod 775 %s/%s', rootf, zipf))
