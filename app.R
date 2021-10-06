@@ -842,7 +842,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             "function(row, data) {",
             "var full_text = 'This rows values are :' + data[0] + ',' + data[1] + '...'",
             "$('td', row).attr('title', full_text);",
-            "Shiny.setInputValue(fv_hover, data[0]);",
+            "Shiny.setInputValue(fv_hover, full_text);",
             "}")
                 ), rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
