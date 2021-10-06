@@ -300,7 +300,6 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     while(!file.exists(sprintf('%s/%s', rootf, zipf))){
         autoInvalidate()
         cat("")
-        Sys.sleep(5) # Try again in 5 seconds
     }
     system(sprintf('chmod 775 %s', rootf))
     system(sprintf('chmod 775 %s/%s', rootf, prot))
