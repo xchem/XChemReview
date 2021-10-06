@@ -429,10 +429,11 @@ header <- dashboardHeader(
 sidebar <- dashboardSidebar(
     sidebarMenu(
         id = 'tab',
-        menuItem('Summary', tabName = 'summary', icon=icon('th'), badgeLabel = 'new', badgeColor = 'green'),
-        menuItem('FragView', tabName = 'fragview', icon = icon('dashboard')),
-        menuItem('Review', tabName = 'review', icon = icon('dashboard')),
-        menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'new', badgeColor = 'green'),
+        menuItem('Summary', tabName = 'summary', icon=icon('th')),
+        menuItem('FragView', tabName = 'fragview', icon = icon('dashboard'), badgeLabel = 'Stage 1'),
+        menuItem('Atom Quality Zone', tabName = 'aqz', icon = icon('dashboard'), badgeLabel = 'DEV', badgeColor='red'),
+        menuItem('Review', tabName = 'review', icon = icon('dashboard'), badgeLavel = 'Stage 2'),
+        menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'Stage 3'),
         menuItem('Help', tabName = 'help', icon = icon('th')),
         hr(),
         # Flexible Sidebar options depending on which menuitem is selected.
@@ -654,6 +655,17 @@ body <- dashboardBody(
             )
         ),
         tabItem(
+            tabName = 'aqz',
+            fluidRow(
+                actionButton('listdump', 'Press Me!'),
+                nglShinyOutput('AVnglShiny', height = '500px'),
+                tabBox(
+                    column(6,div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('AQ'))),
+                    column(6,div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('AQP')))
+                )
+            )
+        )
+        tabItem(
             tabName = 'launchpad',
             uiOutput('launchpad_stuff')
         )
@@ -784,6 +796,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         inputData <- reactive({dbdat})
         return(inputData)
     }
+
+    observeEvent(input$listdump, {
+        session$sendCustomMessage('messageDump', list('a' = 1, 'b' = TRUE, 'c' = 'blahblachlbah', 'd' = 4.00))
+    })
 
     reactiviseData <- function(inputData, input){
         reactive({
@@ -1460,10 +1476,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #selectInput('b1', 'Selection', c('setosa', 'versicolor', 'virginica'))
             ),
             help = tagList(
-                selectInput('c1', 'Selection', c('setosa', 'versicolor', 'virginica'))
+                #selectInput('c1', 'Selection', c('setosa', 'versicolor', 'virginica'))
             ),
             launchpad = tagList(
-                selectInput('d1', 'Selection', c('setosa', 'versicolor', 'virginica'))
+                #selectInput('d1', 'Selection', c('setosa', 'versicolor', 'virginica'))
             ),
             summary = tagList(
                 selectInput('protein_to_summarize', 'Selection', selected = '', choices=sort(unique(as.character(review_data$target_name))))
@@ -1535,13 +1551,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         copied <- file.copy(from=pdf_file, to=sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID), overwrite=TRUE)
         message(copied)
         addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
-    	output$pdfview <- renderUI({
+    	output$buster_pdf <- renderUI({
 		    #includeHTML(file.path('pdf_folder','index.html'))
       		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
     	})
     	showModal(
-    		customDraggableModalDialog(title=pdf_file, 
-                if(length(pdf_file)>0) uiOutput("pdfview")
+    		customDraggableModalDialog(title=pdf_file,
+                if(length(pdf_file)>0) uiOutput("buster_pdf")
                 else 'Unable to find Buster Report', size='l', easyClose=FALSE)
    	    )
     })
@@ -1583,12 +1599,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
 
-    # NGL Shiny Stage...
+    # NGL Shiny Stages... (all share the same work...)
     output$nglShiny <- renderNglShiny(
         nglShiny(name = 'nglShiny', list(), width = NULL, height = NULL)
     )
 
     output$FragViewnglShiny <- renderNglShiny(
+        nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
+    )
+
+    output$AVnglShiny <- renderNglShiny(
         nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
     )
 
