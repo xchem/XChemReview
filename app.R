@@ -650,7 +650,7 @@ body <- dashboardBody(
             fluidRow(
                 nglShinyOutput('FragViewnglShiny', height = '500px'),
                 jqui_draggable(tabBox(
-                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow')), width=10)), textOutput('fv_warn')
+                    div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('therow')), width=10)), textOutput('fv_warn'), textOutput('fv_hover')
             )
         ),
         tabItem(
@@ -805,7 +805,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
-    updateMainTable <- function(r1, pl=25){
+    updateMainTable <- function(r1, pl=100){
         DT::renderDataTable({
             DT::datatable(
                 r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
@@ -831,14 +831,20 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
-    updateMainTable2 <- function(r1, pl=25){
+    updateMainTable2 <- function(r1, pl=100){
         DT::renderDataTable({
             DT::datatable(
                 r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
                 selection = 'single',
                 options = list(
-                    pageLength = pl
-                ), , rownames= TRUE
+                    pageLength = pl,
+                    rowCallback = JS(
+            "function(row, data) {",
+            "var full_text = 'This rows values are :' + data[0] + ',' + data[1] + '...'",
+            "$('td', row).attr('title', full_text);",
+            "Shiny.setInputValue(fv_hover, data[0]);"
+            "}")
+                ), rownames= TRUE
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
         })
     }
