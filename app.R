@@ -816,15 +816,31 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
-                if(input$out7) rowidx[review=='Release'] <- TRUE
-                if(input$out8) rowidx[review=='Reject'] <- TRUE
+                if(input$out7){
+                    rowidx[review=='Release'] <- TRUE
+                } else {
+                    rowidx[review=='Release'] <- FALSE
+                }
+                if(input$out8){
+                    rowidx[review=='Reject'] <- TRUE
+                } else {
+                    rowidx[review=='Reject'] <- FALSE
+                }
                 inputData()[rowidx,]
             } else {
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
-                if(input$out7) rowidx[review=='Release'] <- TRUE
-                if(input$out8) rowidx[review=='Reject'] <- TRUE
+                if(input$out7){
+                    rowidx[review=='Release'] <- TRUE
+                } else {
+                    rowidx[review=='Release'] <- FALSE
+                }
+                if(input$out8){
+                    rowidx[review=='Reject'] <- TRUE
+                } else {
+                    rowidx[review=='Reject'] <- FALSE
+                }
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
         })
@@ -1456,10 +1472,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 ),
                 fluidRow(
                     column(4, checkboxInput('out6', 'Deposited', value = FALSE)),
-                    column(4, checkboxInput('out7', 'Released', value = FALSE)),
+                    column(4, checkboxInput('out7', 'Show Released', value = TRUE)),
                 ),
                 fluidRow(
-                    column(4, checkboxInput('out8', 'Rejected', value = FALSE)),
+                    column(4, checkboxInput('out8', 'Show Rejected', value = TRUE)),
                 )
             ),
             fragview = tagList(
