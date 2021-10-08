@@ -809,17 +809,22 @@ If you believe you have been sent this message in error, please email tyler.gorr
         reactive({
             rowidx <- rep(FALSE, nrow(inputData()))
             outcome <- as.numeric(as.character(inputData()$outcome))
+            review <- inputData()$decision_str
             if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
                 inputData()[,]
             } else if(input$protein == '') {
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
+                if(input$out7) rowidx[review=='Release'] <- TRUE
+                if(input$out8) rowidx[review=='Reject'] <- TRUE
                 inputData()[rowidx,]
             } else {
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
+                if(input$out7) rowidx[review=='Release'] <- TRUE
+                if(input$out8) rowidx[review=='Reject'] <- TRUE
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
         })
@@ -1450,7 +1455,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     column(4, checkboxInput('out5', 'Deposition Ready', value = FALSE))
                 ),
                 fluidRow(
-                    column(4, checkboxInput('out6', 'Deposited', value = FALSE))
+                    column(4, checkboxInput('out6', 'Deposited', value = FALSE)),
+                    column(4, checkboxInput('out7', 'Released', value = FALSE)),
+                ),
+                fluidRow(
+                    column(4, checkboxInput('out8', 'Rejected', value = FALSE)),
                 )
             ),
             fragview = tagList(
