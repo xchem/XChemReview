@@ -2233,16 +2233,26 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$lp_launcher, {
         # Check if things are sound...
         lpprop <- isolate(input$lp_proposal)
-        if(grepl('[0-9]{5}', lpprop) | lpprop == "OPEN"){
+        if((grepl('[0-9]{5}', lpprop) | lpprop == "OPEN")){
             sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
             # Upload to stuff???
             uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
-            showModal(modalDialog(title = 'Upload appears to have been successful', 
-                'Please be patient - you should recieve an email when the upload on fragalysis has succeeded. Please do not resubmit! Things are happening behind the scenes!', footer = modalButton("Dismiss"), size = 's', easyClose = FALSE))
+            showModal(modalDialog(
+                    title = 'Upload appears to have been successful', 
+                    'Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
+                    Please do not resubmit! Things are happening behind the scenes!', 
+                    footer = modalButton("Dismiss"),
+                    easyClose = FALSE
+            ))
         } else {
             showModal(modalDialog(
                 title = 'Please fill out the form!', 
-                'Clicking upload data will trigger an upload event, to do this we require a suitable proposal. If you want to release the data to the public please input OPEN in the Proposal number box, otherwise enter the 5 digit number from your proposal. E.g. if your visit is lb12345 you should enter 12345', footer = modalButton("Dismiss"),size = 's', easyClose = FALSE))
+                'Clicking upload data will trigger an upload event, to do this we require a suitable proposal. 
+                If you want to release the data to the public please input OPEN in the Proposal number box, otherwise enter the 5 digit number from your proposal. 
+                E.g. if your visit is lb12345 you should enter 12345', 
+                footer = modalButton("Dismiss"), 
+                easyClose = FALSE
+            ))
         }
 
     })
