@@ -2222,7 +2222,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         progress <- shiny::Progress$new()
         on.exit(progress$close())
         progress$set(message = "Uploading Fragalysis Folder", value = 0)
-        command <- sprintf('/dls/science/groups/i04-1/fragprep/scripts/upload_2_fragalysis.sh %s %s %s %s %s', basename(filepath), target, proposal, email, filepath, dirname(filepath))
+        command <- sprintf('/dls/science/groups/i04-1/fragprep/scripts/upload_2_fragalysis.sh %s %s %s %s %s', basename(filepath), target, proposal, email, filepath)
         print(command)
         system(command, wait=TRUE)
         #while(!file.exists(sprintf('%s/upload.done', dirname(filepath)))){
