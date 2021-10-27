@@ -2203,10 +2203,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
 	        checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
-            textInput('lp_proposal', 'Proposal Number', value = "", placeholder = 'OPEN or number e.g. 12345')
-            textInput('lp_email', 'Email Address', value = "")
-            actionButton('lp_launcher', "Launch!!!!"),
-            downloadButton("downloadFragData", "Download Data")
+            textInput('lp_proposal', 'Proposal Number', value = "", placeholder = 'OPEN or number e.g. 12345'),
+            textInput('lp_email', 'Email Address', value = ""),
+            actionButton('lp_launcher', "Upload Data")#,
+            #downloadButton("downloadFragData", "Download Data")
         )
     })
 
