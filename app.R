@@ -2233,7 +2233,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         # Check if things are sound...
         sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
         # Upload to stuff???
-        # uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$proposal))
+        uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$proposal))
     })
 
     output$downloadFragData <- downloadHandler(
