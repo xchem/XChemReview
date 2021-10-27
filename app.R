@@ -295,9 +295,9 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
 
     # Zip File
     zipf <- sprintf('%s.zip', prot)
-    zipcommand <- sprintf("(cd %s && zip -r %s .)", rootf, prot)
+    zipcommand <- sprintf("(cd %s && zip -r %s . && touch done.log)", rootf, prot)
     system(zipcommand, wait=FALSE)
-    while(!file.exists(sprintf('%s/%s', rootf, zipf))){
+    while(!file.exists(sprintf('%s/done.log', rootf))){
         cat("")
     }
     system(sprintf('chmod 775 %s', rootf))
@@ -2202,9 +2202,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$launchpad_stuff <- renderUI({
         fluidPage(
             selectInput('lp_selection','Select Target', selected = '', choices=fragfolders),
+	        checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
+            textInput('lp_proposal', 'Proposal Number', value = "", placeholder = 'OPEN or number e.g. 12345')
+            textInput('lp_email', 'Email Address', value = "")
             actionButton('lp_launcher', "Launch!!!!"),
-	    checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
-            downloadButton("downloadFragData", "Download")
+            downloadButton("downloadFragData", "Download Data")
         )
     })
 
@@ -2214,13 +2216,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
         }
-        print(head(sessionlist$fumeta))
-        message('Meta Compiled')
     })
 
+    uploadFragFolder <-  function(filepath, target, proposal, email){
+        progress <- shiny::Progress$new()
+        on.exit(progress$close())
+        progress$set(message = "Uploading Fragalysis Folder", value = 0)
+        command <- sprintf('/dls/science/groups/i04-1/fragprep/scripts/upload_2_fragalysis.sh %s %s %s %s %s && touch %s/upload.done', basename(filepath), target, proposal, email, filepath, dirname(filepath))
+        system(command, wait=FALSE)
+        while(!file.exists(sprintf('%s/upload.done', dirname(filepath)))){
+            cat("")
+        }
+    }
+
     observeEvent(input$lp_launcher, {
-        message('LAUNCH!!!')
+        # Check if things are sound...
         sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
+        # Upload to stuff???
+        # uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$proposal))
     })
 
     output$downloadFragData <- downloadHandler(
