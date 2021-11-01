@@ -2224,7 +2224,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         progress$set(message = "Uploading Fragalysis Folder", value = 0)
         command <- sprintf('/dls/science/groups/i04-1/fragprep/scripts/upload_2_fragalysis.sh %s %s %s %s %s', basename(filepath), target, proposal, email, filepath)
         print(command)
-        system(command, wait=TRUE)
+        task <- tail(system(command, intern=T),1)
+        return(task)
         #while(!file.exists(sprintf('%s/upload.done', dirname(filepath)))){
         #    cat("")
         #}
@@ -2236,11 +2237,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if((grepl('[0-9]{5}', lpprop) | lpprop == "OPEN")){
             sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
             # Upload to stuff???
-            uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
+            task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
             showModal(modalDialog(
                     title = 'Upload appears to have been successful', 
-                    'Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
-                    Please do not resubmit! Things are happening behind the scenes!', 
+                    sprintf('Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
+                    You can track the progress of the upload here: https://fragalysis.diamond.ac.uk/viewer/upload_task/%s/
+                    Please do not resubmit! Things are happening behind the scenes!', task), 
                     footer = modalButton("Dismiss"),
                     easyClose = FALSE
             ))
@@ -2249,7 +2251,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 title = 'Please fill out the form!', 
                 'Clicking upload data will trigger an upload event, to do this we require a suitable proposal. 
                 If you want to release the data to the public please input OPEN in the Proposal number box, otherwise enter the 5 digit number from your proposal. 
-                E.g. if your visit is lb12345 you should enter 12345', 
+                E.g. if your proposal is lb12345 you should enter 12345', 
                 footer = modalButton("Dismiss"), 
                 easyClose = FALSE
             ))
