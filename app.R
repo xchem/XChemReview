@@ -56,7 +56,7 @@ write_to_mol_file <- function(mol_file, id_str, comment_str){
     cat(paste(lines, collapse='\n'), file = mol_file)
 }
 
-rewriteMols <- function(){
+rewriteMols <- function(target){ # This need refactoring later......
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
     atoms <- dbGetQuery(con, 'SELECT * from "BadAtoms"')
     reviews <- dbGetQuery(con, 'SELECT * from "review_responses_new"')
@@ -812,10 +812,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         inputData <- reactive({dbdat})
         return(inputData)
     }
-
-    observeEvent(input$listdump, {
-        session$sendCustomMessage('messageDump', list('a' = 1, 'b' = TRUE, 'c' = 'blahblachlbah', 'd' = 4.00))
-    })
 
     reactiviseData <- function(inputData, input){
         reactive({
