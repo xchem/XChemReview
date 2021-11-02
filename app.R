@@ -1,4 +1,5 @@
 local = FALSE
+Sys.sleep(sum(sapply(1:5,function(x) abs(rnorm(1))))) # Wait for a random amount of time...
 # Generic Shiny Libraries
 library(httr)
 library(shiny)
@@ -818,12 +819,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
             rowidx <- rep(FALSE, nrow(inputData()))
             outcome <- as.numeric(as.character(inputData()$outcome))
             review <- inputData()$decision_str
-            #if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
+            if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
                 inputData()[,]
-            #} else if(input$protein == '') {
-            #    if(input$out4) rowidx[outcome==4] <- TRUE
-            #    if(input$out5) rowidx[outcome==5] <- TRUE
-            #    if(input$out6) rowidx[outcome==6] <- TRUE
+            } else if(input$protein == '') {
+                if(input$out4) rowidx[outcome==4] <- TRUE
+                if(input$out5) rowidx[outcome==5] <- TRUE
+                if(input$out6) rowidx[outcome==6] <- TRUE
                 #if(input$out7){
                 #    rowidx[review=='Release'] <- TRUE
                 #} else {
@@ -834,11 +835,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #} else {
                 #    rowidx[review=='Reject'] <- FALSE
                 #}
-            #    inputData()[rowidx,]
-            #} else {
-            #    if(input$out4) rowidx[outcome==4] <- TRUE
-            #    if(input$out5) rowidx[outcome==5] <- TRUE
-            #    if(input$out6) rowidx[outcome==6] <- TRUE
+                inputData()[rowidx,]
+            } else {
+                if(input$out4) rowidx[outcome==4] <- TRUE
+                if(input$out5) rowidx[outcome==5] <- TRUE
+                if(input$out6) rowidx[outcome==6] <- TRUE
                 #if(input$out7){
                 #    rowidx[review=='Release'] <- TRUE
                 #} else {
@@ -849,8 +850,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #} else {
                 #    rowidx[review=='Reject'] <- FALSE
                 #}
-            #    inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
-            #}
+                inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
+            }
         })
     }
 
@@ -1576,6 +1577,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$reviewtable <- updateMainTable(r1=r1)
             reviewtableproxy <- DT::dataTableProxy('reviewtable')
+            reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
             # Update table bindings?
             showModal(
                 controlPanelModal(
