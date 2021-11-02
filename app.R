@@ -37,21 +37,6 @@ library(plotly)
 
 sessionInfo()
 
-# Update existing mol_files with latest atom comments
-con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-atoms <- dbGetQuery(con, 'SELECT * from "BadAtoms"')
-reviews <- dbGetQuery(con, 'SELECT * from "review_responses_new"')
-fligands <- dbGetQuery(con, 'SELECT * from "FragalysisLigand"')
-fligand_id <- fligands$id
-rownames(fligands) <- as.character(fligand_id)
-ligands <- dbGetQuery(con, 'SELECT * from "ligand"')
-dbDisconnect(con)
-ligand_id <- ligands$id
-rownames(ligands) <- as.character(ligand_id)
-latest_review <-  t(sapply(split(reviews, reviews$Ligand_name_id), function(x) x[which.max(x$time_submitted),]))
-
-
-
 write_to_mol_file <- function(mol_file, id_str, comment_str){
     lines <- readLines(mol_file)
     if(any(lines == '> <BADATOMS>')){
@@ -71,21 +56,33 @@ write_to_mol_file <- function(mol_file, id_str, comment_str){
     cat(paste(lines, collapse='\n'), file = mol_file)
 }
 
-for(i in 1:nrow(latest_review)){
-    lig <- latest_review[i,'Ligand_name_id']
-    rev <- latest_review[i,'id']
-    mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
-    ids_to_grab <- which(atoms$Review_id==rev)
-    if(length(ids_to_grab)>0){
-	print(mol_file)
-        id_str <- atoms[ids_to_grab, 'atomid']
-        comment_str <- atoms[ids_to_grab, 'comment']
-        id_str2 <- paste0(id_str, collapse=';')
-        comment_str2 <- paste0(comment_str, collapse=';')
-        try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
+rewriteMols <- function(){
+    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    atoms <- dbGetQuery(con, 'SELECT * from "BadAtoms"')
+    reviews <- dbGetQuery(con, 'SELECT * from "review_responses_new"')
+    fligands <- dbGetQuery(con, 'SELECT * from "FragalysisLigand"')
+    fligand_id <- fligands$id
+    rownames(fligands) <- as.character(fligand_id)
+    ligands <- dbGetQuery(con, 'SELECT * from "ligand"')
+    dbDisconnect(con)
+    ligand_id <- ligands$id
+    rownames(ligands) <- as.character(ligand_id)
+    latest_review <-  t(sapply(split(reviews, reviews$Ligand_name_id), function(x) x[which.max(x$time_submitted),]))
+    for(i in 1:nrow(latest_review)){
+        lig <- latest_review[i,'Ligand_name_id']
+        rev <- latest_review[i,'id']
+        mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
+        ids_to_grab <- which(atoms$Review_id==rev)
+        if(length(ids_to_grab)>0){
+	        print(mol_file)
+            id_str <- atoms[ids_to_grab, 'atomid']
+            comment_str <- atoms[ids_to_grab, 'comment']
+            id_str2 <- paste0(id_str, collapse=';')
+            comment_str2 <- paste0(comment_str, collapse=';')
+            try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
+        }
     }
 }
-
 
 # I can't believe this doesn't exist in R!
 # Functional equivalent to string.rsplit('_', 1)
@@ -101,21 +98,31 @@ get_residues <- function(pdb_file){
 }
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password, target_list){
+    # Get data from target_list only first...
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    ligand_data <- dbGetQuery(con, "SELECT * from ligand")
+
+    targs <- dbGetQuery(con, 'SELECT * from target')
+    target_ids <- paste(targs[targs[,2] %in% target_list, 1], collapse=',')
+    
+    ligand_data <- dbGetQuery(con, sprintf("SELECT * from ligand WHERE target_id IN (%s)", target_ids))
     lig_crys_ids <- paste(ligand_data[,'crystal_id'], collapse=',')
+
     ligand_crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", lig_crys_ids))
     rownames(ligand_crystal_data) <- as.character(ligand_crystal_data$id)
     lig_fl_ids <- paste(ligand_data[,'fragalysis_ligand_id'], collapse=',')
+
     ligand_fl_data <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE id IN (%s)", lig_fl_ids))
     rownames(ligand_fl_data) <-  as.character(ligand_fl_data$id)
+
     ligand_refinement_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, spacegroup, outcome, cif, pdb_latest, mtz_latest FROM refinement WHERE crystal_name_id IN (%s)", lig_crys_ids))
     rownames(ligand_refinement_data) <- as.character(ligand_refinement_data$crystal_name_id)
 
     ligand_target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(ligand_crystal_data[,'target_id'], collapse=',')))
     rownames(ligand_target_data) <- as.character(ligand_target_data$id)
+
     ligand_compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(ligand_crystal_data[,'compound_id'], collapse=',')))
     rownames(ligand_compound_data) <- as.character(ligand_compound_data$id)
+
     ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
     mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
     if(nrow(mostrecent)>1){
@@ -149,7 +156,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    output <- output[output$target_name %in% target_list, ] # Add to list as more targets needed?
+    #output <- output[output$target_name %in% target_list, ] # Add to list as more targets needed?
     dbDisconnect(con)
 
     return(output)
@@ -157,35 +164,40 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
 
 getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password, target_list){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    # Get All ligands that are reviewed as release or above. Mandatory...
-    ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
-    mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-    to_release_ids <- unlist(mostrecent$Ligand_name_id[mostrecent$decision_int==1])
-    liganded_ligands <- dbGetQuery(con, "SELECT fragalysis_ligand_id, id from ligand")
-    ind <- as.character(liganded_ligands[,2]) %in% as.character(to_release_ids)
-    fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
-    md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
-    rownames(md) <- md$Ligand_name_id
-    # Show all even if not reviewed...
-    annotatable_fv_dat <- fvdat#fvdat[!fvdat$id %in% liganded_ligands[!ind, 1], ]
-    targets <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisTarget\" WHERE id IN (%s)", paste(unique(annotatable_fv_dat$fragalysis_target_id), collapse=',')))
+
+    targs <- dbGetQuery(con, "SELECT * from \"FragalysisTarget\"") 
+    target_ids <- paste(targs$id[targs$target %in% target_list], collapse=',')
+    targets <- targs[targs$target %in% target_list,]
     rownames(targets) <- as.character(targets$id)
-    output <- cbind(annotatable_fv_dat, targetname=targets[as.character(annotatable_fv_dat$fragalysis_target_id), 'target'], md[as.character(annotatable_fv_dat$id),])
+
+    fvdat <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE fragalysis_target_id IN (%s)", target_ids))
+    md_ids <- paste(fvdat$id, collapse=',')
+
+    md <- dbGetQuery(con, sprintf("SELECT * FROM \"MetaData\" WHERE \"Ligand_name_id\" in (%s)", md_ids))
     dbDisconnect(con)
+    rownames(md) <- md$Ligand_name_id
+
+    output <- cbind(fvdat, targetname=targets[as.character(fvdat$fragalysis_target_id), 'target'], md[as.character(fvdat$id),])
+
     rns <- gsub('[.]', '-', make.names(as.character(output$ligand_name), unique=TRUE))
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
-    output <- output[output$targetname %in% target_list, ]
     return(output)
 }
 
 createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, target){
     con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    fvdat <- dbGetQuery(con, "SELECT * from \"FragalysisLigand\"")
-    md <- dbGetQuery(con, "SELECT * FROM \"MetaData\"")
+
+    targs <- dbGetQuery(con, "SELECT * from \"FragalysisTarget\"") 
+    target_ids <- paste(targs$id[targs$target %in% target], collapse=',')
+
+    fvdat <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE fragalysis_target_id IN (%s)", target_ids))
+    md_ids <- paste(fvdat$id, collapse=',')
+
+    md <- dbGetQuery(con, sprintf("SELECT * FROM \"MetaData\" WHERE \"Ligand_name_id\" in (%s)", md_ids))
     prot <- target
-    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),]
+    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),] # Might be a problem for later...
     meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
@@ -816,31 +828,31 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
-                if(input$out7){
-                    rowidx[review=='Release'] <- TRUE
-                } else {
-                    rowidx[review=='Release'] <- FALSE
-                }
-                if(input$out8){
-                    rowidx[review=='Reject'] <- TRUE
-                } else {
-                    rowidx[review=='Reject'] <- FALSE
-                }
+                #if(input$out7){
+                #    rowidx[review=='Release'] <- TRUE
+                #} else {
+                #    rowidx[review=='Release'] <- FALSE
+                #}
+                #if(input$out8){
+                #    rowidx[review=='Reject'] <- TRUE
+                #} else {
+                #    rowidx[review=='Reject'] <- FALSE
+                #}
                 inputData()[rowidx,]
             } else {
                 if(input$out4) rowidx[outcome==4] <- TRUE
                 if(input$out5) rowidx[outcome==5] <- TRUE
                 if(input$out6) rowidx[outcome==6] <- TRUE
-                if(input$out7){
-                    rowidx[review=='Release'] <- TRUE
-                } else {
-                    rowidx[review=='Release'] <- FALSE
-                }
-                if(input$out8){
-                    rowidx[review=='Reject'] <- TRUE
-                } else {
-                    rowidx[review=='Reject'] <- FALSE
-                }
+                #if(input$out7){
+                #    rowidx[review=='Release'] <- TRUE
+                #} else {
+                #    rowidx[review=='Release'] <- FALSE
+                #}
+                #if(input$out8){
+                #    rowidx[review=='Reject'] <- TRUE
+                #} else {
+                #    rowidx[review=='Reject'] <- FALSE
+                #}
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
         })
@@ -1472,11 +1484,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 ),
                 fluidRow(
                     column(4, checkboxInput('out6', 'Deposited', value = FALSE)),
-                    column(4, checkboxInput('out7', 'Show Released', value = TRUE)),
-                ),
-                fluidRow(
-                    column(4, checkboxInput('out8', 'Show Rejected', value = TRUE)),
-                )
+                    #column(4, checkboxInput('out7', 'Show Released', value = TRUE)),
+                )#,
+                #fluidRow(
+                #    column(4, checkboxInput('out8', 'Show Rejected', value = TRUE)),
+                #)
             ),
             fragview = tagList(
                     selectInput('fragSelect', 'Project Select', selected = '', choices=fragfolders),
@@ -1628,7 +1640,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
 
-    # NGL Shiny Stages... (all share the same work...)
+    # NGL Shiny Stages... (all share the same work...) 
     output$nglShiny <- renderNglShiny(
         nglShiny(name = 'nglShiny', list(), width = NULL, height = NULL)
     )
