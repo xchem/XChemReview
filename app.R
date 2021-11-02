@@ -1571,6 +1571,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$tab, ignoreNULL=TRUE, {
         if(input$tab == 'review'){
+            # Rebind?
+            inputData <- restartSessionKeepOptions()
+            r1 <- reactiviseData(inputData=inputData, input=input)
+            output$reviewtable <- updateMainTable(r1=r1)
+            reviewtableproxy <- DT::dataTableProxy('reviewtable')
+            # Update table bindings?
             showModal(
                 controlPanelModal(
                     values = isolate(ngl_control_values$defaults),
