@@ -54,7 +54,8 @@ getAtomIDs <- function(pdb, lignum, chain){
 
 getResNum <- function(pdb){
     pdb <- bio3d::read.pdb(pdb)
-    return(as.character(pdb$atom$resno[1]))
+    #return(as.character(pdb$atom$resno[1]))
+    return(sprintf('@%s',paste(rownames(pdb$atom), collapse=',')))
 }
 
 write_to_mol_file <- function(mol_file, id_str, comment_str){
