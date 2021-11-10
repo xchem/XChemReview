@@ -39,6 +39,7 @@ library(plotly)
 sessionInfo()
 
 getAtomIDs <- function(pdb, lignum, chain){
+    pdb <- bio3d::read.pdb(pdb)
 	ligtable <- pdb$atom[pdb$atom$resid == 'LIG',]
 	if(chain == ''){
 		chaintab <- split(ligtable, ligtable$chain)
@@ -1973,7 +1974,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         # the pdb_file...
                         # Fetch lignum and chain
                         lc = strsplit(splitted[2], split='_')[[1]][2]
-                        focus_point <- getAtomIDs(pdb=the_pdb_file, lignum=substr(lc,1,1), chain =substr(lc,2,2))
+                        focus_point <- getAtomIDs(pdb=the_pdb_file, lignum=substr(lc,1,1), chain=substr(lc,2,2))
                         try(uploadPDB(the_pdb_file, input=input, focus_point=focus_point), silent=T)
                         try(addContacts(the_pdb_file), silent=TRUE)
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
