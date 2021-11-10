@@ -52,6 +52,11 @@ getAtomIDs <- function(pdb, lignum, chain){
 	return(sprintf('@%s',paste(output, collapse=',')))
 }
 
+getResNum <- function(pdb){
+    pdb <- bio3d::read.pdb(pdb)
+    return(as.character(pdb$atom$resno[1]))
+}
+
 write_to_mol_file <- function(mol_file, id_str, comment_str){
     lines <- readLines(mol_file)
     if(any(lines == '> <BADATOMS>')){
@@ -1968,13 +1973,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     'crystallographic' = {
                         session$sendCustomMessage(type = 'save_camera_pos', message = list())
                         splitted <-  rsplit(the_pdb_file, '/')
+                        lig_pdb_file <- gsub('_apo', '', the_pdb_file)
                         the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
                         the_pdb_file <- sprintf('%s/%s.pdb', the_folder, the_xtal_name)
                         # the pdb_file...
                         # Fetch lignum and chain
-                        lc = strsplit(splitted[2], split='_')[[1]][2]
-                        focus_point <- getAtomIDs(pdb=the_pdb_file, lignum=substr(lc,1,1), chain=substr(lc,2,2))
+                        #lc = strsplit(splitted[2], split='_')[[1]][2]
+                        focus_point <- getResNum(lig_pdb_file)
                         try(uploadPDB(the_pdb_file, input=input, focus_point=focus_point), silent=T)
                         try(addContacts(the_pdb_file), silent=TRUE)
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
