@@ -43,10 +43,10 @@ getAtomIDs <- function(pdb, lignum, chain){
 	ligtable <- pdb$atom[pdb$atom$resid == 'LIG',]
 	if(chain == ''){
 		chaintab <- split(ligtable, ligtable$chain)
-		restab <- split(chaintab[[chain]], chaintab[[chain]]$resno)[[lignum+1]]
+		restab <- split(chaintab[[chain]], chaintab[[chain]]$resno)[[as.numeric(lignum)+1]]
 		output <- rownames(restab)
 	} else {
-		restab <- split(ligtable, ligtable$resno)[[lignum+1]]
+		restab <- split(ligtable, ligtable$resno)[[as.numeric(lignum)+1]]
 		output <- rownames(restab)
 	}
 	return(sprintf('@%s',paste(output, collapse=',')))
