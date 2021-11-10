@@ -38,6 +38,19 @@ library(plotly)
 
 sessionInfo()
 
+getAtomIDs <- function(pdb, lignum, chain){
+	ligtable <- pdb$atom[pdb$atom$resid == 'LIG',]
+	if(chain == ''){
+		chaintab <- split(ligtable, ligtable$chain)
+		restab <- split(chaintab[[chain]], chaintab[[chain]]$resno)[[lignum+1]]
+		output <- rownames(restab)
+	} else {
+		restab <- split(ligtable, ligtable$resno)[[lignum+1]]
+		output <- rownames(restab)
+	}
+	return(sprintf('@%s',paste(output, collapse=',')))
+}
+
 write_to_mol_file <- function(mol_file, id_str, comment_str){
     lines <- readLines(mol_file)
     if(any(lines == '> <BADATOMS>')){
@@ -761,6 +774,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         'Check Rfactors',
         'Check that refinement converged',
         'Improve water model',
+        'Incomplete Event Density',
         'Build alternate conformations',
         'Fix geometry',
         'Trim down ligand',
@@ -771,7 +785,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         'Confirm ligand identity',
         'Check if ligand changed',
         'Other')
-    possRes[["Reject"]] <- c('Density not convincing',
+    possRes[["Reject"]] <- c(
+        'Density not convincing',
         'Too few interactions',
         'Binding site too noisy',
         'Not the ligand',
@@ -1660,7 +1675,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # PBD uploader
     removeNamedComponent <- function(objectname) session$sendCustomMessage(type='removeNamedComponent', list(objectname))
 
-    uploadPDB <- function(filepath, input){
+    uploadPDB <- function(filepath, input, focus_point = 'LIG'){
         syscall <- sprintf('cat %s', filepath)
         pdbstrings <- system(syscall, intern = TRUE)
         choice <- paste0(pdbstrings, collapse = '\n')
@@ -1672,7 +1687,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 isolate(input$clipping)[1],
                 isolate(input$clipping)[2],
                 isolate(input$fogging)[1],
-                isolate(input$fogging)[2]
+                isolate(input$fogging)[2],
+                focus_point
             )
         )
     }
@@ -1954,7 +1970,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_folder <- dirname(gsub('aligned', 'crystallographic', splitted[1]))
                         the_xtal_name <- gsub('_[0-9][A-Z]_apo.pdb', '', splitted[2])
                         the_pdb_file <- sprintf('%s/%s.pdb', the_folder, the_xtal_name)
-                        try(uploadPDB(the_pdb_file, input=input), silent=T)
+                        # the pdb_file...
+                        # Fetch lignum and chain
+                        lc = strsplit(splitted[2], split='_')[[1]][2]
+                        focus_point <- getAtomIDs(pdb=the_pdb_file, lignum=substr(lc,1,1), chain =substr(lc,2,2))
+                        try(uploadPDB(the_pdb_file, input=input, focus_point=focus_point), silent=T)
                         try(addContacts(the_pdb_file), silent=TRUE)
                         the_2fofc_map <- sprintf('%s/%s_2fofc.map', the_folder, the_xtal_name)
                         the_fofc_map <- sprintf('%s/%s_fofc.map', the_folder, the_xtal_name)
