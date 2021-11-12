@@ -2303,7 +2303,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     output$downloadMeta <- downloadHandler(
-        filename = 'metadata.csv',
+        filename = function() {return('metadata.csv')},
         content = function(file){
             write.csv(sessionlist$fumeta, file)
         }
