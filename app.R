@@ -590,7 +590,7 @@ body <- dashboardBody(
                                     ),
                                     column(6, 
                                         helpText('Modelled Ligand'),
-                                        imageOutput('renderedligimage')
+                                        imageOutput('rl_image')
                                     )
                                 ),
                                 column(4,
@@ -1910,7 +1910,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
             rendered_ligfile <- gsub('_apo.pdb', '.png', isolate(sessionlist$apo_file))
-            #tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE), 1)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
@@ -1925,12 +1924,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     list(src = '',contentType = 'image/png',width=200,height=200)
                 }
             }, deleteFile=FALSE)
-            output$renderedligimage <- renderImage({
-                if(length(rendered_ligfile) == 1){
-                    list(src=rendered_ligfile, contentType='image/png', width=200, height=200)
-                } else {
-                    list(src = '', contentType = 'image/png', width=200, height=200)
-                }
+            output$rl_image <- renderImage({
+                list(src = rendered_ligfile, contentType = 'image/png', width=200, height=200)
             }, deleteFile=FALSE)
         }
 
