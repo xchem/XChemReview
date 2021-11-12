@@ -2253,7 +2253,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             actionButton('lp_launcher', "Upload Data"),
             fluidRow(
                 column(12,
-                    dataTableOutput('lp_meta')
+                    DT::dataTableOutput('lp_meta')
                 )
             )
         )
@@ -2265,7 +2265,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
         }
-        output$lp_meta <- renderDataTable(sessionlist$fumeta, options = list(pageLength = 500))
+        output$lp_meta <- DT::renderDataTable({
+            DT::datatable(
+                sessionlist$fumeta, callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+                options = list(
+                    pageLength = 500
+                )
+            )
+        }, server=FALSE)
     })
 
     uploadFragFolder <-  function(filepath, target, proposal, email){
