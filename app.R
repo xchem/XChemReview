@@ -1931,7 +1931,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 } else {
                     list(src = '', contentType = 'image/png', width=200, height=200)
                 }
-            }, deleteFile=False)
+            }, deleteFile=FALSE)
         }
 
         withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
