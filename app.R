@@ -2249,8 +2249,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 	        checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
             textInput('lp_proposal', 'Proposal Number', value = "", placeholder = 'OPEN or number e.g. 12345'),
             textInput('lp_email', 'Email Address', value = ""),
-            actionButton('lp_launcher', "Upload Data")#,
-            #downloadButton("downloadFragData", "Download Data")
+            downloadButton("downloadMeta", "Download Metadata"),
+            actionButton('lp_launcher', "Upload Data")
         )
     })
 
@@ -2300,8 +2300,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 easyClose = FALSE
             ))
         }
-
     })
+
+    output$downloadMeta <- downloadHandler(
+        filename = 'metadata.csv',
+        content = function(file){
+            write.csv(sessionlist$fumeta, file)
+        }
+    )
 
     output$downloadFragData <- downloadHandler(
         filename = function() {
