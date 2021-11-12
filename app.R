@@ -797,6 +797,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         'Too few interactions',
         'Binding site too noisy',
         'Not the ligand',
+        'Duplicate Pose'
         'Other')
     possDec_int <- 1:4
     names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Reject")
@@ -1594,6 +1595,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     observeEvent(input$tab, ignoreNULL=TRUE, {
         if(input$tab == 'review'){
+            output$nglShiny <- renderNglShiny(
+                nglShiny(name = 'nglShiny', list(), width = NULL, height = NULL)
+            )
             # Rebind?
             inputData <- restartSessionKeepOptions()
             r1 <- reactiviseData(inputData=inputData, input=input)
@@ -1607,6 +1611,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     title = 'As part of setup please confirm NGL Viewer Controls'
                 )
             )
+        }
+        if(input$tab == 'fragview'){
+            # rebind...
+            output$FragViewnglShiny <- renderNglShiny(
+                nglShiny(name = 'nglShiny', list(), width=NULL, height=100)
+            )
+            fragview_input <- react_fv_data(fragview_data, input)
+            fragview_table_data <- react_fv_data2(fragview_data, input)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
+            fragviewproxy <- DT::dataTableProxy('therow')
+            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         }
     })
 
