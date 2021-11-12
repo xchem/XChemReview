@@ -2249,8 +2249,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
 	        checkboxInput('lp_copymaps', 'Copy MapFiles?', value=TRUE),
             textInput('lp_proposal', 'Proposal Number', value = "", placeholder = 'OPEN or number e.g. 12345'),
             textInput('lp_email', 'Email Address', value = ""),
-            downloadButton("downloadMeta", "Download Metadata"),
-            actionButton('lp_launcher', "Upload Data")
+            #downloadButton("downloadMeta", "Download Metadata"),
+            actionButton('lp_launcher', "Upload Data"),
+            fluidRow(
+                column(12,
+                    dataTableOutput('lp_meta')
+                )
+            )
         )
     })
 
@@ -2260,6 +2265,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
         }
+        output$lp_meta <- renderDataTable(sessionlist$fumeta, options = list(pageLength = 500))
     })
 
     uploadFragFolder <-  function(filepath, target, proposal, email){
