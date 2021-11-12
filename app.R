@@ -22,7 +22,7 @@ if(local) {
     source('./my_config.R')
 } else {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
-    install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    #install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
 }
 
@@ -797,7 +797,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         'Too few interactions',
         'Binding site too noisy',
         'Not the ligand',
-        'Duplicate Pose'
+        'Duplicate Pose',
         'Other')
     possDec_int <- 1:4
     names(possDec_int) <- c("Release", "More Refinement", "More Experiments", "Reject")
