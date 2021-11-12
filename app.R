@@ -1909,7 +1909,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #    }
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
-            rendered_ligfile <- tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE), 1)
+            rendered_ligfile <- gsub('_apo.pdb', '.png', isolate(sessionlist$apo_file))
+            #tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='.png', full.names = TRUE), 1)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
