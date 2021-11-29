@@ -29,7 +29,8 @@ if(local) {
 target_list <- sort(c(
 	'Mpro',
 	#'PlPro',
-	'NSP16'
+	'NSP16',
+    'macro-combi'
 ))
 fragfolders <- c('', target_list)
 # Plotting Libs
@@ -1105,9 +1106,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
 
     uploadMolAndFocus2 <- function(filepath){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'fv_addMolandfocus',
             list(choice)
@@ -1115,9 +1117,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadMolNoFocus <- function(filepath, color){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'fv_addMolandfocus_withcolor',
             list(choice, color)
@@ -1698,9 +1701,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     removeNamedComponent <- function(objectname) session$sendCustomMessage(type='removeNamedComponent', list(objectname))
 
     uploadPDB <- function(filepath, input, focus_point = 'LIG'){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'setPDB2', # See TJGorrie/NGLShiny for details on setPDB2
             message = list(
@@ -1719,9 +1723,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     tcl <- function(x) tolower(as.character(as.logical(x)))
 
     uploadApoPDB <- function(filepath, repr, focus){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'setapoPDB',
             message = list(
@@ -1733,9 +1738,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     addContacts <- function(filepath){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'addContacts',
             message = list(
@@ -1746,9 +1752,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     uploadBFactors <- function(filepath, clear=TRUE){
         if(clear) clearWindowField(id='bfactor')
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'setBFactor',
             message = list(
@@ -1758,9 +1765,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadMolAndFocus <- function(filepath, ext, focus){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        #choice <- paste0(pdbstrings, collapse = '\n')
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type = 'addMolandfocus',
             list(choice,ext, tcl(focus))
@@ -1768,9 +1776,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     uploadUnfocussedMol <- function(filepath){
-        syscall <- sprintf('cat %s', filepath)
-        pdbstrings <- system(syscall, intern = TRUE)
-        choice <- paste0(pdbstrings, collapse = '\n')
+        #syscall <- sprintf('cat %s', filepath)
+        #pdbstrings <- system(syscall, intern = TRUE)
+        choice <- paste0(readLines(filepath), collapse='\n')
         session$sendCustomMessage(
             type='addMol',
             list(choice)
