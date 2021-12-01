@@ -145,14 +145,31 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
     rownames(ligand_target_data) <- as.character(ligand_target_data$id)
 
     # This needs tweaking... Is this going to be slow??
+    q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", paste(as.character(ligand_data$crystal_id), collapse=',')))
+    q2 <- dbGetQuery(con, sprintf("SELECT * FROM compound WHERE id IN (%s)", paste(as.character(q1$compound_id), collapse=',')))
+    
+    
+    # Can this be vectorised???
     ccp <- t(sapply(as.character(ligand_data$crystal_id), function(x){
-        q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", x))
-        q2 <- t(sapply(as.character(q1$compound_id), function(y){
-            dbGetQuery(con, sprintf("SELECT * FROM compound WHERE id IN (%s)", paste(y, collapse=',')))
-        }))
-        # Returns None;NA for some things...
-        return(c('SMILES'= paste(q2[,'smiles'], collapse=';'), 'product_smiles'=paste(q1[,'product_smiles'], collapse=';'), 'compound_code'= paste(q2[,'compound_string'], collapse=';')))
+        ccpids <- q1[x == q1$crystal_id, ]
+        cids <- q2[q2$id %in% ccpids$compound_id, ]
+        ccpids[ccpids$product_smiles == 'None' | is.na(ccpids$product_smiles),'product_smiles'] <- ''
+        return(
+            c(
+                'SMILES'= paste(cids[,'smiles'], collapse=';'), 
+                'product_smiles'=paste(ccpids[,'product_smiles'], collapse=';'), 
+                'compound_code'= paste(cids[,'compound_string'], collapse=';')
+            )
+        )
     }))
+    #ccp <- t(sapply(as.character(ligand_data$crystal_id), function(x){
+    #    q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", x))
+    #    q2 <- t(sapply(as.character(q1$compound_id), function(y){
+    #        dbGetQuery(con, sprintf("SELECT * FROM compound WHERE id IN (%s)", paste(y, collapse=',')))
+    #    }))
+    #    # Returns None;NA for some things...
+    #    return(c('SMILES'= paste(q2[,'smiles'], collapse=';'), 'product_smiles'=paste(q1[,'product_smiles'], collapse=';'), 'compound_code'= paste(q2[,'compound_string'], collapse=';')))
+    #}))
 
     #ligand_compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(ligand_crystal_data[,'compound_id'], collapse=',')))
     rownames(ccp) <- as.character(ligand_data$crystal_id)
