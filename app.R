@@ -1314,7 +1314,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Save Responses.
     # Write Atom Data to ligand
     writeAtoms <- function(ligand_id){
-        newdat <- cbind(
+        newdat <- data.frame(
             ligand=ligand_id,
             atomid=paste(as.numeric(atomstoquery$data[,'index']), collapse=';'),
             comment=paste(atomstoquery$data[,'comment'], collapse=';'),
@@ -1322,7 +1322,18 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
         print(newdat)
         con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
+        id = dbGetQuery(con, sprintf("SELECT id from base_atoms WHERE ligand_id=%s", ligand_id))[1,1]
+        if(is.na(id)){
+            message('Creating Bad Atom Row')
+            dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
+        } else {
+            message('Updating Bad Atoms!')
+            dbExecute(con, sprintf(
+                "UPDATE bad_atoms SET %s WHERE ligand_id=%s",
+                sprintf("\"atomid\"=\'%s\', comment\'%s\', atomname=\'%s\'", newdat$atomid, newdat$comment, newdat$atomname),
+                ligand_id)
+            )           
+        }
         dbDisconnect(con)
         # Write atom data to .mol file???
         badnamestr = paste(atomstoquery$data[,'name'], collapse=';')
