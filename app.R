@@ -1322,7 +1322,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
         print(newdat)
         con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        id = dbGetQuery(con, sprintf("SELECT id from base_atoms WHERE ligand_id=%s", ligand_id))[1,1]
+        id = dbGetQuery(con, sprintf("SELECT id from bad_atoms WHERE ligand_id=%s", ligand_id))[1,1]
         if(is.na(id)){
             message('Creating Bad Atom Row')
             dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
