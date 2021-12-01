@@ -1315,7 +1315,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     # Write Atom Data to ligand
     writeAtoms <- function(ligand_id){
         newdat <- data.frame(
-            ligand=ligand_id,
+            ligand_id=ligand_id,
             atomid=paste(as.numeric(atomstoquery$data[,'index']), collapse=';'),
             comment=paste(atomstoquery$data[,'comment'], collapse=';'),
             atomname=paste(atomstoquery$data[,'name'], collapse=';')
