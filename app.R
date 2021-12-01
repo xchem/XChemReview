@@ -79,31 +79,33 @@ write_to_mol_file <- function(mol_file, id_str, comment_str){
 }
 
 rewriteMols <- function(target){ # This need refactoring later......
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    atoms <- dbGetQuery(con, 'SELECT * from "BadAtoms"')
-    reviews <- dbGetQuery(con, 'SELECT * from "review_responses_new"')
-    fligands <- dbGetQuery(con, 'SELECT * from "FragalysisLigand"')
-    fligand_id <- fligands$id
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    atoms <- dbGetQuery(con, 'SELECT * from bad_atoms')
+    rownames(atoms) <- as.character(atoms$ligand_id)
+    fligands <- dbGetQuery(con, 'SELECT * from fragalysis_ligand')
+    fligand_id <- as.character(fligands$id)
     rownames(fligands) <- as.character(fligand_id)
-    ligands <- dbGetQuery(con, 'SELECT * from "ligand"')
+    ligands <- dbGetQuery(con, 'SELECT * from ligand')
     dbDisconnect(con)
     ligand_id <- ligands$id
     rownames(ligands) <- as.character(ligand_id)
-    latest_review <-  t(sapply(split(reviews, reviews$Ligand_name_id), function(x) x[which.max(x$time_submitted),]))
-    for(i in 1:nrow(latest_review)){
-        lig <- latest_review[i,'Ligand_name_id']
-        rev <- latest_review[i,'id']
-        mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
-        ids_to_grab <- which(atoms$Review_id==rev)
-        if(length(ids_to_grab)>0){
-	        print(mol_file)
-            id_str <- atoms[ids_to_grab, 'atomid']
-            comment_str <- atoms[ids_to_grab, 'comment']
-            id_str2 <- paste0(id_str, collapse=';')
-            comment_str2 <- paste0(comment_str, collapse=';')
-            try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
-        }
-    }
+    # Fix this...
+    ats <- atoms[rownames(ligands),]
+    #latest_review <-  t(sapply(split(reviews, reviews$ligand_name_id), function(x) x[which.max(x$time_submitted),]))
+    #for(i in 1:nrow(latest_review)){
+    #    lig <- latest_review[i,'Ligand_name_id']
+    #    mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
+    #    rev <- latest_review[i,'id']
+    #    ids_to_grab <- which(atoms$Review_id==rev)
+    #    if(length(ids_to_grab)>0){
+	#        print(mol_file)
+    #        id_str <- atoms[ids_to_grab, 'atomid']
+    #        comment_str <- atoms[ids_to_grab, 'comment']
+    #        id_str2 <- paste0(id_str, collapse=';')
+    #        comment_str2 <- paste0(comment_str, collapse=';')
+    #        try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
+    #    }
+    #}
 }
 
 # I can't believe this doesn't exist in R!
@@ -121,7 +123,7 @@ get_residues <- function(pdb_file){
 
 getReviewData <- function(db, host_db, db_port, db_user, db_password, target_list){
     # Get data from target_list only first...
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
 
     targs <- dbGetQuery(con, 'SELECT * from target')
     target_ids <- paste(targs[targs[,2] %in% target_list, 1], collapse=',')
@@ -129,11 +131,11 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
     ligand_data <- dbGetQuery(con, sprintf("SELECT * from ligand WHERE target_id IN (%s)", target_ids))
     lig_crys_ids <- paste(ligand_data[,'crystal_id'], collapse=',')
 
-    ligand_crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, compound_id, target_id FROM crystal WHERE id IN (%s)", lig_crys_ids))
+    ligand_crystal_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name, target_id FROM crystal WHERE id IN (%s)", lig_crys_ids))
     rownames(ligand_crystal_data) <- as.character(ligand_crystal_data$id)
     lig_fl_ids <- paste(ligand_data[,'fragalysis_ligand_id'], collapse=',')
 
-    ligand_fl_data <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE id IN (%s)", lig_fl_ids))
+    ligand_fl_data <- dbGetQuery(con, sprintf("SELECT * from fragalysis_ligand WHERE id IN (%s)", lig_fl_ids))
     rownames(ligand_fl_data) <-  as.character(ligand_fl_data$id)
 
     ligand_refinement_data <- dbGetQuery(con, sprintf("SELECT id, crystal_name_id, r_free, rcryst, ramachandran_outliers, res, rmsd_angles, rmsd_bonds, lig_confidence_string, spacegroup, outcome, cif, pdb_latest, mtz_latest FROM refinement WHERE crystal_name_id IN (%s)", lig_crys_ids))
@@ -142,16 +144,26 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
     ligand_target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(ligand_crystal_data[,'target_id'], collapse=',')))
     rownames(ligand_target_data) <- as.character(ligand_target_data$id)
 
-    ligand_compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(ligand_crystal_data[,'compound_id'], collapse=',')))
-    rownames(ligand_compound_data) <- as.character(ligand_compound_data$id)
+    # This needs tweaking... Is this going to be slow??
+    ccp <- t(sapply(as.character(ligand_data$crystal_id), function(x){
+        q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", x))
+        q2 <- t(sapply(as.character(q1$compound_id), function(y){
+            dbGetQuery(con, sprintf("SELECT * FROM compound WHERE id IN (%s)", paste(y, collapse=',')))
+        }))
+        # Returns None;NA for some things...
+        return(c('SMILES'= paste(q2[,'smiles'], collapse=';'), 'product_smiles'=paste(q1[,'product_smiles'], collapse=';'), 'compound_code'= paste(q2[,'compound_string'], collapse=';')))
+    }))
 
-    ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
-    mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+    #ligand_compound_data <- dbGetQuery(con, sprintf("SELECT * FROM compounds WHERE id IN (%s)", paste(ligand_crystal_data[,'compound_id'], collapse=',')))
+    rownames(ccp) <- as.character(ligand_data$crystal_id)
+
+    ligand_response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
+    mostrecent <- as.data.frame(t(sapply(split(ligand_response_data, ligand_response_data$ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
     if(nrow(mostrecent)>1){
-        rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+        rownames(mostrecent) <- as.character(mostrecent$ligand_name_id)
     } else {
         mostrecent <- ligand_response_data
-        rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+        rownames(mostrecent) <- as.character(mostrecent$ligand_name_id)
     }
     output <- cbind(
         'ligand_name' = ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),2],
@@ -162,11 +174,10 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
         ligand_refinement_data[as.character(ligand_data$crystal_id),c(9,10,3,4,5,6,7,8,11,12,13,14)],
         ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),3:13],
         'target_name' = as.character(ligand_target_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$target_id),2]),
-        'SMILES' = ligand_compound_data[as.character(ligand_crystal_data[as.character(ligand_data$crystal_id),]$compound_id),2],
+        ccp,
         'crystal_name' = ligand_crystal_data[as.character(ligand_data$crystal_id),2],
         'decision_int' = sapply(mostrecent[as.character(ligand_data$id),5], function(x) ifelse(is.null(x), NA, as.character(x))),
         'time_submitted' = sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%Y%m%d%H%M%S'))),
-
         'ligand_id' = ligand_data$id,
         'crystal_id' = ligand_crystal_data[as.character(ligand_data$crystal_id),1],
         'out_of_date' = as.character(mapply(
@@ -178,26 +189,24 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
             ))
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
-    #output <- output[output$target_name %in% target_list, ] # Add to list as more targets needed?
     dbDisconnect(con)
-
     return(output)
 }
 
 getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password, target_list){
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
 
-    targs <- dbGetQuery(con, "SELECT * from \"FragalysisTarget\"") 
+    targs <- dbGetQuery(con, "SELECT * from fragalysis_target") 
     target_ids <- paste(targs$id[targs$target %in% target_list], collapse=',')
     targets <- targs[targs$target %in% target_list,]
     rownames(targets) <- as.character(targets$id)
 
-    fvdat <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE fragalysis_target_id IN (%s)", target_ids))
+    fvdat <- dbGetQuery(con, sprintf("SELECT * from fragalysis_ligand WHERE fragalysis_target_id IN (%s)", target_ids))
     md_ids <- paste(fvdat$id, collapse=',')
 
-    md <- dbGetQuery(con, sprintf("SELECT * FROM \"MetaData\" WHERE \"Ligand_name_id\" in (%s)", md_ids))
+    md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
     dbDisconnect(con)
-    rownames(md) <- md$Ligand_name_id
+    rownames(md) <- md$ligand_name_id
 
     output <- cbind(fvdat, targetname=targets[as.character(fvdat$fragalysis_target_id), 'target'], md[as.character(fvdat$id),])
 
@@ -209,22 +218,22 @@ getFragalysisViewData <- function(db, host_db, db_port, db_user, db_password, ta
 }
 
 createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, target){
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
 
-    targs <- dbGetQuery(con, "SELECT * from \"FragalysisTarget\"") 
+    targs <- dbGetQuery(con, "SELECT * from fragalysis_target") 
     target_ids <- paste(targs$id[targs$target %in% target], collapse=',')
 
-    fvdat <- dbGetQuery(con, sprintf("SELECT * from \"FragalysisLigand\" WHERE fragalysis_target_id IN (%s)", target_ids))
+    fvdat <- dbGetQuery(con, sprintf("SELECT * from fragalysis ligand WHERE fragalysis_target_id IN (%s)", target_ids))
     md_ids <- paste(fvdat$id, collapse=',')
 
-    md <- dbGetQuery(con, sprintf("SELECT * FROM \"MetaData\" WHERE \"Ligand_name_id\" in (%s)", md_ids))
+    md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
     prot <- target
     md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),] # Might be a problem for later...
     meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
     # Dodgy Hack for DLS
-    rootf = sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/aligned/', prot)
+    rootf = sprintf('/dls/science/groups/i04-1/fragprep/pipeline_staging/%s/aligned/', prot)
     for(i in meta$crystal_name){
         id = meta$crystal_name == i
         smifi = sprintf('%s%s/%s_smiles.txt', rootf, i,i)
@@ -243,7 +252,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     on.exit(progress$close())
     progress$set(message = "Creating Fragalysis Folder", value = 0)
     prot = target
-    base_root <- sprintf('/dls/science/groups/i04-1/fragprep/staging_test/%s/', prot)
+    base_root <- sprintf('/dls/science/groups/i04-1/fragprep/pipeline_staging/%s/', prot)
     protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
 
     rootf <- sprintf('/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s', protsuffix)
@@ -346,24 +355,25 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
 
 updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
     dbname, host, port, user, password){
-    df = data.frame(Site_Label=as.character(site_label),
+    df = data.frame(site_Label=as.character(site_label),
                     new_smiles=as.character(new_smiles),
                     alternate_name=as.character(alternate_name),
                     pdb_id=as.character(pdb_id),
                     fragalysis_name=as.character(fragalysis_name),
                     original_name=as.character(original_name),
-                    Ligand_name_id=as.character(ligand_name_id)
+                    ligand_name_id=as.character(ligand_name_id),
+                    status=''
                     )
     print(df)
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    id = dbGetQuery(con, sprintf("SELECT id from \"MetaData\" WHERE \"Ligand_name_id\"=%s", df$Ligand_name_id))[1,1]
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    id = dbGetQuery(con, sprintf("SELECT id from meta_data WHERE ligand_name_id=%s", df$Ligand_name_id))[1,1]
     if(is.na(id)){
         message('Creating MetaRow')
-        dbAppendTable(con, "MetaData", value = df, row.names=NULL)
+        dbAppendTable(con, "meta_data", value = df, row.names=NULL)
     } else {
         message('Updating MetaRow!')
-        dbExecute(con, sprintf("UPDATE \"MetaData\" SET %s WHERE \"Ligand_name_id\"=%s",
-            sprintf("\"Site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name),
+        dbExecute(con, sprintf("UPDATE meta_data SET %s WHERE ligand_name_id=%s",
+            sprintf("\"site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, ''),
             ligand_name_id)
         )
     }
@@ -372,8 +382,8 @@ updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, si
 
 
 getReviewRow <- function(data, db, host_db, db_port, db_user, db_password){
-    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    ids <- with(data, dbGetQuery(con, sprintf("SELECT \"Ligand_name_id\", id FROM review_responses_new WHERE fedid='%s' AND time_submitted='%s'", fedid, time_submitted)))[1,1:2]
+    con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+    ids <- with(data, dbGetQuery(con, sprintf("SELECT ligand_name_id, id FROM review_responses WHERE fedid='%s' AND time_submitted='%s'", fedid, time_submitted)))[1,1:2]
     dbDisconnect(con)
     return(ids)
 }
@@ -1252,12 +1262,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
     #total_fragalysis_ligands_to_annotate =
 
     sessionGreaterThanMostRecentResponse <- function(id, sessionTime){
-        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
+        con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
         dbDisconnect(con)
         if(nrow(response_data) > 0){
-            mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-            rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+            mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+            rownames(mostrecent) <- as.character(mostrecent$ligand_name_id)
             t0 <- mostrecent[as.character(id), 'time_submitted'][[1]]
             output <- ifelse(is.null(t0), TRUE, sessionTime > t0)
         } else {
@@ -1267,12 +1277,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
     }
 
     displayModalWhoUpdated <- function(id){
-                con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-                response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses_new"))
+                con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+                response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
                 dbDisconnect(con)
 
-                mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$Ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
-                rownames(mostrecent) <- as.character(mostrecent$Ligand_name_id)
+                mostrecent <- as.data.frame(t(sapply(split(response_data, response_data$ligand_name_id), function(x) x[which.max(x$time_submitted),])), stringsAsFactors=F)
+                rownames(mostrecent) <- as.character(mostrecent$ligand_name_id)
                 user <- mostrecent[as.character(id), 'fedid'][[1]]
 
                 showModal(modalDialog(title = "Someone has recently reviewed this crystal",
@@ -1283,24 +1293,25 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         # Save Responses.
     saveData <- function(data, xtaln, atoms) {
-        con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        dbAppendTable(con, 'review_responses_new', value = data, row.names=NULL)
+        con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
         dbDisconnect(con)
         # Check for Atoms and tag them to review response?
         rr <- getReviewRow(data, db = db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-        for(atom in seq_len(nrow(atoms))){
-            message(atom)
-            newdat <- cbind(atomid=as.numeric(atoms[atom,2]), comment=atoms[atom,3], rr)
-            str(newdat)
-            colnames(newdat) <- c('atomid', 'comment', 'Ligand_id', 'Review_id')
-            newdat$comment = as.character(newdat$comment)
-            newdat$Ligand_id = as.numeric(newdat$Ligand_id)
-            newdat$Review_id = as.numeric(newdat$Review_id)
-            str(newdat)
-            con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-            dbAppendTable(con, 'BadAtoms', value = newdat, row.names=NULL)
-            dbDisconnect(con)
-        }
+        # This will need fixing...
+        #for(atom in seq_len(nrow(atoms))){
+        #    message(atom)
+        #    newdat <- cbind(atomid=as.numeric(atoms[atom,2]), comment=atoms[atom,3], rr)
+        #    str(newdat)
+        #    colnames(newdat) <- c('atomid', 'comment', 'Ligand_id', 'Review_id')
+        #    newdat$comment = as.character(newdat$comment)
+        #    newdat$Ligand_id = as.numeric(newdat$Ligand_id)
+        #    newdat$Review_id = as.numeric(newdat$Review_id)
+        #    str(newdat)
+        #    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        #    dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
+        #    dbDisconnect(con)
+        #}
         # Write atom data to .mol file???
         badnamestr = paste(atomstoquery$data[,'name'], collapse=';')
         badidsstr = paste(atomstoquery$data[,'index'], collapse=';')
@@ -1312,15 +1323,15 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 lines[badid_line] <- badidsstr
             } else {
                 lines <- c(lines, '> <BADATOMS>', badidsstr)
-	    }
+	        }
             if(any(lines == '> <BADCOMMENTS>')){
                 badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
                 lines[badcomment_line] <- badcommentstr
-	    } else {
-		lines <- c(lines, '> <BADCOMMENTS>', badcommentstr)
-	    }
+	        } else {
+		        lines <- c(lines, '> <BADCOMMENTS>', badcommentstr)
+	        }
             if(any(lines == '> <BADATOMNAMES>')){
-		an_line <- which(lines == '> <BADATOMNAMES>') + 1
+		        an_line <- which(lines == '> <BADATOMNAMES>') + 1
                 lines[an_line] <- badnamestr
             } else {
                 lines <- c(lines, '> <BADATOMNAMES>', badnamestr)
@@ -1969,11 +1980,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'unaligned' = {
                         session$sendCustomMessage(type = 'save_camera_pos', message = list())
-                        the_pdb_file <- gsub('staging_test', 'unaligned_test', the_pdb_file)
-                        the_mol_file <- gsub('staging_test', 'unaligned_test', the_mol_file)
+                        the_pdb_file <- gsub('pipeline_staging', 'pipeline_unaligned', the_pdb_file)
+                        the_mol_file <- gsub('pipeline_staging', 'pipeline_unaligned', the_mol_file)
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
-                        the_2fofc_map <- gsub('staging_test', 'unaligned_test', the_2fofc_map)
-                        the_fofc_map <- gsub('staging_test', 'unaligned_test', the_fofc_map)
+                        the_2fofc_map <- gsub('pipeline_staging', 'pipeline_unaligned', the_2fofc_map)
+                        the_fofc_map <- gsub('pipeline_staging', 'pipeline_unaligned', the_fofc_map)
                         try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
                         try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
