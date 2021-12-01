@@ -148,7 +148,7 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
     q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", paste(as.character(ligand_data$crystal_id), collapse=',')))
     q2 <- dbGetQuery(con, sprintf("SELECT * FROM compound WHERE id IN (%s)", paste(as.character(q1$compound_id), collapse=',')))
     
-    
+
     # Can this be vectorised???
     ccp <- t(sapply(as.character(ligand_data$crystal_id), function(x){
         ccpids <- q1[x == q1$crystal_id, ]
@@ -1311,27 +1311,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 ))
     }
 
-        # Save Responses.
-    saveData <- function(data, xtaln, atoms) {
+    # Save Responses.
+    # Write Atom Data to ligand
+    writeAtoms <- function(ligand_id){
+        newdat <- cbind(
+            ligand=ligand_id,
+            atomid=paste(as.numeric(atomstoquery$data[,'index']), collapse=';'),
+            comment=paste(atomstoquery$data[,'comment'], collapse=';'),
+            atomname=paste(atomstoquery$data[,'name'], collapse=';')
+        )
+        print(newdat)
         con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
+        dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
         dbDisconnect(con)
-        # Check for Atoms and tag them to review response?
-        rr <- getReviewRow(data, db = db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-        # This will need fixing...
-        #for(atom in seq_len(nrow(atoms))){
-        #    message(atom)
-        #    newdat <- cbind(atomid=as.numeric(atoms[atom,2]), comment=atoms[atom,3], rr)
-        #    str(newdat)
-        #    colnames(newdat) <- c('atomid', 'comment', 'Ligand_id', 'Review_id')
-        #    newdat$comment = as.character(newdat$comment)
-        #    newdat$Ligand_id = as.numeric(newdat$Ligand_id)
-        #    newdat$Review_id = as.numeric(newdat$Review_id)
-        #    str(newdat)
-        #    con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-        #    dbAppendTable(con, 'bad_atoms', value = newdat, row.names=NULL)
-        #    dbDisconnect(con)
-        #}
         # Write atom data to .mol file???
         badnamestr = paste(atomstoquery$data[,'name'], collapse=';')
         badidsstr = paste(atomstoquery$data[,'index'], collapse=';')
@@ -1358,6 +1350,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
             cat(paste(lines, collapse='\n'), file = isolate(sessionlist$mol_file))
         }
+    }
+
+    saveData <- function(data, xtaln, atoms) {
+        con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+        dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
+        dbDisconnect(con)
+        rr <- getReviewRow(data, db = db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
+        writeAtoms(ligand_id=as.character(rr$ligand_name_id))
         sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], data[,'comment'])
     }
 
