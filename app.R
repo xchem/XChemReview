@@ -968,7 +968,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
     updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
     updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
-
+    if(debug) debugMessage(sID=sID, sprintf('Fetch Review Table Data'))
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
     output$reviewtable <- updateMainTable(r1=r1)
@@ -995,6 +995,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
         return(output)
     })
+
+    if(debug) debugMessage(sID=sID, sprintf('Finalised...'))
 
     react_fv_data2 <- function(data, input){
         reactive({
@@ -1032,6 +1034,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         reactive({getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)})
     }
 
+    if(debug) debugMessage(sID=sID, sprintf('Fetch Fragview Data'))
     fvd <- getFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
     fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
     #fragfolders <- c('', sort(unique(fvd$targetname)))
@@ -1044,7 +1047,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     output$therow <- updateMainTable2(fragview_input, pl=100)
     fragviewproxy <- DT::dataTableProxy('therow')
     output$as_message <- renderText({'Alt Click to select Atom'})
-
+    if(debug) debugMessage(sID=sID, sprintf('Finalised'))
     observeEvent(input$as_clear, {
         session$sendCustomMessage(type = 'as_resetclicked', list())
         atomstoquery$data <- data.frame(name = character(),
