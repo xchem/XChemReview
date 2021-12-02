@@ -11,13 +11,12 @@ RUN apt-get update && apt-get install -y \
 	libssl-dev \
 	libssh2-1-dev \
 	libpq-dev \ 
-        libmariadb-dev \ 
-        libmysqlclient-dev
+        libmariadb-dev
 
 # Install R packages
 RUN R -e "install.packages(c('devtools', 'caTools','shiny','shinydashboard','shinyjqui','shinyWidgets','ggplot2','plotly','htmlwidgets', 'DT', 'remotes', 'httr', 'sendmailR', 'shinyjs','bio3d'), repos='http://cran.rstudio.com/')"
 RUN R -e "library(remotes); remotes::install_github('r-dbi/RPostgres'); remotes::install_github('r-dbi/RMariaDB')" 
-RUN R -e "install.packages(c('RPostgres','RMariaDB'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('RPostgres','RMariaDB', 'waiter'), repos='http://cran.rstudio.com/')"
 # Copy App to Image
 # COPY app.R /srv/shiny-server
 COPY Pages /srv/shiny-server/Pages
