@@ -41,13 +41,15 @@ library(ggplot2)
 library(plotly)
 
 randoLoader <- function(){
-    return(sample(c(spin_solar(), spin_folding_cube(), spin_pixel(), spin_flower()),1))
+    return(sample(1:4,1))
 }
 
-waiting_screen <- tagList(
-  randoLoader(),
-  h4("Loading your request...")
-) 
+waiting_screen <- switch(randoLoader(),
+1 = {tagList(spin_solar(),h4("Loading your request..."))},
+2 = {tagList(spin_folding_cube(),h4("Loading your request..."))}, 
+3 = {tagList(spin_pixel(),h4("Loading your request..."))}, 
+4 = {tagList(spin_flower(),h4("Loading your request..."))}
+)
 
 sessionInfo()
 
