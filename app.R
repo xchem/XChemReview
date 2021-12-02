@@ -23,7 +23,10 @@ if(local) {
 } else {
     source('/dls/science/groups/i04-1/software/xchemreview/config.R')
     #install.packages('/dls/science/groups/i04-1/software/nglshiny', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    #install.packages('/dls/science/groups/i04-1/software/waiter', repos=NULL, type='source', lib='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
     library(nglShiny, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+    library(waiter, lib.loc='/dls/science/groups/i04-1/software/xchemreview/xcrlib')
+
 }
 
 target_list <- sort(c(
@@ -36,7 +39,7 @@ fragfolders <- c('', target_list)
 # Plotting Libs
 library(ggplot2)
 library(plotly)
-library(waiter)
+
 
 waiting_screen <- tagList(
   spin_solar(),
