@@ -40,9 +40,12 @@ fragfolders <- c('', target_list)
 library(ggplot2)
 library(plotly)
 
+randoLoader <- function(){
+    return(sample(c(spin_solar(), spin_folding_cube(), spin_pixel(), spin_flower()),1))
+}
 
 waiting_screen <- tagList(
-  spin_solar(),
+  randoLoader(),
   h4("Loading your request...")
 ) 
 
