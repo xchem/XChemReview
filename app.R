@@ -36,6 +36,12 @@ fragfolders <- c('', target_list)
 # Plotting Libs
 library(ggplot2)
 library(plotly)
+library(waiter)
+
+waiting_screen <- tagList(
+  spin_solar(),
+  h4("Loading your request...")
+) 
 
 sessionInfo()
 
@@ -551,6 +557,7 @@ customDraggableModalDialog <- function(..., title = NULL,
 }
 
 body <- dashboardBody(
+    useWaiter(),
 	tags$head(tags$script("$(function() {$.fn.dataTableExt.errMode = 'throw';});")),
     tags$head(shiny::tags$style(HTML("
     .modal-backdrop{
@@ -1934,6 +1941,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$views, {
+        waiter_show(id='nglShiny', html = waiting_screen, color = "black")
         sessionlist$isotype='value'
         if(is.null(input$views)) updateRadioButtons(session, 'views', selected = 'aligned')
 
@@ -2076,9 +2084,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
             setProgress(1)
         })
+        waiter_hide()
     })
 
     observeEvent(input$ligand, ignoreNULL = TRUE, {
+        waiter_show(id='nglShiny', html = waiting_screen, color = "black")
         sessionlist$isotype <- 'value'
         atomstoquery$data <- data.frame(name=character(),
                  index=character(),
@@ -2186,7 +2196,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             # There is a problem with observeEvents not rendering stale references therefore we have to manually the loading if the event state does not change.
             updateRadioButtons(session, 'views', selected = 'aligned')
         }
-
+        waiter_hide()
     })
 
     observeEvent(input$gotores, ignoreNULL=TRUE, {
