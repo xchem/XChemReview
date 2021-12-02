@@ -1944,7 +1944,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$views, {
-        waiter_show(id='nglShiny', html = waiting_screen, color = "black")
+        waiter_show(id='nglShiny', html = waiting_screen, color = scales::alpha("black",.5))
         sessionlist$isotype='value'
         if(is.null(input$views)) updateRadioButtons(session, 'views', selected = 'aligned')
 
@@ -2091,7 +2091,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$ligand, ignoreNULL = TRUE, {
-        waiter_show(id='nglShiny', html = waiting_screen, color = "black")
+        waiter_show(id='nglShiny', html = waiting_screen, color = scales::alpha("black",.5))
         sessionlist$isotype <- 'value'
         atomstoquery$data <- data.frame(name=character(),
                  index=character(),
