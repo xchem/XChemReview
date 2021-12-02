@@ -249,7 +249,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
     targs <- dbGetQuery(con, "SELECT * from fragalysis_target") 
     target_ids <- paste(targs$id[targs$target %in% target], collapse=',')
 
-    fvdat <- dbGetQuery(con, sprintf("SELECT * from fragalysis ligand WHERE fragalysis_target_id IN (%s)", target_ids))
+    fvdat <- dbGetQuery(con, sprintf("SELECT * from fragalysis_ligand WHERE fragalysis_target_id IN (%s)", target_ids))
     md_ids <- paste(fvdat$id, collapse=',')
 
     md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
