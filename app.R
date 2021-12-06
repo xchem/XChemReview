@@ -915,16 +915,27 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
         })
     }
+    
+    alltables = reactiveValues(review = r1, fragview = fragview_input) 
 
-    observeEvent(r1,{
+    #observeEvent(alltables$r1,{
+    #    updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
+    #    selectPage(reviewtableproxy, page = input$reviewtable_state$start/input$reviewtable_state$length+1)
+    #}, ignoreInit = TRUE, priority = -1)
+
+    #observeEvent(alltables$fragview,{
+    #    updateSearch(fragviewproxy, keywords = list(global = input$therow_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
+    #    selectPage(fragviewproxy, page = input$therow_state$start/input$therow_state$length+1)
+    #}, ignoreInit = TRUE, priority = -1)
+
+    prebuffer_review <- function(){
         updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
         selectPage(reviewtableproxy, page = input$reviewtable_state$start/input$reviewtable_state$length+1)
-    }, ignoreInit = TRUE, priority = -1)
-
-    observeEvent(fragview_input,{
+    }
+    prebuffer_fragview <- function(){
         updateSearch(fragviewproxy, keywords = list(global = input$therow_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
         selectPage(fragviewproxy, page = input$therow_state$start/input$therow_state$length+1)
-    }, ignoreInit = TRUE, priority = -1)
+    }
 
     updateMainTable <- function(r1, pl=100){
         if (is.null(isolate(input$reviewtable_state))) {
@@ -1173,6 +1184,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_input <- react_fv_data(fragview_data, input) # Filter missing files here??
             #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
             output$therow <- updateMainTable2(fragview_input, pl=100)
+            prebuffer_fragview()
             tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
             molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
         }   
@@ -1304,6 +1316,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_table_data <- react_fv_data2(fragview_data, input)
         #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         output$therow <- updateMainTable2(fragview_input, pl=100)
+        prebuffer_fragview()
     })
 
     observeEvent(input$write, {
@@ -1330,6 +1343,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_table_data <- react_fv_data2(fragview_data, input)
             #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
             output$therow <- updateMainTable2(fragview_input, pl=100)
+            prebuffer_fragview()
         }
     })
 
@@ -1478,6 +1492,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         r1 <- reactiviseData(inputData=inputData, input=input)
         #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
         output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
         flexplotData <- flexPlotDataFun(r1=r1, input=input)
         output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
         sessionTime <- reactive({epochTime()})
@@ -1511,6 +1526,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     inputData <- resetForm()
                     r1 <- reactiviseData(inputData=inputData, input=input)
                     output$reviewtable <- updateMainTable(r1=r1)
+                    prebuffer_review()
                     #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
                     flexplotData <- flexPlotDataFun(r1=r1, input=input)
                     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
@@ -1726,6 +1742,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$reviewtable <- updateMainTable(r1=r1)
             reviewtableproxy <- DT::dataTableProxy('reviewtable')
+            prebuffer_review()
             #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
             # Update table bindings?
             showModal(
@@ -1744,6 +1761,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_table_data <- react_fv_data2(fragview_data, input)
             output$therow <- updateMainTable2(fragview_input, pl=100)
             fragviewproxy <- DT::dataTableProxy('therow')
+            prebuffer_fragview()
             #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         }
     })
