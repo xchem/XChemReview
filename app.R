@@ -254,7 +254,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
 
     md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
     prot <- target
-    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$site_Label)),] # Might be a problem for later...
+    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),] # Might be a problem for later...
     meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
@@ -2412,7 +2412,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
         sessionlist$fumeta <- createUniqueMetaData(db = db, host_db = host_db, db_port = db_port,
             db_user = db_user, db_password = db_password,
             target = isolate(input$lp_selection))
-        }
         output$lp_meta <- DT::renderDataTable({
             DT::datatable(
                 sessionlist$fumeta, callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
@@ -2421,6 +2420,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 )
             )
         }, server=FALSE)
+        } else {
+            DT::renderDataTable({DT::datatable(data.frame('a'='', 'No Target Selected'= 'Select a Target', stringsAsFactors=FALSE))}, server=FALSE)
+        }
     })
 
     uploadFragFolder <-  function(filepath, target, proposal, email){
