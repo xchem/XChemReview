@@ -1065,8 +1065,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     if(debug) debugMessage(sID=sID, sprintf('Fetch Review Table Data'))
     inputData <- restartSessionKeepOptions()
     r1 <- reactiviseData(inputData=inputData, input=input)
-    #output$reviewtable <- updateMainTable(r1=r1)
-    #reviewtableproxy <- DT::dataTableProxy('reviewtable')
+    output$reviewtable <- updateMainTable(r1=r1)
+    reviewtableproxy <- DT::dataTableProxy('reviewtable')
     flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
@@ -1138,8 +1138,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     fragview_input <- react_fv_data(fragview_data, input)
     fragview_table_data <- react_fv_data2(fragview_data, input)
 
-    #output$therow <- updateMainTable2(fragview_input, pl=100)
-    #fragviewproxy <- DT::dataTableProxy('therow')
+    output$therow <- updateMainTable2(fragview_input, pl=100)
+    fragviewproxy <- DT::dataTableProxy('therow')
     output$as_message <- renderText({'Alt Click to select Atom'})
     if(debug) debugMessage(sID=sID, sprintf('Finalised'))
     observeEvent(input$as_clear, {
