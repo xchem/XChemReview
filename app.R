@@ -919,7 +919,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(r1,{
         updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
         selectPage(reviewtableproxy, page = input$reviewtable_state$start/input$reviewtable_state$length+1)
-    }, ignoreInit = TRUE, priority = -1))
+    }, ignoreInit = TRUE, priority = -1)
 
     observeEvent(fragview_input,{
         updateSearch(fragviewproxy, keywords = list(global = input$therow_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
