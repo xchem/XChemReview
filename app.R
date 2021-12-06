@@ -915,8 +915,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             }
         })
     }
-    
-    alltables = reactiveValues(review = r1, fragview = fragview_input) 
 
     #observeEvent(alltables$r1,{
     #    updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
