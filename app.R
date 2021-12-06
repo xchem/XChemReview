@@ -916,16 +916,39 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
+    observeEvent(r1,{
+        updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
+        selectPage(reviewtableproxy, page = input$reviewtable_state$start/input$reviewtable_state$length+1)
+    }, ignoreInit = TRUE, priority = -1))
+
+    observeEvent(fragview_input,{
+        updateSearch(fragviewproxy, keywords = list(global = input$therow_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
+        selectPage(fragviewproxy, page = input$therow_state$start/input$therow_state$length+1)
+    }, ignoreInit = TRUE, priority = -1)
+
     updateMainTable <- function(r1, pl=100){
+        if (is.null(isolate(input$reviewtable_state))) {
+        dtt <- DT::datatable(
+            r1(),
+            selection = 'single',
+            callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            options = list(stateSave = TRUE, pageLength=pl)
+            )
+        } else {
+        dtt <- DT::datatable(
+            r1(),
+            selection = 'single',
+            callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            options = list(
+                stateSave = TRUE,
+                order = isolate(input$reviewtable_state$order),
+                paging = TRUE,
+                pageLength = isolate(input$reviewtable_state$length)
+            )   
+        )
+        }
         DT::renderDataTable({
-            DT::datatable(
-                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-                selection = 'single',
-                options = list(
-                    pageLength = pl,
-                    columnDefs = list(list(width='100px', targets=c(4)))
-                ), rownames= FALSE
-            ) %>% DT::formatStyle(
+        dtt %>% DT::formatStyle(
                 'decision_str',
                 target = 'row',
                 backgroundColor = DT::styleEqual(
@@ -939,19 +962,64 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
                 )
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=TRUE)
+        #DT::renderDataTable({
+        #    DT::datatable(
+        #        r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+        #        selection = 'single',
+        #        options = list(
+        #            pageLength = pl,
+        #            columnDefs = list(list(width='100px', targets=c(4)))
+        #        ), rownames= FALSE
+        #    ) %>% DT::formatStyle(
+        #        'decision_str',
+        #        target = 'row',
+        #        backgroundColor = DT::styleEqual(
+        #            c('Release', 'More Refinement', 'More Experiments', 'Reject'),
+        #            c('#648FFF', '#FFB000',         '#FE6100',          '#DC267F')
+        #        )
+        #    ) %>% DT::formatStyle(
+        #        'out_of_date',
+        #        target = 'row',
+        #        backgroundColor = DT::styleEqual(
+        #            c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
+        #        )
+        #    ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+        }, server=FALSE)
     }
 
     updateMainTable2 <- function(r1, pl=100){
+        if (is.null(isolate(input$therow_state))) {
+        dtt <- DT::datatable(
+            r1(),
+            selection = 'single',
+            callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            options = list(stateSave = TRUE, pageLength=pl)
+            )
+        } else {
+        dtt <- DT::datatable(
+            r1(),
+            selection = 'single',
+            callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            options = list(
+                stateSave = TRUE,
+                order = isolate(input$therow_state$order),
+                paging = TRUE,
+                pageLength = isolate(input$therow_state$length)
+            )   
+        )
+        }
         DT::renderDataTable({
-            DT::datatable(
-                r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-                selection = 'single',
-                options = list(
-                    pageLength = pl
-                ), rownames= TRUE
-            ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=TRUE)
+            dtt %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+        }, server=FALSE)
+        #DT::renderDataTable({
+        #    DT::datatable(
+        #        r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+        #        selection = 'single',
+        #        options = list(
+        #            pageLength = pl
+        #        ), rownames= TRUE
+        #    ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
+        #}, server=TRUE)
     }
 
     updateFlexPlot <- function(flexdata){
@@ -1103,8 +1171,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
             updateSelectInput(session, 'goto', choices = fv_values$molfil)
             fragview_input <- react_fv_data(fragview_data, input) # Filter missing files here??
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-            #output$therow <- updateMainTable2(fragview_input, pl=100)
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
             tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
             molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
         }   
@@ -1234,8 +1302,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
-        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-        #output$therow <- updateMainTable2(fragview_input, pl=100)
+        #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+        output$therow <- updateMainTable2(fragview_input, pl=100)
     })
 
     observeEvent(input$write, {
@@ -1260,8 +1328,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-            #output$therow <- updateMainTable2(fragview_input, pl=100)
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
         }
     })
 
@@ -1408,8 +1476,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$ok, {
         inputData <- restartSessionKeepOptions()
         r1 <- reactiviseData(inputData=inputData, input=input)
-        reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
-        #output$reviewtable <- updateMainTable(r1=r1)
+        #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+        output$reviewtable <- updateMainTable(r1=r1)
         flexplotData <- flexPlotDataFun(r1=r1, input=input)
         output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
         sessionTime <- reactive({epochTime()})
@@ -1442,8 +1510,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     message(sessionTime())
                     inputData <- resetForm()
                     r1 <- reactiviseData(inputData=inputData, input=input)
-                    #output$reviewtable <- updateMainTable(r1=r1)
-                    reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+                    output$reviewtable <- updateMainTable(r1=r1)
+                    #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
                     flexplotData <- flexPlotDataFun(r1=r1, input=input)
                     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
                     sessionTime <- reactive({epochTime()})
@@ -1658,7 +1726,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$reviewtable <- updateMainTable(r1=r1)
             reviewtableproxy <- DT::dataTableProxy('reviewtable')
-            reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+            #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
             # Update table bindings?
             showModal(
                 controlPanelModal(
@@ -1676,7 +1744,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_table_data <- react_fv_data2(fragview_data, input)
             output$therow <- updateMainTable2(fragview_input, pl=100)
             fragviewproxy <- DT::dataTableProxy('therow')
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         }
     })
 
