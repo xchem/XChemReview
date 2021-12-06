@@ -254,7 +254,7 @@ createUniqueMetaData <- function(db, host_db, db_port, db_user, db_password, tar
 
     md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
     prot <- target
-    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$Site_Label)),] # Might be a problem for later...
+    md <- md[!(md$Site_Label == 'IGNORE' | is.na(md$site_Label)),] # Might be a problem for later...
     meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
@@ -1046,7 +1046,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             if(!is.null(input$fragSelect)){
                 if(!input$fragSelect == '' | input$fragSelect == 'Select'){
                     toshow <- data()$targetname == input$fragSelect
-                    dat <- data()[toshow, c('original_name', 'fragalysis_name', 'alternate_name','Site_Label', 'new_smiles', 'pdb_id')]
+                    dat <- data()[toshow, c('original_name', 'fragalysis_name', 'alternate_name','site_Label', 'new_smiles', 'pdb_id')]
                     rn <- rownames(dat)
                     rownames(dat) <- gsub('-[0-9]$', '', rn)
                     dat
@@ -1189,7 +1189,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             smi_file <- gsub('.mol', '_smiles.txt', mol_file)
             smilestr <- system(sprintf('cat %s', smi_file), intern=T)
 
-            choices <- unique(c('', as.character(isolate(fragview_table_data()[, 'Site_Label']))))
+            choices <- unique(c('', as.character(isolate(fragview_table_data()[, 'site_Label']))))
             # Fill Form as seen
             updateTextInput(session, 'crysname', value = input$goto)
             updateTextInput(session, 'smiles', value = smilestr)
@@ -1200,7 +1200,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             updateTextInput(session, 'alternate_name', value = alt_name)
             updateTextInput(session, 'new_smiles', value = as.character(isolate(fragview_table_data()[input$goto, 'new_smiles'])))
 
-            site_name = as.character(isolate(fragview_table_data()[input$goto, 'Site_Label']))
+            site_name = as.character(isolate(fragview_table_data()[input$goto, 'site_Label']))
             if(blankNAorNull(site_name)){
                 site_name = as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7]
                 print(site_name)
