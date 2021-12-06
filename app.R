@@ -379,7 +379,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
 }
 
 
-updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='', status=''
+updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='', status='',
     dbname, host, port, user, password){
     df = data.frame(site_Label=as.character(site_label),
                     new_smiles=as.character(new_smiles),
