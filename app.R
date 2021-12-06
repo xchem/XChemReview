@@ -399,7 +399,7 @@ updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, si
     } else {
         message('Updating MetaRow!')
         dbExecute(con, sprintf("UPDATE meta_data SET %s WHERE ligand_name_id=%s",
-            sprintf("\"site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, status),
+            sprintf("site_Label=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, status),
             ligand_name_id)
         )
     }
