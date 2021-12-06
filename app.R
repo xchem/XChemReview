@@ -1160,7 +1160,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(debug) debugMessage(sID=sID, sprintf('Selecting: %s', input$fragSelect))
         #folderPath <- getAlignedStagingFolder()
         if(input$fragSelect == ''){
-            output$therow <- DT::renderDataTable({DT::datatable(data.frame('a' = '', 'Nothing Selected' = 'Please Select a Target', stringsAsFactors=False))}, server=FALSE)
+            output$therow <- DT::renderDataTable({DT::datatable(data.frame('a' = '', 'Nothing Selected' = 'Please Select a Target', stringsAsFactors=FALSE))}, server=FALSE)
         } else {
             fv_values$apofiles <- as.character(isolate(fragview_table_data()$apo_pdb))
             apo_existing <- sapply(fv_values$apofiles, file.exists)
