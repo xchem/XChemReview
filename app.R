@@ -379,7 +379,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
 }
 
 
-updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='',
+updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, site_label='', new_smiles='', alternate_name='', pdb_id='', status=''
     dbname, host, port, user, password){
     df = data.frame(site_Label=as.character(site_label),
                     new_smiles=as.character(new_smiles),
@@ -388,18 +388,18 @@ updateOrCreateRow <- function(ligand_name_id, fragalysis_name, original_name, si
                     fragalysis_name=as.character(fragalysis_name),
                     original_name=as.character(original_name),
                     ligand_name_id=as.character(ligand_name_id),
-                    status=''
+                    status=as.character(status)
                     )
     print(df)
     con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    id = dbGetQuery(con, sprintf("SELECT id from meta_data WHERE ligand_name_id=%s", df$Ligand_name_id))[1,1]
+    id = dbGetQuery(con, sprintf("SELECT id from meta_data WHERE ligand_name_id=%s", ligand_name_id))[1,1]
     if(is.na(id)){
         message('Creating MetaRow')
         dbAppendTable(con, "meta_data", value = df, row.names=NULL)
     } else {
         message('Updating MetaRow!')
         dbExecute(con, sprintf("UPDATE meta_data SET %s WHERE ligand_name_id=%s",
-            sprintf("\"site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, ''),
+            sprintf("\"site_Label\"=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, status),
             ligand_name_id)
         )
     }
