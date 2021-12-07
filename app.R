@@ -894,7 +894,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         reactive({
             rowidx <- rep(FALSE, nrow(inputData()))
             outcome <- as.numeric(as.character(inputData()$outcome))
-            current_state <- as.character(inputData[['Current State']])
+            current_state <- as.character(inputData()[['Current State']])
             review <- inputData()$decision_str
             if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
                 inputData()[,]
