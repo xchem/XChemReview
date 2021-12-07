@@ -983,7 +983,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         #            c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
         #        )
         #    ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=FALSE)
+        }, server=TRUE)
     }
 
     updateMainTable2 <- function(r1, pl=100){
@@ -1009,7 +1009,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         DT::renderDataTable({
             dtt %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=FALSE)
+        }, server=TRUE)
         #DT::renderDataTable({
         #    DT::datatable(
         #        r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
