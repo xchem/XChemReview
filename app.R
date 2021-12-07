@@ -875,6 +875,21 @@ If you believe you have been sent this message in error, please email tyler.gorr
         return(inputData)
     }
 
+    observeEvent(input$out4, {
+        r1 <- reactiviseData(inputData=inputData, input=input)
+        output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
+    })
+    observeEvent(input$out5, {
+        r1 <- reactiviseData(inputData=inputData, input=input)
+        output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
+    })
+    observeEvent(input$out6, {
+        r1 <- reactiviseData(inputData=inputData, input=input)
+        output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
+    })
     reactiviseData <- function(inputData, input){
         reactive({
             rowidx <- rep(FALSE, nrow(inputData()))
@@ -983,7 +998,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         #            c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
         #        )
         #    ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=TRUE)
+        }, server=FALSE)
     }
 
     updateMainTable2 <- function(r1, pl=100){
@@ -1009,7 +1024,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         DT::renderDataTable({
             dtt %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        }, server=TRUE)
+        }, server=FALSE)
         #DT::renderDataTable({
         #    DT::datatable(
         #        r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
@@ -1170,9 +1185,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fv_values$molfil <- gsub('.mol', '', basename(fv_values$molfiles))
             updateSelectInput(session, 'goto', choices = fv_values$molfil)
             fragview_input <- react_fv_data(fragview_data, input) # Filter missing files here??
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-            #output$therow <- updateMainTable2(fragview_input, pl=100)
-            #prebuffer_fragview()
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
+            prebuffer_fragview()
             tryAddPDB <- try(uploadApoPDB(filepath=fv_values$apofiles[1], repr='cartoon', focus=TRUE), silent=T)
             molout <- try(sapply(fv_values$molfiles, uploadUnfocussedMol), silent=T)
         }   
@@ -1302,9 +1317,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
         fragview_input <- react_fv_data(fragview_data, input)
         fragview_table_data <- react_fv_data2(fragview_data, input)
-        fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-        #output$therow <- updateMainTable2(fragview_input, pl=100)
-        #prebuffer_fragview()
+        #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+        output$therow <- updateMainTable2(fragview_input, pl=100)
+        prebuffer_fragview()
     })
 
     observeEvent(input$write, {
@@ -1329,9 +1344,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_data <- reactivegetFragalysisViewData(db=db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password, target_list=target_list)
             fragview_input <- react_fv_data(fragview_data, input)
             fragview_table_data <- react_fv_data2(fragview_data, input)
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
-            #output$therow <- updateMainTable2(fragview_input, pl=100)
-            #prebuffer_fragview()
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            output$therow <- updateMainTable2(fragview_input, pl=100)
+            prebuffer_fragview()
         }
     })
 
@@ -1478,9 +1493,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$ok, {
         inputData <- restartSessionKeepOptions()
         r1 <- reactiviseData(inputData=inputData, input=input)
-        reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
-        #output$reviewtable <- updateMainTable(r1=r1)
-        #prebuffer_review()
+        #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+        output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
         flexplotData <- flexPlotDataFun(r1=r1, input=input)
         output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
         sessionTime <- reactive({epochTime()})
@@ -1515,9 +1530,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     r1 <- reactiviseData(inputData=inputData, input=input)
                     output$reviewtable <- updateMainTable(r1=r1)
                     prebuffer_review()
-                    reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
-                    #flexplotData <- flexPlotDataFun(r1=r1, input=input)
-                    #output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
+                    #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+                    flexplotData <- flexPlotDataFun(r1=r1, input=input)
+                    output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
                     sessionTime <- reactive({epochTime()})
                 }
             } else {
@@ -1730,8 +1745,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$reviewtable <- updateMainTable(r1=r1)
             reviewtableproxy <- DT::dataTableProxy('reviewtable')
-            #prebuffer_review()
-            reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
+            prebuffer_review()
+            #reviewtableproxy %>% replaceData(r1(), rownames = FALSE, resetPaging = FALSE)
             # Update table bindings?
             showModal(
                 controlPanelModal(
@@ -1749,8 +1764,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragview_table_data <- react_fv_data2(fragview_data, input)
             output$therow <- updateMainTable2(fragview_input, pl=100)
             fragviewproxy <- DT::dataTableProxy('therow')
-            #prebuffer_fragview()
-            fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+            prebuffer_fragview()
+            #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
         }
     })
 
