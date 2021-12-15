@@ -2064,7 +2064,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             print(renderedligfile)
             output$rlimage <- renderImage({
                 if(length(renderedligfile) == 1){
-                    list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
+                    list(src = '', contentType = 'image/png', width=200, height=200)
                 } else {
                     list(src = '', contentType = 'image/png', width=200,height=200)
                 }
