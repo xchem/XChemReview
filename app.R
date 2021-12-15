@@ -2206,15 +2206,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
             the_fofc_map <- isolate(sessionlist$fofc_file)
 
             if(input$renderMisc & !isolate(sessionlist$apo_file) == ""){
-                spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
-                output$spiderPlot <- renderImage({
-                    if(length(spfile) == 1){
-                        list(src = spfile, contentType = 'image/png', width=200, height=200)
+                #spfile <- tail(dir(isolate(sessionlist$xtalroot), pattern='A-1101.png', full.names=T, rec=T),1)
+                #output$spiderPlot <- renderImage({
+                #    if(length(spfile) == 1){
+                #        list(src = spfile, contentType = 'image/png', width=200, height=200)
+                #    } else {
+                #        list(src = '', contentType = 'image/png', width=200, height=200)
+                #    }
+                #}, deleteFile=FALSE)
+                ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
+                renderedligfile <- gsub('.mol', '.png', isolate(sessionlist$mol_file))
+                debugMessage(sID=sID, sprintf('rl_image: %s', renderedligfile))
+                output$rlimage <- renderImage({
+                    if(length(renderedligfile) == 1){
+                        list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
                     } else {
-                        list(src = '', contentType = 'image/png', width=200, height=200)
+                        list(src = '', contentType = 'image/png', width=200,height=200)
                     }
                 }, deleteFile=FALSE)
-                ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
                 output$ligimage <- renderImage({
                     if(length(ligfile) == 1){
                         list(src = ligfile,contentType = 'image/png',width=200,height=200)
