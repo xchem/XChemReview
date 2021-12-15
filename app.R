@@ -2060,7 +2060,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #    }
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
-            rendedligfile <- dir(dirname(isolate(sessionlist$apo_file)), pattern='png', full=T)[1]
+            renderedligfile <- dir(dirname(isolate(sessionlist$apo_file)), pattern='png', full=T)[1]
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
@@ -2076,7 +2076,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 }
             }, deleteFile=FALSE)
             output$rl_image <- renderImage({
-                list(src = rendedligfile, contentType = 'image/png', width=200, height=200)
+                if(length(renderedligfile) == 1){
+                    list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
+                } else {
+                    list(src = '', contentType = 'image/png', width=200,height=200)
+                }
             }, deleteFile=FALSE)
         }
 
