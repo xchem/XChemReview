@@ -623,12 +623,12 @@ body <- dashboardBody(
                             fluidRow(
                                 column(8,
                                     column(6, 
-                                        helpText('Input Ligand'),
-                                        imageOutput('ligimage')
+                                        helpText('Modelled Ligand'),
+                                        imageOutput('rlimage')
                                     ),
                                     column(6, 
-                                        helpText('Modelled Ligand'),
-                                        imageOutput('rl_image')
+                                        helpText('Input Ligand'),
+                                        imageOutput('ligimage')
                                     )
                                 ),
                                 column(4,
@@ -2061,6 +2061,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
             renderedligfile <- tail(dir(dirname(isolate(sessionlist$apo_file)), pattern='png', full=T),1)
+            print(renderedligfile)
+            output$rlimage <- renderImage({
+                if(length(renderedligfile) == 1){
+                    list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
+                } else {
+                    list(src = '', contentType = 'image/png', width=200,height=200)
+                }
+            }, deleteFile=FALSE)
             output$ligimage <- renderImage({
                 if(length(ligfile) == 1){
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
@@ -2073,13 +2081,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     list(src = ligfile,contentType = 'image/png',width=200,height=200)
                 } else {
                     list(src = '',contentType = 'image/png',width=200,height=200)
-                }
-            }, deleteFile=FALSE)
-            output$rl_image <- renderImage({
-                if(length(renderedligfile) == 1){
-                    list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
-                } else {
-                    list(src = '', contentType = 'image/png', width=200,height=200)
                 }
             }, deleteFile=FALSE)
         }
