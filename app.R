@@ -2063,7 +2063,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             #}, deleteFile=FALSE)
             ligfile <- tail(dir(sprintf('%s/compound', isolate(sessionlist$xtalroot)), pattern = '.png', full.names=T),1)
             renderedligfile <- gsub('.mol', '.png', isolate(sessionlist$lig_mol_file))
-            debugMessage(sID=sID, sprintf('%s', renderedligfile))
+            debugMessage(sID=sID, sprintf('rl_image: %s', renderedligfile))
             output$rlimage <- renderImage({
                 if(length(renderedligfile) == 1){
                     list(src = renderedligfile, contentType = 'image/png', width=200, height=200)
