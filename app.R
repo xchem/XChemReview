@@ -608,6 +608,7 @@ body <- dashboardBody(
                             	    selectizeInput('highlight_res', 'Highlight Residues:', choices = '', multiple=TRUE)
                                 ),
                                 column(6,
+                                    helpText('Modelled Ligand'),
                                     imageOutput('ligimage2', height='300px'),
                                     radioButtons('views', 'View Type', selected = 'aligned', inline = FALSE, width = NULL,
                                         choiceNames = c('Aligned (what will be in Fragalysis)', 'Unaligned (to check if the api alignment introduces problems)', 'Raw Input Files (What you should see in coot, maps may take long time to load)'),
@@ -622,7 +623,6 @@ body <- dashboardBody(
                             div(style='overflow-y:scroll;height:600px;',
                             fluidRow(
                                 column(8,
-                                fluidRow(
                                     column(6, 
                                         helpText('Input Ligand'),
                                         imageOutput('ligimage')
@@ -631,7 +631,6 @@ body <- dashboardBody(
                                         helpText('Modelled Ligand'),
                                         imageOutput('rlimage')
                                     )
-                                )
                                 ),
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
@@ -2232,8 +2231,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     }
                 }, deleteFile=FALSE)
                 output$ligimage2 <- renderImage({
-                    if(length(ligfile) == 1){
-                        list(src = ligfile,contentType = 'image/png',width=200,height=200)
+                    if(length(renderedligfile) == 1){
+                        list(src = renderedligfile,contentType = 'image/png',width=200,height=200)
                     } else {
                         list(src = '',contentType = 'image/png',width=200,height=200)
                     }
