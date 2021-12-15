@@ -622,14 +622,16 @@ body <- dashboardBody(
                             div(style='overflow-y:scroll;height:600px;',
                             fluidRow(
                                 column(8,
+                                fluidRow(
                                     column(6, 
-                                        #helpText('Modelled Ligand'),
-                                        imageOutput('rlimage')
+                                        helpText('Input Ligand'),
+                                        imageOutput('ligimage')
                                     ),
                                     column(6, 
-                                        #helpText('Input Ligand'),
-                                        imageOutput('ligimage')
+                                        helpText('Modelled Ligand'),
+                                        imageOutput('rlimage')
                                     )
+                                )
                                 ),
                                 column(4,
                                     div(style = "margin-top:-1em", checkboxInput('renderMisc', 'Render Ligand Images', value = TRUE, width = NULL)),
