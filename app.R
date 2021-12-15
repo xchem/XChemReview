@@ -875,6 +875,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         inputData <- reactive({dbdat})
         return(inputData)
     }
+    
+    observeEvent(input$protein, {
+        r1 <- reactiviseData(inputData=inputData, input=input)
+        output$reviewtable <- updateMainTable(r1=r1)
+        prebuffer_review()
+    })
 
     observeEvent(input$out4, {
         r1 <- reactiviseData(inputData=inputData, input=input)
