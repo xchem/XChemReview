@@ -356,7 +356,9 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
 		}
 	}
     }
-
+    
+    # Write and copy stuff
+    file.copy(sprintf('%sreference.pdb', base_root), sprintf("%s/reference.pdb", basef))
     write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
     write.csv(meta, sprintf("%s/metadata.csv", align_dir), quote = FALSE)
 
