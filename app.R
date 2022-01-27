@@ -956,7 +956,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0))
+            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(list(orderable=TRUE, targets=0)))
             )
         } else {
         dtt <- DT::datatable(
@@ -967,7 +967,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 stateSave = TRUE,
                 order = isolate(input$reviewtable_state$order),
                 paging = TRUE,
-                pageLength = isolate(input$reviewtable_state$length), columnDefs=list(orderable=TRUE, targets=0)
+                pageLength = isolate(input$reviewtable_state$length), columnDefs=list(list(orderable=TRUE, targets=0))
             )   
         )
         }
@@ -1017,7 +1017,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0))
+            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(list(orderable=TRUE, targets=0)))
             )
         } else {
         dtt <- DT::datatable(
@@ -1028,7 +1028,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 stateSave = TRUE,
                 order = isolate(input$therow_state$order),
                 paging = TRUE,
-                pageLength = isolate(input$therow_state$length), columnDefs=list(orderable=TRUE, targets=0)
+                pageLength = isolate(input$therow_state$length), columnDefs=list(list(orderable=TRUE, targets=0))
             )   
         )
         }
