@@ -1020,7 +1020,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             options = list(
                 stateSave = TRUE, 
                 pageLength=pl, 
-                columnDefs=list(list(orderable=TRUE))
+                columnDefs=list(list(orderable=TRUE, targets=c(0,1,2,3,4,5,6)))
             )
             )
         } else {
@@ -1033,7 +1033,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 order = isolate(input$therow_state$order),
                 paging = TRUE,
                 pageLength = isolate(input$therow_state$length), 
-                columnDefs=list(list(orderable=TRUE))
+                columnDefs=list(list(orderable=TRUE, targets=c(0,1,2,3,4,5,6)))
             )   
         )
         }
