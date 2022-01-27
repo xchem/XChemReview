@@ -956,7 +956,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0)
+            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0))
             )
         } else {
         dtt <- DT::datatable(
@@ -1017,7 +1017,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0)
+            options = list(stateSave = TRUE, pageLength=pl, columnDefs=list(orderable=TRUE, targets=0))
             )
         } else {
         dtt <- DT::datatable(
