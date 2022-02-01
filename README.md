@@ -1,4 +1,7 @@
 # XChemReview
+
+[![DOI](https://zenodo.org/badge/258452381.svg)](https://zenodo.org/badge/latestdoi/258452381)
+
 A shiny app to collect the responses from XChemExperiments
 
 ## Setup
