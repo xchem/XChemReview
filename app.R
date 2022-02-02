@@ -2496,9 +2496,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             rewriteMols(target=isolate(input$lp_selection))
             sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
             # Upload to stuff???
-            task = sessionlist$fullpath_frag
-            # task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
-            # Delete upload Folder
+            #task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
+            # Clean up... providing fullpath_frag
+            if(grep('zip', basename(sessionlist$fullpath_frag) & dirname(dirname(sessionlist$fullpath_frag)) == '/dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/'){
+                try(system('rm -rf %s', dirname(sessionlist$fullpath_frag)), silent=T)
+            }
             showModal(modalDialog(
                     title = 'Upload appears to have been successful', 
                     sprintf('Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
@@ -2507,6 +2509,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     footer = modalButton("Dismiss"),
                     easyClose = FALSE
             ))
+
+
         } else {
             showModal(modalDialog(
                 title = 'Please fill out the form!', 
