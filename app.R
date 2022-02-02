@@ -68,20 +68,26 @@ getResNum <- function(pdb){
     return(sprintf('@%s',paste(rownames(pdb$atom), collapse=',')))
 }
 
-write_to_mol_file <- function(mol_file, id_str, comment_str){
+write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
     lines <- readLines(mol_file)
     if(any(lines == '> <BADATOMS>')){
         # Don't update
-        #badid_line <- which(lines == '> <BADATOMS>') + 1
-        #lines[badid_line] <- id_str
+        badid_line <- which(lines == '> <BADATOMS>') + 1
+        lines[badid_line] <- id_str
     } else {
         lines <- c(lines, '> <BADATOMS>', id_str)
     }
     if(any(lines == '> <BADCOMMENTS>')){
-        #badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
-        #        lines[badcomment_line] <- badcommentstr
+        badcomment_line <- which(lines == '> <BADCOMMENTS>') + 1
+        lines[badcomment_line] <- comment_str
     } else {
         lines <- c(lines, '> <BADCOMMENTS>', comment_str)
+    }
+    if(any(lines == '> <BADNAMES>')){
+        badname_line <- which(lines == '> <BADNAMES>') + 1
+        lines[badname_line] <- name_str
+    } else {
+        lines <- c(lines, '> <BADNAMES>', comment_str)
     }
     # And bad atom names...
     cat(paste(lines, collapse='\n'), file = mol_file)
@@ -89,32 +95,30 @@ write_to_mol_file <- function(mol_file, id_str, comment_str){
 
 rewriteMols <- function(target){ # This need refactoring later......
     con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
-    atoms <- dbGetQuery(con, 'SELECT * from bad_atoms')
-    rownames(atoms) <- as.character(atoms$ligand_id)
     fligands <- dbGetQuery(con, 'SELECT * from fragalysis_ligand')
     fligand_id <- as.character(fligands$id)
     rownames(fligands) <- as.character(fligand_id)
-    ligands <- dbGetQuery(con, 'SELECT * from ligand')
-    dbDisconnect(con)
+    fligands <- fligands[grep(target, fligands$ligand_name), ]
+    ligands <- dbGetQuery(con, sprintf('SELECT * from ligand WHERE fragalysis_ligand_id IN (%s)', paste(rownames(fligands), collapse=',')))
     ligand_id <- ligands$id
     rownames(ligands) <- as.character(ligand_id)
-    # Fix this...
-    ats <- atoms[rownames(ligands),]
-    #latest_review <-  t(sapply(split(reviews, reviews$ligand_name_id), function(x) x[which.max(x$time_submitted),]))
-    #for(i in 1:nrow(latest_review)){
-    #    lig <- latest_review[i,'Ligand_name_id']
-    #    mol_file <- fligands[as.character(ligands[as.character(lig),'fragalysis_ligand_id']),]$lig_mol_file
-    #    rev <- latest_review[i,'id']
-    #    ids_to_grab <- which(atoms$Review_id==rev)
-    #    if(length(ids_to_grab)>0){
-	#        print(mol_file)
-    #        id_str <- atoms[ids_to_grab, 'atomid']
-    #        comment_str <- atoms[ids_to_grab, 'comment']
-    #        id_str2 <- paste0(id_str, collapse=';')
-    #        comment_str2 <- paste0(comment_str, collapse=';')
-    #        try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2), silent=T)
-    #    }
-    #}
+    atoms <- dbGetQuery(con, sprintf('SELECT * from bad_atoms WHERE ligand_id IN (%s)', paste(rownames(ligands), collapse=',')))
+    rownames(atoms) <- as.character(atoms$ligand_id)
+    dbDisconnect(con)
+    ats <- na.omit(atoms[rownames(ligands),])
+    towrite <- ats[!ats$atomid == '',]
+    for(j in 1:nrow(towrite)){
+        atomstowrite <- towrite[j,]
+        lig <- as.character(atomstowrite[, 'ligand_id'])
+        fligands[as.character(ligands[lig,'fragalysis_ligand_id']),]$lig_mol_file
+        id_str <- atomstowrite[1,'atomid']
+        comment_str <- atomstowrite[1,'comment']
+        name_Str <- atomstowrite[1,'atomname']
+        id_str2 <- paste0(id_str, collapse=';')
+        comment_str2 <- paste0(comment_str, collapse=';')
+        name_str2 <- paste0(name_str, collapse=';')
+        try(write_to_mol_file(mol_file=mol_file, id_str=id_str2, comment_str = comment_str2, name_str=name_str2), silent=T)
+    }
 }
 
 # I can't believe this doesn't exist in R!
@@ -2485,7 +2489,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
     observeEvent(input$lp_launcher, {
         # Check if things are sound...
         lpprop <- isolate(input$lp_proposal)
-        if((grepl('[0-9]{5}', lpprop) | lpprop == "OPEN")){
+        if((grepl('^[0-9]{5}$', lpprop) | lpprop == "OPEN")){
+            rewriteMols(target=isolate(input$lp_selection))
             sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
             # Upload to stuff???
             task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
