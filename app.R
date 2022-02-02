@@ -2503,7 +2503,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     title = 'Upload appears to have been successful', 
                     sprintf('Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
                     You can track the progress of the upload here: https://fragalysis.diamond.ac.uk/viewer/upload_task/%s/
-                    Please do not resubmit! Things are happening behind the scenes! %s', task), 
+                    Please do not resubmit! Things are happening behind the scenes!', task), 
                     footer = modalButton("Dismiss"),
                     easyClose = FALSE
             ))
