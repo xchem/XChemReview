@@ -31,7 +31,7 @@ if(local) {
 
 target_list <- sort(c(
 	'Mpro',
-	#'PlPro',
+	'PlPro',
 	'NSP16',
     'macro-combi'
 ))
@@ -1440,7 +1440,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             message('Updating Bad Atoms!')
             dbExecute(con, sprintf(
                 "UPDATE bad_atoms SET %s WHERE ligand_id=%s",
-                sprintf("\"atomid\"=\'%s\', comment\'%s\', atomname=\'%s\'", newdat$atomid, newdat$comment, newdat$atomname),
+                sprintf("atomid=\'%s\', comment=\'%s\', atomname=\'%s\'", newdat$atomid, newdat$comment, newdat$atomname),
                 ligand_id)
             )           
         }
