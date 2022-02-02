@@ -83,13 +83,15 @@ write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
     } else {
         lines <- c(lines, '> <BADCOMMENTS>', comment_str)
     }
-    if(any(lines == '> <BADNAMES>')){
-        badname_line <- which(lines == '> <BADNAMES>') + 1
+    if(any(lines == '> <BADATOMNAMES>')){
+        badname_line <- which(lines == '> <BADATOMNAMES>') + 1
         lines[badname_line] <- name_str
     } else {
-        lines <- c(lines, '> <BADNAMES>', comment_str)
+        lines <- c(lines, '> <BADATOMNAMES>', name_str)
     }
     # And bad atom names...
+    print(mol_file)
+    print(lines)
     cat(paste(lines, collapse='\n'), file = mol_file)
 }
 
@@ -110,7 +112,7 @@ rewriteMols <- function(target){ # This need refactoring later......
     for(j in 1:nrow(towrite)){
         atomstowrite <- towrite[j,]
         lig <- as.character(atomstowrite[, 'ligand_id'])
-        fligands[as.character(ligands[lig,'fragalysis_ligand_id']),]$lig_mol_file
+        mol_file = fligands[as.character(ligands[lig,'fragalysis_ligand_id']),]$lig_mol_file
         id_str <- atomstowrite[1,'atomid']
         comment_str <- atomstowrite[1,'comment']
         name_str <- atomstowrite[1,'atomname']
