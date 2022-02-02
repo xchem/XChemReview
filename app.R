@@ -295,6 +295,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz){
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/aligned', protsuffix, prot))
     system(sprintf('mkdir /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/crystallographic', protsuffix, prot))
 
+    try(system(sprintf('cp -r /dls/science/groups/i04-1/fragprep/pipeline_staging/%s/extra_files /dls/science/groups/i04-1/fragprep/FragalysisUploadFolders/%s/%s/', prot, protsuffix, prot)), silent=TRUE)
     # aligned data copy
     progress$set(message = "Copying aligned Files", value = 0)
     increment = (1/nrow(meta))/2.2
@@ -2493,12 +2494,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
             rewriteMols(target=isolate(input$lp_selection))
             sessionlist$fullpath_frag <- createFragUploadFolder(meta=sessionlist$fumeta, target=isolate(input$lp_selection), copymaps=input$lp_copymaps, mtz=mtzzz)
             # Upload to stuff???
-            task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
+            task = sessionlist$fullpath_frag
+            # task <- uploadFragFolder(filepath = sessionlist$fullpath_frag, target = isolate(input$lp_selection), proposal = isolate(input$lp_proposal), email = isolate(input$lp_email))
+            # Delete upload Folder
             showModal(modalDialog(
                     title = 'Upload appears to have been successful', 
                     sprintf('Please be patient - you should recieve an email when the upload on fragalysis has succeeded. 
                     You can track the progress of the upload here: https://fragalysis.diamond.ac.uk/viewer/upload_task/%s/
-                    Please do not resubmit! Things are happening behind the scenes!', task), 
+                    Please do not resubmit! Things are happening behind the scenes! %s', task), 
                     footer = modalButton("Dismiss"),
                     easyClose = FALSE
             ))
