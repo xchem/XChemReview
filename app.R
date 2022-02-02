@@ -113,7 +113,7 @@ rewriteMols <- function(target){ # This need refactoring later......
         fligands[as.character(ligands[lig,'fragalysis_ligand_id']),]$lig_mol_file
         id_str <- atomstowrite[1,'atomid']
         comment_str <- atomstowrite[1,'comment']
-        name_Str <- atomstowrite[1,'atomname']
+        name_str <- atomstowrite[1,'atomname']
         id_str2 <- paste0(id_str, collapse=';')
         comment_str2 <- paste0(comment_str, collapse=';')
         name_str2 <- paste0(name_str, collapse=';')
