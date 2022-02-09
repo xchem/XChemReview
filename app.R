@@ -33,8 +33,7 @@ target_list <- sort(c(
 	'Mpro',
 	'PlPro',
 	'NSP16',
-    'macro-combi'
-))
+    'macro-combi'))
 fragfolders <- c('', target_list)
 # Plotting Libs
 library(ggplot2)
