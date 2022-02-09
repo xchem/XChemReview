@@ -986,23 +986,29 @@ If you believe you have been sent this message in error, please email tyler.gorr
     updateAQPTable <- function(r, pl=100){
         if(is.null(isolate(input$aqp_state))){
             dtt <- DT::datatable(
-                r(),
+                r()[,c(1,39,40,41)],
                 selection = 'single',
-                options = list(stateSave=TRUE, pageLength=pl, columnDefs=list(list(orderable=TRUE, targets=c(0,1,38,39,40))))
+                options = list(stateSave=TRUE, pageLength=pl, columnDefs=list(list(orderable=TRUE, targets=c(0,1,2,3))))
             )
         } else {
             dtt <- DT::datatable(
-                r(),
+                r()[,c(1,39,40,41)],
                 selection = 'single',
                 options = list(
                     stateSave = TRUE,
                     order = isolate(input$aqp_state$order),
                 paging = TRUE,
-                pageLength = isolate(input$aqp_state$length), columnDefs=list(list(orderable=TRUE, targets=c(0,1,38,39,40))))
+                pageLength = isolate(input$aqp_state$length), columnDefs=list(list(orderable=TRUE, targets=c(0,1,2,3))))
             )
         }
         DT::renderDataTable({
-            dtt
+            dtt %>% DT::formatStyle(
+                'bad_atom_inex',
+                target = 'row',
+                backgroundColor = DT::styleEqual(
+                    c(''),
+                    c('#648FFF')
+                )
         }, server=FALSE)
     }
 
