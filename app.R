@@ -1130,7 +1130,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     r1 <- reactiviseData(inputData=inputData, input=input)
     #output$reviewtable <- updateMainTable(r1=r1)
     reviewtableproxy <- DT::dataTableProxy('reviewtable')
-    aqpproxy <- DT::dataTableProxt('aqp')
+    aqpproxy <- DT::dataTableProxy('aqp')
     flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
@@ -1838,7 +1838,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             inputData <- restartSessionKeepOptions()
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$aqp <- updateAQPTable(r=r1)
-            aqpproxy <- DT::dataTableProxt('aqp')
+            aqpproxy <- DT::dataTableProxy('aqp')
             prebuffer_aqp()
         }
     })
