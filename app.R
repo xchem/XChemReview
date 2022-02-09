@@ -734,14 +734,15 @@ body <- dashboardBody(
                         title = 'Atom Selection',
                         textOutput('as_message'),
                         fluidRow(
-                            column(3, fluidRow(actionButton('as_clear', label = 'Clear Atoms'), actionButton('submit_atoms', label='Submit Atom Qualities'))),
+                            column(3, fluidRow(actionButton('as_clear', label = 'Clear Atoms'), 
+                            actionButton('submit_atoms', label='Submit Atom Qualities'))),
                             column(3, fluidRow(
                             actionButton('write_all', 'Write to All Atoms?', value=FALSE),
                             actionButton('write_selected', label = 'Write to selected rows')
                             )),
                             column(3, 
                                 selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations', 'High b-factor'), options=list(create=TRUE)),
-                                materialSwitch(inputId = "bfactor", label = "Render B Factors", status='success', value = FALSE)
+                                materialSwitch(inputId = "aq_bfactor", label = "Render B Factors", status='success', value = FALSE)
                             )
                         ),
                         DT::dataTableOutput('atoms')
@@ -946,31 +947,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(input$out4) rowidx[outcome == 4 | current_state == 'Comp Chem Ready'] <- TRUE
                 if(input$out5) rowidx[outcome == 5 | current_state == 'Deposition Ready'] <- TRUE
                 if(input$out6) rowidx[outcome == 6 | current_state == 'Deposited'] <- TRUE
-                #if(input$out7){
-                #    rowidx[review=='Release'] <- TRUE
-                #} else {
-                #    rowidx[review=='Release'] <- FALSE
-                #}
-                #if(input$out8){
-                #    rowidx[review=='Reject'] <- TRUE
-                #} else {
-                #    rowidx[review=='Reject'] <- FALSE
-                #}
                 inputData()[rowidx,]
             } else {
                 if(input$out4) rowidx[outcome == 4 | current_state == 'Comp Chem Ready'] <- TRUE
                 if(input$out5) rowidx[outcome == 5 | current_state == 'Deposition Ready'] <- TRUE
                 if(input$out6) rowidx[outcome == 6 | current_state == 'Deposited'] <- TRUE
-                #if(input$out7){
-                #    rowidx[review=='Release'] <- TRUE
-                #} else {
-                #    rowidx[review=='Release'] <- FALSE
-                #}
-                #if(input$out8){
-                #    rowidx[review=='Reject'] <- TRUE
-                #} else {
-                #    rowidx[review=='Reject'] <- FALSE
-                #}
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
         })
@@ -1205,7 +1186,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     #output$therow <- updateMainTable2(fragview_input, pl=100)
     fragviewproxy <- DT::dataTableProxy('therow')
-    output$as_message <- renderText({'Alt Click to select Atom'})
+    output$as_message <- renderText({'Select Atom: Alt + Click \n Select Side Chain: Alt + Ctrl + Click \n Select Whole Residue: Shift + Ctrl + Alt + Click\n'})
     if(debug) debugMessage(sID=sID, sprintf('Finalised'))
     observeEvent(input$as_clear, {
         session$sendCustomMessage(type = 'as_resetclicked', list())
@@ -1589,6 +1570,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 displayModalWhoUpdated(id=xId)
             }
         }
+    })
+
+
+    observeEvent(input$submit_atoms, {
+        print(atomstoquery$data)
+        if(any(as.character(atomstoquery$data$comment) %in% c('', ' '))){
+            showModal(modalDialog(title = 'You have flagged some atoms',
+                'Please annotate the selected atoms in the Atom Selection tab by double clicking on the comment cells. If you accidentally flagged an atom, try reloading the structure and resubmitting your review!',
+                easyClose=TRUE))
+        } else {
+            # Write Atoms to table...
+            # Write Atoms to mol file...
+            # Update things...
     })
 
     atomstoquery <- reactiveValues()
@@ -2022,6 +2016,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateVisability('fofcneg', input$fofcMap)
     })
 
+    observeEvent(input$aq_eventMap,   { updateVisability('eventmap', input$aq_eventMap  ) })
+    observeEvent(input$aq_twofofcMap, { updateVisability('twofofc' , input$aq_twofofcMap) })
+    observeEvent(input$aq_fofcMap,    {
+        updateVisability('fofcpos', input$aq_fofcMap)
+        updateVisability('fofcneg', input$aq_fofcMap)
+    })
+
     updateDensityISO <- function(name, isolevel) session$sendCustomMessage('updateVolumeDensityISO', list(name, isolevel))
 
     observeEvent(input$isoEvent, {updateDensityISO('eventmap', input$isoEvent)})
@@ -2031,12 +2032,24 @@ If you believe you have been sent this message in error, please email tyler.gorr
         updateDensityISO('fofcneg', input$isofofc)
     })
 
+    observeEvent(input$aq_isoEvent, {updateDensityISO('eventmap', input$aq_isoEvent)})
+    observeEvent(input$aq_iso2fofc, {updateDensityISO('twofofc', input$aq_iso2fofc)})
+    observeEvent(input$aq_isofofc , {
+        updateDensityISO('fofcpos', input$aq_isofofc)
+        updateDensityISO('fofcneg', input$aq_isofofc)
+    })
+
     updateDensityBoxSize <- function(name, boxsize) session$sendCustomMessage('updateVolumeDensityBoxSize', list(name, boxsize))
     observeEvent(input$boxsize , {
         for(windowname in c('eventmap', 'twofofc', 'fofcpos', 'fofcneg')) updateDensityBoxSize(windowname, input$boxsize)
     })
 
     observeEvent(input$fitButton, {
+        #try(uploadMolAndFocus(session = session, filepath = isolate(session_data$selected)$mol_file, ext = 'mol', focus=TRUE), silent = TRUE)
+        try(session$sendCustomMessage(type='focus_on_mol', list()), silent=TRUE)
+    })
+
+    observeEvent(input$aq_fitButton, {
         #try(uploadMolAndFocus(session = session, filepath = isolate(session_data$selected)$mol_file, ext = 'mol', focus=TRUE), silent = TRUE)
         try(session$sendCustomMessage(type='focus_on_mol', list()), silent=TRUE)
     })
@@ -2214,11 +2227,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 names(the_emaps) <- basename(the_emaps)
                 sessionlist$current_emaps <- the_emaps
                 print(the_emaps)
+                render_bfactor <- switch(input$tab, 
+                    'review' = isolate(input$bfactor)
+                    'aqz' = isolate(input$aq_bfactor)
+                )
                 if(input$bfactor){
                     uploadBFactors(sessionlist$apo_file)
                     updateVisability('mol', FALSE) 
                     uploadBFactors(gsub('.mol', '.pdb', sessionlist$the_mol_file), clear=FALSE)
                 }
+
                 incProgress(.2, detail = 'Uploading Event map')
                 updateSelectInput(session, 'emap', choices = names(isolate(sessionlist$current_emaps)), selected = names(isolate(sessionlist$current_emaps))[1])
                 # Move this to a different part?
