@@ -2230,10 +2230,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 sessionlist$current_emaps <- the_emaps
                 print(the_emaps)
                 render_bfactor <- switch(input$tab, 
-                    'review' = isolate(input$bfactor)
+                    'review' = isolate(input$bfactor),
                     'aqz' = isolate(input$aq_bfactor)
                 )
-                if(input$bfactor){
+                if(render_bfactor){
                     uploadBFactors(sessionlist$apo_file)
                     updateVisability('mol', FALSE) 
                     uploadBFactors(gsub('.mol', '.pdb', sessionlist$the_mol_file), clear=FALSE)
