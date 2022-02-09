@@ -977,7 +977,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         selectPage(fragviewproxy, page = input$therow_state$start/input$therow_state$length+1)
     }
 
-    prebugger_aqp <- function(){
+    prebuffer_aqp <- function(){
         updateSearch(aqpproxy, keywords = list(global = input$aqp_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
         selectPage(aqpproxy, page = input$aqp_state$start/input$aqp_state$length+1)
     }
@@ -998,7 +998,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     order = isolate(input$aqp_state$order),
                 paging = TRUE,
                 pageLength = isolate(input$aqp_state$length), columnDefs=list(list(orderable=TRUE, targets=c(0,1,38,39,40))))
-            ) 
             )
         }
         DT::renderDataTable({
@@ -1839,6 +1838,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             inputData <- restartSessionKeepOptions()
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$aqp <- updateAQPTable(r=r1)
+            aqpproxy <- DT::dataTableProxt('aqp')
+            prebuffer_aqp()
         }
     })
 
