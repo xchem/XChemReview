@@ -1007,7 +1007,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 backgroundColor = DT::styleEqual(
                     c(''),
                     c('#648FFF')
-                )
+                ))
         }, server=FALSE)
     }
 
