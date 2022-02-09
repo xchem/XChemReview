@@ -731,7 +731,7 @@ body <- dashboardBody(
                 nglShinyOutput('AVnglShiny', height = '500px'),
             ),
             fluidRow(
-                column(5,
+                column(12,
                 tabBox(
                     tabPanel(
                         title = 'Atom Selection',
@@ -752,7 +752,7 @@ body <- dashboardBody(
                     )
                 )
                 ),
-                column(2,
+                column(12,
                 tabBox(
                     tabPanel(
                         title = 'Controls',
@@ -777,7 +777,7 @@ body <- dashboardBody(
                         )   
                     )
                 )),
-                column(5,
+                column(12,
                 tabBox(
                     tabPanel(title='Ligands',
                     div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP'))
