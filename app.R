@@ -655,19 +655,6 @@ body <- dashboardBody(
                             ),
                         ),
                         tabPanel(
-                            title = 'Atom Selection (Alt + Left Click)',
-                            textOutput('as_message'),
-                            fluidRow(
-                                column(3, actionButton('as_clear', label = 'Clear Atoms')),
-                                column(3, fluidRow(
-                                actionButton('write_all', 'Write to All Atoms?', value=FALSE),
-                                actionButton('write_selected', label = 'Write to selected rows')
-                                )),
-                                column(3, selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations'), options=list(create=TRUE)))
-                            ),
-                            DT::dataTableOutput('atoms')
-                        ),
-                        tabPanel(
                             title = 'Ligand Relationships + Sites',
                             fluidRow(
                                 tabBox(
@@ -741,12 +728,55 @@ body <- dashboardBody(
         tabItem(
             tabName = 'aqz',
             fluidRow(
-                actionButton('listdump', 'Press Me!'),
                 nglShinyOutput('AVnglShiny', height = '500px'),
                 tabBox(
-                    column(6,div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('AQ'))),
-                    column(6,div(style='overflow-y:scroll;height:600px;',DT::dataTableOutput('AQP')))
+                    tabPanel(
+                        title = 'Atom Selection',
+                        textOutput('as_message'),
+                        fluidRow(
+                            column(3, fluidRow(actionButton('as_clear', label = 'Clear Atoms'), actionButton('submit_atoms', label='Submit Atom Qualities'))),
+                            column(3, fluidRow(
+                            actionButton('write_all', 'Write to All Atoms?', value=FALSE),
+                            actionButton('write_selected', label = 'Write to selected rows')
+                            )),
+                            column(3, 
+                                selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations', 'High b-factor'), options=list(create=TRUE)),
+                                materialSwitch(inputId = "bfactor", label = "Render B Factors", status='success', value = FALSE)
+                            )
+                        ),
+                        DT::dataTableOutput('atoms')
+                    ),
+                    tabPanel(
+                        title = 'Controls',
+                        fluidRow(
+                                shinyWidgets::chooseSliderSkin("Flat", color='#112446'),
+                                column(6,
+                                    actionButton(
+                                        "aq_fitButton",
+                                        "Center on Ligand"
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_eventMap', 'Show Event Map', value = TRUE)),
+                                        column(10, sliderInput("aq_isoEvent", "", min = 0, max = 3, value = 1, step = 0.1))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_twofofcMap', 'Show 2fofc Map', value = TRUE)),
+                                        column(10, sliderInput("aq_iso2fofc", "", min = 0, max = 3, value = 1.5, step = 0.1))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_fofcMap', 'Show fofc Map', value = TRUE)),
+                                        column(10, sliderInput("aq_isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
+                                    )#,
+                            	    #selectInput('aq_gotores', 'Go to Residue:', choices = '', multiple=FALSE),
+                            	    #selectizeInput('aq_highlight_res', 'Highlight Residues:', choices = '', multiple=TRUE)
+                                )
+                            )   
+                    )
+                ),
+                tabBox(
+                    column(6,div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP')))
                 )
+            )
             )
         ),
         tabItem(
@@ -1479,12 +1509,12 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     }
 
-    saveData <- function(data, xtaln, atoms) {
+    saveData <- function(data, xtaln) {
         con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
         dbAppendTable(con, 'review_responses', value = data, row.names=NULL)
         dbDisconnect(con)
         rr <- getReviewRow(data, db = db, host_db=host_db, db_port=db_port, db_user=db_user, db_password=db_password)
-        writeAtoms(ligand_id=as.character(rr$ligand_name_id))
+        #writeAtoms(ligand_id=as.character(rr$ligand_name_id))
         sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], data[,'comment'])
     }
 
@@ -1539,13 +1569,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
             xId <- fData[ ,'Ligand_name_id']
             # Check ID
             if(sessionGreaterThanMostRecentResponse(id=xId, sessionTime=sessionTime())){
-                print(atomstoquery$data)
-                if(any(as.character(atomstoquery$data$comment) %in% c('', ' '))){
-                    showModal(modalDialog(title = 'You have flagged some atoms',
-                        'Please annotate the selected atoms in the Atom Selection tab by double clicking on the comment cells. If you accidentally flagged an atom, try reloading the structure and resubmitting your review!',
-                        easyClose=TRUE))
-                } else {
-                    saveData(fData, xtaln, atomstoquery$data)
+                #print(atomstoquery$data)
+                #if(any(as.character(atomstoquery$data$comment) %in% c('', ' '))){
+                #    showModal(modalDialog(title = 'You have flagged some atoms',
+                #        'Please annotate the selected atoms in the Atom Selection tab by double clicking on the comment cells. If you accidentally flagged an atom, try reloading the structure and resubmitting your review!',
+                #        easyClose=TRUE))
+                #} else {
+                    saveData(fData, xtaln)
                     message(sessionTime())
                     inputData <- resetForm()
                     r1 <- reactiviseData(inputData=inputData, input=input)
@@ -1555,7 +1585,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     flexplotData <- flexPlotDataFun(r1=r1, input=input)
                     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
                     sessionTime <- reactive({epochTime()})
-                }
+                #}
             } else {
                 displayModalWhoUpdated(id=xId)
             }
@@ -1706,7 +1736,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #selectInput('d1', 'Selection', c('setosa', 'versicolor', 'virginica'))
             ),
             summary = tagList(
-                selectInput('protein_to_summarize', 'Selection', selected = '', choices=sort(unique(as.character(review_data$target_name))))
+                #selectInput('protein_to_summarize', 'Selection', selected = '', choices=sort(unique(as.character(review_data$target_name))))
+            ),
+            aqz = tagList(
+                selectInput('aq_protein', 'Select Protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name))))),
+                selectInput('aq_ligand', 'Ligand', selected='', choices = rownames(isolate(r1())), multiple=FALSE)
             )
         )
     })
@@ -2508,7 +2542,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     footer = modalButton("Dismiss"),
                     easyClose = FALSE
             ))
-
 
         } else {
             showModal(modalDialog(
