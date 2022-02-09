@@ -135,7 +135,8 @@ get_residues <- function(pdb_file){
     return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
 }
 
-getReviewData <- function(db, host_db, db_port, db_user, db_password, target_list){
+getReviewData <- function(db, host_db, db_port, db_user, db_password, target_list){ 
+    # Fetch Atom Q at the end??
     # Get data from target_list only first...
     con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
 
@@ -157,6 +158,9 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
 
     ligand_target_data <- dbGetQuery(con, sprintf("SELECT * FROM target WHERE id IN (%s)", paste(ligand_crystal_data[,'target_id'], collapse=',')))
     rownames(ligand_target_data) <- as.character(ligand_target_data$id)
+
+    atom_target_data <- dbGetQuery(con, sprintf("SELECT * FROM bad_atoms WHERE ligand_id IN (%s)", paste(as.character(ligand_data$id), collapse=',')))
+    rownames(atom_target_data) <- as.character(atom_target_data$ligand_id)
 
     # This needs tweaking... Is this going to be slow??
     q1 <- dbGetQuery(con, sprintf("SELECT * FROM crystal_compound_pairs WHERE crystal_id IN (%s)", paste(as.character(ligand_data$crystal_id), collapse=',')))
@@ -217,7 +221,10 @@ getReviewData <- function(db, host_db, db_port, db_user, db_password, target_lis
             },
             as.numeric(sapply(mostrecent[as.character(ligand_data$id),6], function(x) ifelse(is.null(x), NA, format(as_datetime(x), '%Y%m%d%H%M%S')))),
             as.numeric(ligand_fl_data[as.character(ligand_data$fragalysis_ligand_id),13])
-            ))
+            )),
+        'bad_atom_index' = atom_target_data[as.character(ligand_data$id), 'atomid'],
+        'bad_atom_name' = atom_target_data[as.character(ligand_data$id), 'atomname'],
+        'bad_atom_comment' = atom_target_data[as.character(ligand_data$id), 'comment']
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
     dbDisconnect(con)
@@ -731,7 +738,7 @@ body <- dashboardBody(
                 nglShinyOutput('AVnglShiny', height = '500px'),
             ),
             fluidRow(
-                tabBox(width=5,
+                tabBox(width=4,
                     tabPanel(
                         title = 'Atom Selection',
                         textOutput('as_message'),
@@ -750,7 +757,7 @@ body <- dashboardBody(
                         DT::dataTableOutput('atoms')
                     )
                 ),
-                tabBox(width=2,
+                tabBox(width=3,
                     tabPanel(
                         title = 'Controls',
                         fluidRow(
@@ -776,7 +783,7 @@ body <- dashboardBody(
                 ),
                 tabBox(width = 5,
                     tabPanel(title='Ligands',
-                    div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP'))
+                    div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('aqp'))
                     )
                 )
             )
@@ -959,6 +966,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         })
     }
 
+
+
     prebuffer_review <- function(){
         updateSearch(reviewtableproxy, keywords = list(global = input$reviewtable_state$search$search, columns = NULL)) # see input$table_state$columns if needed
         selectPage(reviewtableproxy, page = input$reviewtable_state$start/input$reviewtable_state$length+1)
@@ -966,6 +975,35 @@ If you believe you have been sent this message in error, please email tyler.gorr
     prebuffer_fragview <- function(){
         updateSearch(fragviewproxy, keywords = list(global = input$therow_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
         selectPage(fragviewproxy, page = input$therow_state$start/input$therow_state$length+1)
+    }
+
+    prebugger_aqp <- function(){
+        updateSearch(aqpproxy, keywords = list(global = input$aqp_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
+        selectPage(aqpproxy, page = input$aqp_state$start/input$aqp_state$length+1)
+    }
+
+    updateAQPTable <- function(r, pl=100){
+        if(is.null(isolate(input$aqp_state))){
+            dtt <- DT::datatable(
+                r(),
+                selection = 'single',
+                options = list(stateSave=TRUE, pageLength=pl, columnDefs=list(list(orderable=TRUE, targets=c(0,1,38,39,40))))
+            )
+        } else {
+            dtt <- DT::datatable(
+                r(),
+                selection = 'single',
+                options = list(
+                    stateSave = TRUE,
+                    order = isolate(input$aqp_state$order),
+                paging = TRUE,
+                pageLength = isolate(input$aqp_state$length), columnDefs=list(list(orderable=TRUE, targets=c(0,1,38,39,40))))
+            ) 
+            )
+        }
+        DT::renderDataTable({
+            dtt
+        }, server=FALSE)
     }
 
     updateMainTable <- function(r1, pl=100){
@@ -1004,28 +1042,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
                 )
             ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-        #DT::renderDataTable({
-        #    DT::datatable(
-        #        r1(), callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
-        #        selection = 'single',
-        #        options = list(
-        #            pageLength = pl,
-        #            columnDefs = list(list(width='100px', targets=c(4)))
-        #        ), rownames= FALSE
-        #    ) %>% DT::formatStyle(
-        #        'decision_str',
-        #        target = 'row',
-        #        backgroundColor = DT::styleEqual(
-        #            c('Release', 'More Refinement', 'More Experiments', 'Reject'),
-        #            c('#648FFF', '#FFB000',         '#FE6100',          '#DC267F')
-        #        )
-        #    ) %>% DT::formatStyle(
-        #        'out_of_date',
-        #        target = 'row',
-        #        backgroundColor = DT::styleEqual(
-        #            c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
-        #        )
-        #    ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
         }, server=FALSE)
     }
 
@@ -1115,6 +1131,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     r1 <- reactiviseData(inputData=inputData, input=input)
     #output$reviewtable <- updateMainTable(r1=r1)
     reviewtableproxy <- DT::dataTableProxy('reviewtable')
+    aqpproxy <- DT::dataTableProxt('aqp')
     flexplotData <- flexPlotDataFun(r1=r1, input=input)
     output$flexplot1 <- updateFlexPlot(flexdata=flexplotData)
 
@@ -1699,6 +1716,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 #    column(4, checkboxInput('out8', 'Show Rejected', value = TRUE)),
                 #)
             ),
+            aqz = tagList(
+                selectInput('aq_protein', 'Select Protein', selected = '', choices=fragfolders),
+                selectInput('aq_ligand', 'Ligand', selected='', choices = list(), multiple=FALSE)
+            ),
             fragview = tagList(
                     selectInput('fragSelect', 'Project Select', selected = '', choices=fragfolders),
                     checkboxInput('desync', 'Turn off automatic Updates', value = FALSE),
@@ -1733,10 +1754,6 @@ If you believe you have been sent this message in error, please email tyler.gorr
             ),
             summary = tagList(
                 #selectInput('protein_to_summarize', 'Selection', selected = '', choices=sort(unique(as.character(review_data$target_name))))
-            ),
-            aqz = tagList(
-                selectInput('aq_protein', 'Select Protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name))))),
-                selectInput('aq_ligand', 'Ligand', selected='', choices = rownames(isolate(r1())), multiple=FALSE)
             )
         )
     })
@@ -1817,6 +1834,11 @@ If you believe you have been sent this message in error, please email tyler.gorr
             fragviewproxy <- DT::dataTableProxy('therow')
             prebuffer_fragview()
             #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
+        }
+        if(input$tab == 'aqz'){
+            inputData <- restartSessionKeepOptions()
+            r1 <- reactiviseData(inputData=inputData, input=input)
+            output$aqp <- updateAQPTable(r=r1)
         }
     })
 
