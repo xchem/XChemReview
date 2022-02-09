@@ -729,6 +729,61 @@ body <- dashboardBody(
             tabName = 'aqz',
             fluidRow(
                 nglShinyOutput('AVnglShiny', height = '500px'),
+            ),
+            fluidRow(
+                column(5,
+                tabBox(
+                    tabPanel(
+                        title = 'Atom Selection',
+                        textOutput('as_message'),
+                        fluidRow(
+                            column(3, fluidRow(actionButton('as_clear', label = 'Clear Atoms'), 
+                            actionButton('submit_atoms', label='Submit Atom Qualities'))),
+                            column(3, fluidRow(
+                            actionButton('write_all', 'Write to All Atoms?', value=FALSE),
+                            actionButton('write_selected', label = 'Write to selected rows')
+                            )),
+                            column(3, 
+                                selectizeInput('atom_text', 'Comment', choices=c('', 'Weak Density', 'No Density Evidence', 'Unexpected Atom', 'Multiple Conformations', 'High b-factor'), options=list(create=TRUE)),
+                                materialSwitch(inputId = "aq_bfactor", label = "Render B Factors", status='success', value = FALSE)
+                            )
+                        ),
+                        DT::dataTableOutput('atoms')
+                    )
+                )
+                ),
+                column(2,
+                tabBox(
+                    tabPanel(
+                        title = 'Controls',
+                        fluidRow(
+                                shinyWidgets::chooseSliderSkin("Flat", color='#112446'),
+                                    actionButton(
+                                        "aq_fitButton",
+                                        "Center on Ligand"
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_eventMap', 'Show Event Map', value = TRUE)),
+                                        column(10, sliderInput("aq_isoEvent", "", min = 0, max = 3, value = 1, step = 0.1))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_twofofcMap', 'Show 2fofc Map', value = TRUE)),
+                                        column(10, sliderInput("aq_iso2fofc", "", min = 0, max = 3, value = 1.5, step = 0.1))
+                                    ),
+                                    fluidRow(
+                                        column(2, checkboxInput('aq_fofcMap', 'Show fofc Map', value = TRUE)),
+                                        column(10, sliderInput("aq_isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
+                                    )
+                        )   
+                    )
+                )),
+                column(5,
+                tabBox(
+                    tabPanel(title='Ligands'
+                    div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP'))
+                    )
+                ))
+            )
                 tabBox(
                     tabPanel(
                         title = 'Atom Selection',
