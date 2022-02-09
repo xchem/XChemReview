@@ -1002,7 +1002,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
         DT::renderDataTable({
             dtt %>% DT::formatStyle(
-                'bad_atom_inex',
+                'bad_atom_index',
                 target = 'row',
                 backgroundColor = DT::styleEqual(
                     c(''),
