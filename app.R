@@ -777,7 +777,6 @@ body <- dashboardBody(
                     column(6,div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP')))
                 )
             )
-            )
         ),
         tabItem(
             tabName = 'launchpad',
