@@ -779,7 +779,7 @@ body <- dashboardBody(
                 )),
                 column(5,
                 tabBox(
-                    tabPanel(title='Ligands'
+                    tabPanel(title='Ligands',
                     div(style='overflow-y:scroll;height:600px;', DT::dataTableOutput('AQP'))
                     )
                 ))
