@@ -29,15 +29,6 @@ if(local) {
 
 }
 
-<<<<<<< HEAD
-target_list <- sort(c(
-	'Mpro',
-	'PlPro',
-	'NSP16',
-    'macro-combi'))
-fragfolders <- c('', target_list)
-=======
->>>>>>> af6cdda10d9c1e1e6ba7c2582079826246782b91
 # Plotting Libs
 library(ggplot2)
 library(plotly)
