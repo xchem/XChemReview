@@ -813,8 +813,9 @@ ui <- dashboardPage(header, sidebar, body)
 
 server <- function(input, output, session){
     fedid <- Sys.getenv(x = 'SHINYPROXY_USERNAME', unset = "", names = NA)
+    sID <- fedid
     debug = TRUE
-    if(debug) debugMessage(sID=fedid, sprintf('Session init'))
+    if(debug) debugMessage(sID=sID, sprintf('Session init'))
     session$allowReconnect(FALSE)
     sessionDisconnect <- function(){
         # Clean-up:
