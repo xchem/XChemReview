@@ -29,15 +29,38 @@ if(local) {
 
 }
 
+<<<<<<< HEAD
 target_list <- sort(c(
 	'Mpro',
 	'PlPro',
 	'NSP16',
     'macro-combi'))
 fragfolders <- c('', target_list)
+=======
+>>>>>>> af6cdda10d9c1e1e6ba7c2582079826246782b91
 # Plotting Libs
 library(ggplot2)
 library(plotly)
+
+
+# Query fedid to get proposals...
+fedid <- Sys.getenv(x = 'SHINYPROXY_USERNAME', unset = "", names = NA)
+con <- dbConnect(RMariaDB::MariaDB(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password)
+pid <- dbGetQuery(con, sprintf('SELECT personId from ispyb.Person WHERE login = "%s"', fedid))
+sessions <- dbGetQuery(con, sprintf('SELECT sessionId from ispyb.Session_has_Person WHERE personId = "%s"', pid))
+sessionstr <- paste(sessions[,1], collapse=',')
+visits <- dbGetQuery(con, sprintf('SELECT proposalId,visit_number from ispyb.BLSession WHERE sessionId IN (%s)', sessionstr))
+propid_str <- paste(unique(visits[,1]), collapse=',')
+props <- dbGetQuery(con, sprintf('SELECT proposalId,proposalCode,proposalNumber from ispyb.Proposal WHERE proposalId IN (%s)', propid_str))
+rownames(props) <- as.character(props[,1])
+vis <- cbind(props[as.character(visits[,1]),-1], vn = visits[,2])
+propvis <- unique(sprintf('%s%s-%s', vis[,1], vis[,2], vis[,3]))
+xcrvis <- dbGetQuery(con,sprintf('SELECT id,visit from soakdb_files'))
+xcrvisit_to_see <- paste(xcrvis$id[xcrvis$visit %in% propvis], collapse=',')
+target_ids <- paste(unique(dbGetQuery(con, sprintf('SELECT target_id FROM crystal WHERE visit_id IN (%s)', xcrvisit_to_see))[,1]), collapse=',')
+target_list <- dbGetQuery(con, sprintf("SELECT target_name from target WHERE id IN (%s)", target_ids))[,1]
+dbDisconnect(con)
+fragfolders <- c('', target_list)
 
 
 waiting_screen <- tagList(
@@ -798,9 +821,9 @@ body <- dashboardBody(
 ui <- dashboardPage(header, sidebar, body)
 
 server <- function(input, output, session){
-    sID <- sample(1:100000, 1)
+    fedid <- Sys.getenv(x = 'SHINYPROXY_USERNAME', unset = "", names = NA)
     debug = TRUE
-    if(debug) debugMessage(sID=sID, sprintf('Session init'))
+    if(debug) debugMessage(sID=fedid, sprintf('Session init'))
     session$allowReconnect(FALSE)
     sessionDisconnect <- function(){
         # Clean-up:
@@ -808,11 +831,11 @@ server <- function(input, output, session){
         debugMessage(sID=sID, 'Disconnected')
     }
     session$onSessionEnded(sessionDisconnect)
-    query <- parseQueryString(isolate(session$clientData$url_search))
-    if(!is.null(query[['key']])){
-        target_list <- sort(c(decrypt(query[['key']])))
-        fragfolders <- c('', target_list)
-    }
+    #query <- parseQueryString(isolate(session$clientData$url_search))
+    #if(!is.null(query[['key']])){
+    #    target_list <- sort(c(decrypt(query[['key']])))
+    #    fragfolders <- c('', target_list)
+    #}
     epochTime <- function() as.integer(Sys.time())
     humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
     sessionTime <- reactive({epochTime()})
@@ -945,6 +968,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         prebuffer_review()
     })
     reactiviseData <- function(inputData, input){
+        if(input$tab == 'review'){
         reactive({
             rowidx <- rep(FALSE, nrow(inputData()))
             outcome <- as.numeric(as.character(inputData()$outcome))
@@ -964,6 +988,16 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
         })
+        } else if(input$tab == 'aqz'){
+        reactive({
+            if(is.null(input$protein)){
+                inputData()[,]
+            } else {
+                inputData()[grepl(input$aq_protein, as.character(inputData()$target_name)),]
+            }
+        })
+        }
+
     }
 
 
@@ -1699,7 +1733,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 div(
                     id = 'form',
                     # Ligand/Xtal Select????
-                    textInput('name', 'Name/FedID', ''),
+                    textInput('name', 'FedID', fedid),
                     selectInput('ligand', 'Ligand', selected='', choices = rownames(isolate(r1())), multiple=FALSE),
                     selectInput("decision", "Decision", choices = possDec),
                     selectizeInput("reason", "Reason(s)", list(), multiple=TRUE),
@@ -2288,7 +2322,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         waiter_hide()
     })
 
-    observeEvent(input$ligand, ignoreNULL = TRUE, {
+    observeEvent(input$aq_ligand, ignoreNULL=TRUE,{
+        # aq nglshiny
         waiter_show(id='nglShiny', html = waiting_screen, color = scales::alpha("black",.5))
         sessionlist$isotype <- 'value'
         atomstoquery$data <- data.frame(name=character(),
@@ -2296,6 +2331,44 @@ If you believe you have been sent this message in error, please email tyler.gorr
                  comment=character(),
                  stringsAsFactors=FALSE)
         output$atoms <- DT::renderDataTable({DT::datatable(atomstoquery$data)}, server=FALSE)
+        session$sendCustomMessage(type = 'setup', message = list())
+        #updateParam('mousePreset', as.character(input$mousePreset))
+        the_pdb_file <- isolate(sessionlist$apo_file)
+        the_mol_file <- isolate(sessionlist$mol_file)
+        the_emaps <- dir(dirname(isolate(sessionlist$apo_file)), pattern='event', full=TRUE)
+        the_2fofc_map <- isolate(sessionlist$twofofc_file)
+        the_fofc_map <- isolate(sessionlist$fofc_file)
+
+        withProgress(message = sprintf('Loading %s Ligand', 'Aligned'), value = 0,{
+            try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=TRUE)   
+            try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
+            try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+            names(the_emaps) <- basename(the_emaps)
+            sessionlist$current_emaps <- the_emaps
+            # aq bfactor?
+            if(input$tab == 'aqz' & input$bfactor){
+                uploadBFactors(sessionlist$apo_file)
+                updateVisability('mol', FALSE) 
+                uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
+            }
+            incProgress(.1, detail = 'Uploading Event map')
+            try(uploadVolumeDesity(the_emaps[1], 
+                color='orange', negateiso=FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap', isotype=sessionlist$isotype), silent=T)
+            incProgress(.1, detail = 'Uploading 2fofc map')
+            try(uploadVolumeDensity(the_2fofc_map,
+                color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=sessionlist$isotype), silent=T)
+            incProgress(.1, detail = 'Uploading fofc map')
+            try(uploadVolumeDensity(the_fofc_map,
+                color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=sessionlist$isotype), silent=T)
+            incProgress(.1, detail = 'Uploading fofc map')
+            try(uploadVolumeDensity(the_fofc_map,
+                color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=sessionlist$isotype), silent=T)
+        })
+
+    })
+
+    observeEvent(input$ligand, ignoreNULL = TRUE, {
+        waiter_show(id='nglShiny', html = waiting_screen, color = scales::alpha("black",.5))
         previous = isolate(input$views)
         if(previous == 'aligned'){
             session$sendCustomMessage(type = 'setup', message = list())
