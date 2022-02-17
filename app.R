@@ -1715,7 +1715,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     })
 
-    # Actual Stuff
+    # Actual Stuff 
     # Flexible Sidebar Stuff
     output$flex1 <- renderUI({
         switch(input$tab,
