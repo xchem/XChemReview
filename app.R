@@ -960,8 +960,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         prebuffer_review()
     })
     reactiviseData <- function(inputData, input){
-        if(input$tab == 'review'){
+
         reactive({
+            if(input$tab == 'review'){
             rowidx <- rep(FALSE, nrow(inputData()))
             outcome <- as.numeric(as.character(inputData()$outcome))
             current_state <- as.character(inputData()[['Current State']])
@@ -979,17 +980,14 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 if(input$out6) rowidx[outcome == 6 | current_state == 'Deposited'] <- TRUE
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
-        })
-        } else if(input$tab == 'aqz'){
-        reactive({
+            } else if(input$tab == 'aqz'){
             if(is.null(input$protein)){
                 inputData()[,]
             } else {
                 inputData()[grepl(input$aq_protein, as.character(inputData()$target_name)),]
             }
+            }
         })
-        }
-
     }
 
 
