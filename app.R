@@ -534,9 +534,9 @@ sidebar <- dashboardSidebar(
         id = 'tab',
         menuItem('Summary', tabName = 'summary', icon=icon('th')),
         menuItem('FragView', tabName = 'fragview', icon = icon('dashboard'), badgeLabel = 'Stage 1'),
-        menuItem('Atom Quality Zone', tabName = 'aqz', icon = icon('dashboard'), badgeLabel = 'DEV', badgeColor='red'),
-        menuItem('Review', tabName = 'review', icon = icon('dashboard'), badgeLabel = 'Stage 2'),
-        menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'Stage 3'),
+        menuItem('Atom Quality Zone', tabName = 'aqz', icon = icon('dashboard'), badgeLabel = 'Stage 2', badgeColor='red'),
+        menuItem('Review', tabName = 'review', icon = icon('dashboard'), badgeLabel = 'Stage 3'),
+        menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'Stage 4'),
         menuItem('Help', tabName = 'help', icon = icon('th')),
         hr(),
         # Flexible Sidebar options depending on which menuitem is selected.
@@ -1629,8 +1629,13 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 easyClose=TRUE))
         } else {
             # Write Atoms to table...
-            # Write Atoms to mol file...
+            # get ligand id....
+            writeAtoms(ligand_id=as.character(sessionlist$ligand_id))
             # Update things...
+            r1 <- reactiviseData(inputData=inputData, input=input)
+            output$aqp <- updateAQPTable(r=r1)
+            aqpproxy <- DT::dataTableProxy('aqp')
+            prebuffer_aqp()
         }
     })
 
@@ -2136,7 +2141,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
         rdat <- r1()[input$aqp_rows_selected,,drop=TRUE]
         sessionlist$rowname <- rownames(r1())[input$aqp_rows_selected]
         sessionlist$lig_name <- rdat$ligand_name
-        sessionlist$lig_id <- rdat[[1]][1]
+        sessionlist$ligand_id <- rdat$ligand_id
+        #sessionlist$lig_id <- rdat[[1]][1]
         sessionlist$apo_file <- rdat$apo_pdb
         sessionlist$mol_file <- rdat$lig_mol_file
         sessionlist$event <- rdat$pandda_event
@@ -2158,7 +2164,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         rdat <- r1()[input$reviewtable_rows_selected,,drop=TRUE]
         sessionlist$rowname <- rownames(r1())[input$reviewtable_rows_selected]
         sessionlist$lig_name <- rdat$ligand_name
-        sessionlist$lig_id <- rdat[[1]][1]
+        #sessionlist$lig_id <- rdat[[1]][1]
         sessionlist$apo_file <- rdat$apo_pdb
         sessionlist$mol_file <- rdat$lig_mol_file
         sessionlist$event <- rdat$pandda_event
@@ -2561,7 +2567,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         if(!is.na(choice)){
             rdat <- r1()[choice,,drop=TRUE]
             sessionlist$lig_name <- rdat$ligand_name
-            sessionlist$lig_id <- rdat[[1]][1]
+            #sessionlist$lig_id <- rdat[[1]][1]
             sessionlist$apo_file <- rdat$apo_pdb
             sessionlist$mol_file <- rdat$lig_mol_file
             sessionlist$event <- rdat$pandda_event
