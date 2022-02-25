@@ -755,7 +755,7 @@ body <- dashboardBody(
                 tabBox(width=4,
                     tabPanel(
                         title = 'Atom Selection',
-                        textOutput('as_message'),
+                        htmlOutput('as_message'),
                         fluidRow(
                             column(3, fluidRow(actionButton('as_clear', label = 'Clear Atoms'), 
                             actionButton('submit_atoms', label='Submit Atom Qualities'))),
@@ -1234,7 +1234,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     #output$therow <- updateMainTable2(fragview_input, pl=100)
     fragviewproxy <- DT::dataTableProxy('therow')
-    output$as_message <- renderText({'Select Atom: Alt + Click \n Select Side Chain: Alt + Ctrl + Click \n Select Whole Residue: Shift + Ctrl + Alt + Click\n'})
+    output$as_message <- renderUI({HTML('Select Atom: Alt + Click <br/> Select Side Chain: Alt + Ctrl + Click <br/> Select Whole Residue: Shift + Ctrl + Alt + Click')})
     if(debug) debugMessage(sID=sID, sprintf('Finalised'))
     observeEvent(input$as_clear, {
         session$sendCustomMessage(type = 'as_resetclicked', list())
