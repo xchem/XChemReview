@@ -793,7 +793,7 @@ body <- dashboardBody(
                                         column(10, sliderInput("aq_isofofc", "", min = 0, max = 3, value = 3, step = 0.1))
                                     )
                         )   
-                    )
+                    ), tabPanel(title = actionButton('aq_buster', 'Buster Report'))
                 ),
                 tabBox(width = 5,
                     tabPanel(title='Ligands',
@@ -1283,6 +1283,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
         }
     })
 
+    observeEvent(input$aq_bfactor,{
+        if(input$aq_bfactor){
+            uploadBFactors(sessionlist$apo_file, clear=TRUE)
+            updateVisability('mol', FALSE) 
+            uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
+        } else {
+            clearWindowField(id='bfactors')
+            updateVisability('mol', TRUE) 
+        }
+    })
+
     observeEvent(input$gonext, {
         molfiles <- fv_values$molfiles
         molbase <- fv_values$molfil
@@ -1632,6 +1643,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             # get ligand id....
             writeAtoms(ligand_id=as.character(sessionlist$ligand_id))
             # Update things...
+            inputData <- restartSessionKeepOptions()
             r1 <- reactiviseData(inputData=inputData, input=input)
             output$aqp <- updateAQPTable(r=r1)
             aqpproxy <- DT::dataTableProxy('aqp')
@@ -1876,6 +1888,25 @@ If you believe you have been sent this message in error, please email tyler.gorr
             aqpproxy <- DT::dataTableProxy('aqp')
             prebuffer_aqp()
         }
+    })
+
+
+    observeEvent(input$aq_buster, ignoreNULL=TRUE,{
+     	pdf_files = list.files(sessionlist$xtalroot, rec=T, pattern='report.pdf', full=T)
+    	pdf_file = tail(pdf_files,1)
+        message(pdf_file)
+        copied <- file.copy(from=pdf_file, to=sprintf('/dls/science/groups/i04-1/software/xchemreview/www/report_%s.pdf', sID), overwrite=TRUE)
+        message(copied)
+        addResourcePath("www", '/dls/science/groups/i04-1/software/xchemreview/www')
+    	output$buster_pdf <- renderUI({
+		    #includeHTML(file.path('pdf_folder','index.html'))
+      		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
+    	})
+    	showModal(
+    		customDraggableModalDialog(title=pdf_file,
+                if(length(pdf_file)>0) uiOutput("buster_pdf")
+                else 'Unable to find Buster Report', size='l', easyClose=FALSE)
+   	    )       
     })
 
 
@@ -2363,23 +2394,23 @@ If you believe you have been sent this message in error, please email tyler.gorr
             names(the_emaps) <- basename(the_emaps)
             sessionlist$current_emaps <- the_emaps
             # aq bfactor?
-            if(input$tab == 'aqz' & input$bfactor){
+            if(input$tab == 'aqz' & input$aq_bfactor){
                 uploadBFactors(sessionlist$apo_file)
                 updateVisability('mol', FALSE) 
                 uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
             }
             incProgress(.1, detail = 'Uploading Event map')
             try(uploadVolumeDesity(the_emaps[1], 
-                color='orange', negateiso=FALSE, boxsize = input$boxsize, isolevel = input$isoEvent, visable=input$eventMap, windowname='eventmap', isotype=sessionlist$isotype), silent=T)
+                color='orange', negateiso=FALSE, boxsize = input$boxsize, isolevel = input$aq_isoEvent, visable=input$aq_eventMap, windowname='eventmap', isotype=sessionlist$isotype), silent=T)
             incProgress(.1, detail = 'Uploading 2fofc map')
             try(uploadVolumeDensity(the_2fofc_map,
-                color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$iso2fofc, visable=input$twofofcMap, windowname='twofofc', isotype=sessionlist$isotype), silent=T)
+                color = 'blue', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$aq_iso2fofc, visable=input$aq_twofofcMap, windowname='twofofc', isotype=sessionlist$isotype), silent=T)
             incProgress(.1, detail = 'Uploading fofc map')
             try(uploadVolumeDensity(the_fofc_map,
-                color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcpos', isotype=sessionlist$isotype), silent=T)
+                color = 'lightgreen', negateiso = FALSE, boxsize = input$boxsize, isolevel = input$aq_isofofc, visable=input$aq_fofcMap, windowname='fofcpos', isotype=sessionlist$isotype), silent=T)
             incProgress(.1, detail = 'Uploading fofc map')
             try(uploadVolumeDensity(the_fofc_map,
-                color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$isofofc, visable=input$fofcMap, windowname='fofcneg', isotype=sessionlist$isotype), silent=T)
+                color = 'tomato', negateiso = TRUE, boxsize = input$boxsize, isolevel = input$aq_isofofc, visable=input$aq_fofcMap, windowname='fofcneg', isotype=sessionlist$isotype), silent=T)
         })
 
     })
@@ -2450,7 +2481,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
-                    if(input$bfactor){
+                    if(input$tab == 'review' & input$bfactor){
                         uploadBFactors(sessionlist$apo_file)
                         updateVisability('mol', FALSE) 
                         uploadBFactors(gsub('.mol', '.pdb', sessionlist$mol_file), clear=FALSE)
