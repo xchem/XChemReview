@@ -771,7 +771,7 @@ body <- dashboardBody(
                         DT::dataTableOutput('atoms')
                     )
                 ),
-                tabBox(width=3,
+                tabBox(width=3, id='ctab',
                     tabPanel(
                         title = 'Controls',
                         fluidRow(
@@ -1284,6 +1284,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
     })
 
     observeEvent(input$aq_bfactor,{
+        updateTabsetPanel(session, 'ctab', selected = 'Controls')
         if(input$aq_bfactor){
             uploadBFactors(sessionlist$apo_file, clear=TRUE)
             updateVisability('mol', FALSE) 
