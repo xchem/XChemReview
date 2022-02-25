@@ -981,7 +981,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 inputData()[rowidx & grepl(input$protein, as.character(inputData()$target_name)),]
             }
             } else if(input$tab == 'aqz'){
-            if(is.null(input$protein)){
+            if(is.null(input$aq_protein)){
                 inputData()[,]
             } else {
                 inputData()[grepl(input$aq_protein, as.character(inputData()$target_name)),]
