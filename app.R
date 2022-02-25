@@ -2132,9 +2132,30 @@ If you believe you have been sent this message in error, please email tyler.gorr
                 value = 3, step = 0.1)
     })
 
+    observeEvent(input$aqp_rows_selected,{
+        rdat <- r1()[input$aqp_rows_selected,,drop=TRUE]
+        sessionlist$rowname <- rownames(r1())[input$aqp_rows_selected]
+        sessionlist$lig_name <- rdat$ligand_name
+        sessionlist$lig_id <- rdat[[1]][1]
+        sessionlist$apo_file <- rdat$apo_pdb
+        sessionlist$mol_file <- rdat$lig_mol_file
+        sessionlist$event <- rdat$pandda_event
+        sessionlist$twofofc_file <- rdat$two_fofc
+        sessionlist$fofc_file <- rdat$fofc
+        sessionlist$target_name <- rdat$target_name
+        sessionlist$res <- rdat$res
+        sessionlist$r_free <- rdat$r_free
+        sessionlist$r_cryst <- rdat$rcryst
+        sessionlist$ramachandran_outliers <- rdat$ramachandran_outliers
+        sessionlist$rmsd_angles <- rdat$rmsd_angles
+        sessionlist$rmsd_bonds <- rdat$rmsd_bonds
+        sessionlist$pdb_latest <- rdat$pdb_latest
+        sessionlist$xtalroot <- dirname(dirname(rdat$pdb_latest))
+        updateSelectInput(session, 'aq_ligand', choices=isolate(sessionlist$lig_name), selected = isolate(sessionlist$lig_name))
+    })
+
     observeEvent(input$reviewtable_rows_selected, {
         rdat <- r1()[input$reviewtable_rows_selected,,drop=TRUE]
-        print(rdat)
         sessionlist$rowname <- rownames(r1())[input$reviewtable_rows_selected]
         sessionlist$lig_name <- rdat$ligand_name
         sessionlist$lig_id <- rdat[[1]][1]
