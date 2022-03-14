@@ -2038,7 +2038,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
             # Check if any oob?
             pid <- bid[protein_atoms | as.numeric(bid) > n]
-            pic <- pic[protein_atoms | as.numeric(bid) > n]
+            pic <- bic[protein_atoms | as.numeric(bid) > n]
         } else {
             pid <- ''
             pic <- ''
@@ -2069,10 +2069,10 @@ If you believe you have been sent this message in error, please email tyler.gorr
         bic <- unlist(strsplit(ml[grep('> <BADCOMMENTS>', ml) + 1], ';'))
         if(all(!is.na(bid))){
             # check ban for non-HETs
-            protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
+            mol_atoms <- ifelse(is.na(ban), TRUE, grepl('HET', ban))
             # Check if any oob?
-            mid <- bid[!(protein_atoms | as.numeric(bid) > n)]
-            mic <- bic[!(protein_atoms | as.numeric(bid) > n)]
+            mid <- bid[as.numeric(bid) < n]
+            mic <- bic[as.numeric(bid) < n]
         } else {
             mid <- ''
             mic <- ''
