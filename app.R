@@ -2459,7 +2459,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
         withProgress(message = sprintf('Loading %s Ligand', 'Aligned'), value = 0,{
             try(uploadApoPDB3(the_pdb_file, 'line', focus=input$autocenter, isolate(sessionlist$mol_file)), silent=F)   
             try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
-            try(uploadMolAndFocus3(the_mol_file, 'mol', focus=input$autocenter), silent=F)
+            try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=F)
             names(the_emaps) <- basename(the_emaps)
             sessionlist$current_emaps <- the_emaps
             # aq bfactor?
