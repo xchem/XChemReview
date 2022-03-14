@@ -2024,6 +2024,49 @@ If you believe you have been sent this message in error, please email tyler.gorr
         )
     }
 
+    uploadApoPDB2 <- function(filepath, repr, focus, molfile){
+        choice <- paste0(readLines(filepath), collapse='\n')
+        # Read mol-file for badatomids and comments...
+        ml <- readLines(molfile)
+        n <- as.numeric(strsplit(trimws(ml[4]),' ')[[1]][1])
+        ban <- unlist(strsplit(ml[grep('> <BADATOMNAMES>', ml) + 1], ';'))
+        bid <- unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';'))
+        bic <- unlist(strsplit(ml[grep('> <BADCOMMENTS>', ml) + 1], ';'))
+        # check ban for non-HETs
+        protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
+        # Check if any oob?
+        pid <- bid[protein_atoms | as.numeric(bid) > n]
+        pic <- pic[protein_atoms | as.numeric(bid) > n]
+        session$sendCustomMessage(
+            type = 'setBadAtomsPDB',
+            message = list(
+                choice,
+                repr,
+                tcl(focus),
+                paste(pid, collapse=';'),
+                paste(pic, collapse=';')
+            )
+        )
+    }
+
+    uploadMolAndFocus2 <- function(filepath, ext, focus){
+        choice <- paste0(readLines(filepath), collapse='\n')
+        ml <- readLines(molfile)
+        n <- as.numeric(strsplit(trimws(ml[4]),' ')[[1]][1])
+        ban <- unlist(strsplit(ml[grep('> <BADATOMNAMES>', ml) + 1], ';'))
+        bid <- unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';'))
+        bic <- unlist(strsplit(ml[grep('> <BADCOMMENTS>', ml) + 1], ';'))
+        # check ban for non-HETs
+        protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
+        # Check if any oob?
+        mid <- bid[!(protein_atoms | as.numeric(bid) > n)]
+        mic <- bic[!(protein_atoms | as.numeric(bid) > n)]
+        session$sendCustomMessage(
+            type = 'setBadMolandfocus',
+            list(choice,ext, tcl(focus), paste(mid, collapse=';'), paste(mic,collapse=';'))
+        )
+    }
+
     addContacts <- function(filepath){
         #syscall <- sprintf('cat %s', filepath)
         #pdbstrings <- system(syscall, intern = TRUE)
@@ -2284,7 +2327,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'aligned' = {
                         # Default Behaviour do not change anything!
-                        try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                        try(uploadApoPDB2(the_pdb_file, 'line', focus=input$autocenter, the_mol_file), silent=T)
                         try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
                         debugMessage(sID=sID, sprintf('Render others?'))
@@ -2298,7 +2341,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                                 uploadMolNoFocus(i, 'pink')
                             }
                         } 
-                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                        try(uploadMolAndFocus2(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                         session$sendCustomMessage(type = 'restore_camera_pos', message = list())
                     },
                     'unaligned' = {
@@ -2308,7 +2351,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                         the_emaps <- dir(dirname(the_pdb_file), pattern='event', full=TRUE)
                         the_2fofc_map <- gsub('pipeline_staging', 'pipeline_unaligned', the_2fofc_map)
                         the_fofc_map <- gsub('pipeline_staging', 'pipeline_unaligned', the_fofc_map)
-                        try(uploadApoPDB(the_pdb_file, 'line', focus=TRUE), silent=T)
+                        try(uploadApoPDB2(the_pdb_file, 'line', focus=TRUE, the_mol_file), silent=T)
                         try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
                         clearWindowField(id='othermol')
@@ -2321,7 +2364,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                                 uploadMolNoFocus(i, 'pink')
                             }
                         } 
-                        try(uploadMolAndFocus(the_mol_file, 'mol', focus=TRUE), silent=T)
+                        try(uploadMolAndFocus2(the_mol_file, 'mol', focus=TRUE), silent=T)
                         
                     },
                     'crystallographic' = {
@@ -2394,9 +2437,9 @@ If you believe you have been sent this message in error, please email tyler.gorr
         the_fofc_map <- isolate(sessionlist$fofc_file)
 
         withProgress(message = sprintf('Loading %s Ligand', 'Aligned'), value = 0,{
-            try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=TRUE)   
+            try(uploadApoPDB2(the_pdb_file, 'line', focus=input$autocenter, the_mol_file), silent=TRUE)   
             try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
-            try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+            try(uploadMolAndFocus2(the_mol_file, 'mol', focus=input$autocenter), silent=T)
             names(the_emaps) <- basename(the_emaps)
             sessionlist$current_emaps <- the_emaps
             # aq bfactor?
@@ -2470,7 +2513,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
-                    try(uploadApoPDB(the_pdb_file, 'line', focus=input$autocenter), silent=T)
+                    try(uploadApoPDB2(the_pdb_file, 'line', focus=input$autocenter, the_mol_file), silent=T)
                     try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                     
                     # Add stuff here:
@@ -2484,7 +2527,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                             uploadMolNoFocus(i, 'pink')
                         }
                     } 
-                    try(uploadMolAndFocus(the_mol_file, 'mol', focus=input$autocenter), silent=T)
+                    try(uploadMolAndFocus2(the_mol_file, 'mol', focus=input$autocenter), silent=T)
                     names(the_emaps) <- basename(the_emaps)
                     sessionlist$current_emaps <- the_emaps
                     if(input$tab == 'review' & input$bfactor){
