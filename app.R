@@ -2030,13 +2030,19 @@ If you believe you have been sent this message in error, please email tyler.gorr
         ml <- readLines(molfile)
         n <- as.numeric(strsplit(trimws(ml[4]),' ')[[1]][1])
         ban <- unlist(strsplit(ml[grep('> <BADATOMNAMES>', ml) + 1], ';'))
-        bid <- unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';'))
+        bid <- as.numeric(unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';')))
         bic <- unlist(strsplit(ml[grep('> <BADCOMMENTS>', ml) + 1], ';'))
-        # check ban for non-HETs
-        protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
-        # Check if any oob?
-        pid <- bid[protein_atoms | as.numeric(bid) > n]
-        pic <- pic[protein_atoms | as.numeric(bid) > n]
+        if(all(!is.na(bid))){
+            # check ban for non-HETs
+            protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
+            # Check if any oob?
+            pid <- bid[protein_atoms | as.numeric(bid) > n]
+            pic <- pic[protein_atoms | as.numeric(bid) > n]
+        } else {
+            pid <- ''
+            pic <- ''
+        }
+
         session$sendCustomMessage(
             type = 'setBadAtomsPDB',
             message = list(
@@ -2056,11 +2062,17 @@ If you believe you have been sent this message in error, please email tyler.gorr
         ban <- unlist(strsplit(ml[grep('> <BADATOMNAMES>', ml) + 1], ';'))
         bid <- unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';'))
         bic <- unlist(strsplit(ml[grep('> <BADCOMMENTS>', ml) + 1], ';'))
-        # check ban for non-HETs
-        protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
-        # Check if any oob?
-        mid <- bid[!(protein_atoms | as.numeric(bid) > n)]
-        mic <- bic[!(protein_atoms | as.numeric(bid) > n)]
+        if(all(!is.na(bid))){
+            # check ban for non-HETs
+            protein_atoms <- ifelse(is.na(ban), FALSE, !grepl('HET', ban))
+            # Check if any oob?
+            mid <- bid[!(protein_atoms | as.numeric(bid) > n)]
+            mic <- bic[!(protein_atoms | as.numeric(bid) > n)]
+        } else {
+            mid <- ''
+            mic <- ''
+        }
+
         session$sendCustomMessage(
             type = 'setBadMolandfocus',
             list(choice,ext, tcl(focus), paste(mid, collapse=';'), paste(mic,collapse=';'))
