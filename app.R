@@ -2347,7 +2347,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
                     },
                     'aligned' = {
                         # Default Behaviour do not change anything!
-                        try(uploadApo3(the_pdb_file, 'line', focus=input$autocenter, isolate(sessionlist$mol_file)), silent=T)
+                        try(uploadApoPDB3(the_pdb_file, 'line', focus=input$autocenter, isolate(sessionlist$mol_file)), silent=T)
                         try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                         # Add stuff here:
                         debugMessage(sID=sID, sprintf('Render others?'))
@@ -2533,7 +2533,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
             withProgress(message = sprintf('Loading %s Ligand', input$views), value = 0,{
                 if(! isolate(sessionlist$apo_file) == ""){
                     incProgress(.2, detail = 'Uploading Crystal + Ligand')
-                    try(uploadApoPDB3(the_pdb_file, 'line', focus=input$autocenter, isolate(sessionlist$mol_file), silent=T)
+                    try(uploadApoPDB3(the_pdb_file, 'line', focus=input$autocenter, isolate(sessionlist$mol_file)), silent=T)
                     try(addContacts(gsub('_apo', '_bound', the_pdb_file)), silent=TRUE)
                     
                     # Add stuff here:
