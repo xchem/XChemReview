@@ -2043,6 +2043,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             pic <- ''
         }
 
+        print(pid)
+        print(pic)
         session$sendCustomMessage(
             type = 'setBadAtomsPDB',
             message = list(
@@ -2072,7 +2074,8 @@ If you believe you have been sent this message in error, please email tyler.gorr
             mid <- ''
             mic <- ''
         }
-
+        print(mid)
+        print(mic)
         session$sendCustomMessage(
             type = 'setBadMolandfocus',
             list(choice,ext, tcl(focus), paste(mid, collapse=';'), paste(mic,collapse=';'))
