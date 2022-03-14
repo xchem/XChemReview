@@ -2062,7 +2062,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 
     uploadMolAndFocus3 <- function(filepath, ext, focus){
         choice <- paste0(readLines(filepath), collapse='\n')
-        ml <- readLines(molfile)
+        ml <- readLines(filepath)
         n <- as.numeric(strsplit(trimws(ml[4]),' ')[[1]][1])
         ban <- unlist(strsplit(ml[grep('> <BADATOMNAMES>', ml) + 1], ';'))
         bid <- unlist(strsplit(ml[grep('> <BADATOMS>', ml) + 1], ';'))
