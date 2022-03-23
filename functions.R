@@ -172,7 +172,7 @@ get_residues <- function(pdb_file){
 #' @param target_list a
 #' @return Updates proxy with new data...
 trygetReviewData <- function(configuration, target_list){
-   out <- try(getReviewData(configuration=configuration target_list=target_list), silent=T)
+   out <- try(getReviewData(configuration=configuration, target_list=target_list), silent=T)
    return(out)
 }
 
