@@ -1,0 +1,20 @@
+title = 'XCR Configuration'
+
+[filepaths]
+xcr_path = ''
+script_path = ''
+staging = ''
+prep_path = ''
+xcr_r_lib = ''
+nglshiny_lib = ''
+
+[database]
+db = ''
+host = ''
+port = ''
+user = ''
+password = ''
+
+[deployment]
+ip =  '0.0.0.0'
+xcrport = '3838'
