@@ -312,7 +312,7 @@ server <- function(input, output, session){
             fragview_table_data <- react_fv_data2(data=fragview_data, input=input)
             #fragviewproxy %>% replaceData(fragview_input(), rownames = TRUE, resetPaging = FALSE)
             output$therow <- updateMainTable2(r1=fragview_input, pl=100, input=input)
-            prebuffer_proxy(proxy=fragviewproxy, input=input))
+            prebuffer_proxy(proxy=fragviewproxy, input=input)
         }
     })
 
