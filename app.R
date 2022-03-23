@@ -92,4 +92,4 @@ app <- shinyApp(ui = ui, server = server)
 ip <- configuration$ip
 xcrport <- configuration$xcrport 
 # Run App
-runApp(app, host=ip, port = as.numeric(xcrport), launch.browser = FALSE)
+runApp(app, host="0.0.0.0", port = as.numeric(xcrport), launch.browser = FALSE)
