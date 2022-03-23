@@ -643,7 +643,7 @@ server <- function(input, output, session){
     	pdf_file = tail(pdf_files,1)
         to_file <- file.path(configuration$xcr_path, 'www', sprintf('report_%s.pdf', sID))
         copied <- file.copy(from=pdf_file, to=to_file, overwrite=TRUE)
-        addResourcePath("www", file.path(configuration$xcr_path, 'www')
+        addResourcePath("www", file.path(configuration$xcr_path, 'www'))
     	output$buster_pdf <- renderUI({
       		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
     	})
@@ -661,7 +661,7 @@ server <- function(input, output, session){
         to_file <- file.path(configuration$xcr_path, 'www', sprintf('report_%s.pdf', sID))
         copied <- file.copy(from=pdf_file, to=to_file, overwrite=TRUE)
         message(copied)
-        addResourcePath("www", file.path(configuration$xcr_path, 'www')
+        addResourcePath("www", file.path(configuration$xcr_path, 'www'))
     	output$buster_pdf <- renderUI({
       		tags$iframe(style="height:800px; width:100%", src=sprintf('www/report_%s.pdf', sID))
     	})
