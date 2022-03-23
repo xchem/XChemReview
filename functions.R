@@ -181,7 +181,7 @@ trygetReviewData <- function(configuration, target_list){
 #' @param configuration a
 #' @param target_list a
 #' @return Updates proxy with new data...
-getReviewData <- function(configuration target_list){ 
+getReviewData <- function(configuration, target_list){ 
     # Fetch Atom Q at the end??
     # Get data from target_list only first...
     con <- xcdbConnect(configuration=configuration)
