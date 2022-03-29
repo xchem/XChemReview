@@ -1,17 +1,17 @@
 # List of Functions used in XCR...
 
-#' Update datatable proxy.
+#' Read a text file and return it as a single line separated by `\n` characters
 #'
-#' @param file of datatable.
-#' @return Updates proxy with new data...
+#' @param file A string corresponding to a filepath. 
+#' @return Returns the contents of a file as a single string. 
 readTxtToOneLine <- function(file){
     return(paste0(readLines(file), collapse='\n'))
 }
 
-#' Connect to XCDB
+#' Connect to XCDB using provided configuration
 #'
-#' @param configuration List containing various config options including credentials.
-#' @return Return connection object, connected to XCDB
+#' @param configuration List containing various config options including xcdb credentials.
+#' @return Returns a connection object that can be used to make queries. 
 xcdbConnect <- function(configuration){
     con <- dbConnect(
         RMariaDB::MariaDB(), 
@@ -24,15 +24,15 @@ xcdbConnect <- function(configuration){
     return(con)
 }
 
-#' Update datatable proxy.
+#' Fetch targets an authenticated fedid is able to see on ISPyB and XCDB.
 #'
-#' @param fedid a
-#' @param configuration a
-#' @return Updates proxy with new data...
+#' @param fedid String, corresponding to a fedid provided by shinyproxy/active directory when you log in.
+#' @param configuration List containing various config options including xcdb credentials.
+#' @return Vector of Targets the user is able to see. 
 fetchTargets <- function(fedid, configuration){
     con <- xcdbConnect(configuration=configuration)
     on.exit(con)
-    # Sort this out with joins...
+    # Sort this out with INNER joins?
     pid <- dbGetQuery(con, sprintf('SELECT personId from ispyb.Person WHERE login = "%s"', fedid))
     sessions <- dbGetQuery(con, sprintf('SELECT sessionId from ispyb.Session_has_Person WHERE personId = "%s"', pid))
     sessionstr <- paste(sessions[,1], collapse=',')
@@ -49,11 +49,12 @@ fetchTargets <- function(fedid, configuration){
     return(target_list)
 }
 
-#' Update datatable proxy.
+#' Get the IDs of the Atoms from a PDB file for a specific ligand and chain.
 #'
-#' @param pdb a
-#' @param lignum a
-#' @param chain a
+#' @param pdb String, Filepath corresponding to pdb file.
+#' @param lignum The residue number of the ligand
+#' @param chain The chain where the ligand resides.
+#' 
 #' @return Updates proxy with new data...
 getAtomIDs <- function(pdb, lignum, chain){
     pdb <- bio3d::read.pdb(pdb)
@@ -960,7 +961,7 @@ loadDefaultParams <- function(){
 #' @param configuration Proxy of datatable.
 #' @param atomstoquery Proxy of datatable.
 #' @return Updates proxy with new data..
-writeAtoms <- function(ligand_id, configuration, atomstoquery){
+writeAtoms <- function(ligand_id, configuration, atomstoquery, sessionlist){
     newdat <- data.frame(
         ligand_id=ligand_id,
         atomid=paste(as.numeric(atomstoquery$data[,'index']), collapse=';'),
@@ -1479,3 +1480,46 @@ epochTime <- function() as.integer(Sys.time())
 #' @return A string with the time YYYY-MM-DD-HH-MM-SS
 humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
 
+# This should be functions.R but I am not sure that the code will behave correctly if I 
+customDraggableModalDialog <- function(..., title = NULL,
+                                 footer = shiny::modalButton("Dismiss"),
+                                 size = c("m", "s", "l"),
+                                 easyClose = FALSE, fade = FALSE) {
+  size <- match.arg(size)
+  cls <- if (fade) { "modal fade" } else { "modal" }
+  shiny::div(
+    id = "shiny-modal",
+    class = cls,
+    # tabindex = "-1", This line should be commented out or removed
+    #`data-backdrop` = if (!easyClose) { "static" } ,
+    #`data-keyboard` = if (!easyClose) { "false" } ,
+    shiny::div(
+      class = "modal-dialog",
+      class = switch(size, s = "modal-sm", m = NULL, l = "modal-lg"),
+      jqui_draggable(shiny::div(
+        class = "modal-content",
+        if (!is.null(title)) {
+          shiny::div(
+            class = "modal-header",
+            shiny::tags$h4(class = "modal-title",  title)
+          )
+        },
+        shiny::div(class = "modal-body", ...),
+        if (!is.null(footer)) {
+          shiny::div(class = "modal-footer", footer)
+        }
+      ))
+    ),
+    shiny::tags$script("$('#shiny-modal').modal().focus();"),
+    shiny::tags$style(HTML("
+    .modal-backdrop{
+      display: none;
+    }
+    .modal {
+      pointer-events: none;
+    }
+    .modal-content {
+      pointer-events: all;
+    }"))
+  )
+}
