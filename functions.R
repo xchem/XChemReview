@@ -560,31 +560,27 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
         files <- list.files(cf, pattern=rcn)
 	    # Remove maps from crystallographic...
         files <- files[!grepl("(.map$|.ccp4$)", files)]
+        print(files)
         file.copy(file.path(cf,files), file.path(nf, files))
         if(copymaps){
-		# Replace uncut maps with mtz files...
-		# IF RCN is in mtz
-		mtz_file = mtz[,1] == rcn
-                if(sum(mtz_file)>0){
-                	id <- which(mtz_file)[1]
-                        mtz_file <- mtz[id,2]
-			file.copy(mtz_file, file.path(nf, sprintf('%s_refine.mtz', rcn)))
-			# Find event.mtz
-			print(mtz_file)
-			print(dirname(mtz_file))
-			print(dirname(dirname(mtz_file)))
-			rootmtz <- dir(dirname(dirname(mtz_file)), pattern='.mtz')
-			print(rootmtz)
-			event_mtz <- rootmtz[grep('event',rootmtz)]
-			print(event_mtz)
-			if(length(event_mtz)>0){
-				newnames <- basename(event_mtz)
-				ends <- sapply(strsplit(newnames, '_'), tail, 1)
-				print(ends)
-				file.copy(file.path(dirname(dirname(mtz_file)), event_mtz), file.path(nf, sprintf('%s_event_%s', rcn, ends)))
-			}
-		}
-	}
+		    # Replace uncut maps with mtz files...
+		    # IF RCN is in mtz
+		    mtz_file = mtz[,1] == rcn
+            if(sum(mtz_file)>0){
+            	id <- which(mtz_file)[1]
+                mtz_file <- mtz[id,2]
+                print(mtz_file)
+		        file.copy(mtz_file, file.path(nf, sprintf('%s_refine.mtz', rcn)))
+		        rootmtz <- dir(dirname(dirname(mtz_file)), pattern='.mtz')
+		        event_mtz <- rootmtz[grep('event',rootmtz)]
+			    if(length(event_mtz)>0){
+				    newnames <- basename(event_mtz)
+			        ends <- sapply(strsplit(newnames, '_'), tail, 1)
+			        print(file.path(dirname(dirname(mtz_file)), event_mtz))
+				    file.copy(file.path(dirname(dirname(mtz_file)), event_mtz), file.path(nf, sprintf('%s_event_%s', rcn, ends)))
+			    }
+		    }
+	    }
     }
     
     # Write and copy stuff
