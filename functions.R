@@ -514,6 +514,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
     dir.create(crys_dir)
 
     # Maybe use file.copy(...,rec=T)?
+    # Make Investigation.cif file here...
     try(system(sprintf('cp -r %s %s', extrafiles, basef)), silent = TRUE)
 
     # aligned data copy
