@@ -501,16 +501,11 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
     progress$set(message = "Creating Fragalysis Folder", value = 0)
     prot = target
     protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
-    #base_root <- file.path(configuration$staging, prot)
     base_root <- sprintf('%s/%s/',configuration$staging, prot)
     extrafiles1 <- file.path(base_root, 'extra_files')
-    #rootf <- file.path(configuration$prep_path, protsuffix)
     rootf <- sprintf('%s/%s',configuration$prep_path, protsuffix)
-    #basef <- file.path(rootf, prot)
     basef <- sprintf('%s/%s/%s', configuration$prep_path,protsuffix, prot)
-    #align_dir <- file.path(basef, 'aligned/')
     align_dir <- sprintf('%s/%s/%s/aligned',configuration$prep_path, protsuffix, prot)
-    #crys_dir <- file.path(basef, 'crystallographic/')
     crys_dir <- sprintf('%s/%s/%s/crystallographic',configuration$prep_path, protsuffix, prot)
 
     dir.create(rootf)
