@@ -76,7 +76,11 @@ source(file.path(configuration$xcr_path, 'server.R'))
 
 # Initialise XCR and fetch targets based on authenticated fedid.
 fedid <- Sys.getenv(x = 'SHINYPROXY_USERNAME', unset = "", names = NA)
+
+# It is likely that fetching visits is going to be the better granular unit instead of targets
+# To stop people from looking at data that happens to have the misfortune of people poorly named. 
 target_list <- fetchTargets(fedid=fedid, configuration = configuration)
+# visit_list <- fetchVisits(fedid=fedid, configuration=configuration)
 target_list2 <- target_list
 fragfolders <- c('', target_list)
 # Query fedid to get proposals...

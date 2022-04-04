@@ -1,4 +1,6 @@
 # List of Functions used in XCR...
+# Many of the functions that involve uploading an element to the NGL stage
+# These will use session$sendCustomMessage, all of which can be greatly optimised, alas I have run out of time.
 
 #' Read a text file and return it as a single line separated by `\n` characters
 #'
@@ -11,6 +13,7 @@ readTxtToOneLine <- function(file){
 #' Connect to XCDB using provided configuration
 #'
 #' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
 #' @return Returns a connection object that can be used to make queries. 
 xcdbConnect <- function(configuration){
     con <- dbConnect(
@@ -28,6 +31,7 @@ xcdbConnect <- function(configuration){
 #'
 #' @param fedid String, corresponding to a fedid provided by shinyproxy/active directory when you log in.
 #' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
 #' @return Vector of Targets the user is able to see. 
 fetchTargets <- function(fedid, configuration){
     con <- xcdbConnect(configuration=configuration)
@@ -70,27 +74,29 @@ getAtomIDs <- function(pdb, lignum, chain){
 	return(sprintf('@%s',paste(output, collapse=',')))
 }
 
-#' Update datatable proxy.
+#' Get Residue Number for a specific atom
 #'
-#' @param pdb a
-#' @return Updates proxy with new data...
+#' Well this doesn't seem right... I genuinely forgot what this does huh...
+#'
+#' @param pdb A string corresponding to file path of a pdb file
+#' @return Returns a string of pdb atoms in a `@ 1,2,3,4,` format aparently...
 getResNum <- function(pdb){
     pdb <- bio3d::read.pdb(pdb)
-    #return(as.character(pdb$atom$resno[1]))
     return(sprintf('@%s',paste(rownames(pdb$atom), collapse=',')))
 }
 
-#' Update datatable proxy.
+#' Write data to the bottom of a mol_file
 #'
-#' @param mol_file a
-#' @param id_str a
-#' @param comment_str a
-#' @param name_str a
-#' @return Updates proxy with new data...
+#' @param mol_file String, corresponding to the filepath of a mol file
+#' @param id_str A string to add to the file, usually integers seperated by semicolons
+#' @param comment_str A string to add to the file, usually a couple of words seperated by semicolons
+#' @param name_str A string to add to the file, usually a ATOM names e.g. [LYS]124.C1 seperated by semicolons
+#' @return Writes the _str arguments to the mol_file.
 write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
     lines <- readLines(mol_file)
+    # Check if the fields exist... 
+    # Add the necessary lines IF needed.
     if(any(lines == '> <BADATOMS>')){
-        # Don't update
         badid_line <- which(lines == '> <BADATOMS>') + 1
         lines[badid_line] <- id_str
     } else {
@@ -108,17 +114,20 @@ write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
     } else {
         lines <- c(lines, '> <BADATOMNAMES>', name_str)
     }
-    # And bad atom names...
-    print(mol_file)
-    print(lines)
+    # Overwrite the file.
     cat(paste(lines, collapse='\n'), file = mol_file)
 }
 
-#' Update datatable proxy.
+#' rewriteMol files for a specific target
 #'
-#' @param target a
-#' @param configuration a
-#' @return Updates proxy with new data...
+#' When this function is called, all the mol_files and bad atom qualities for a specific target
+#' will be checked and have their bad atom qualities added incase they have been lost during an 
+#' update.
+#'
+#' @param target String, the Name of the target to edit the mol files.
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @return Writes the mol files for an entire target in XCDB.
 rewriteMols <- function(target, configuration){ # This need refactoring later......
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
@@ -147,44 +156,49 @@ rewriteMols <- function(target, configuration){ # This need refactoring later...
     }
 }
 
-#' Update datatable proxy.
+#' Split a string starting from the right!
 #'
-#' @param string a
-#' @param split_by a
-#' @return Updates proxy with new data...
+#' Functionally identical to python str.rsplit() method.
+#'
+#' @param string String to split,
+#' @param split_by String of character(s) to split input string by
+#' @param n Integer, How many splits do you want to perform from the right.
+#' @return A vector of length N+1 split by desired string.
 rsplit <- function(string, split_by, n=1){
     spl <- strsplit(string, split_by)[[1]]
     c(paste(unlist(head(spl, length(spl)-n)), collapse=split_by), unlist(tail(spl, n)))
 }
 
-#' Update datatable proxy.
+#' Get Residue Numbers for a pdb file
 #'
-#' @param pdb_file a
-#' @return Updates proxy with new data...
+#' @param pdb_file String corresponding to a file-path to a pdb file.
+#' @return Vector of RES Numbers for all residues in a pdb file RES_1, RES_2 etc.
 get_residues <- function(pdb_file){
     struc <- try(bio3d::read.pdb(pdb_file), silent=T)
     if(inherits(struc, 'try-error')) return('')
     return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
 }
 
-#' Update datatable proxy.
+#' Try Catch on Getting the Review data
 #'
-#' @param configuration a
-#' @param target_list a
-#' @return Updates proxy with new data...
+#' This function calls the getReviewData within a try to prevent error-states.
+#'
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @param target_list List of Targets
+#' @return data.Frame of Review data.
 trygetReviewData <- function(configuration, target_list){
    out <- try(getReviewData(configuration=configuration, target_list=target_list), silent=T)
    return(out)
 }
 
-#' Update datatable proxy.
+#' Get Data from Review Responses Table in XCDB
 #'
-#' @param configuration a
-#' @param target_list a
-#' @return Updates proxy with new data...
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @param target_list List of Targets to get
+#' @return data.frame of review data.
 getReviewData <- function(configuration, target_list){ 
-    # Fetch Atom Q at the end??
-    # Get data from target_list only first...
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
 
@@ -268,11 +282,12 @@ getReviewData <- function(configuration, target_list){
     return(output)
 }
 
-#' Update datatable proxy.
+#' Get the Fragview data from XCDB
 #'
-#' @param configuration a
-#' @param target_list a
-#' @return Updates proxy with new data...
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @param target_list List of Targets
+#' @return data.frame of Fragalysis View data from XCDB
 getFragalysisViewData <- function(configuration, target_list){
 
     con <- xcdbConnect(configuration=configuration)
@@ -298,11 +313,12 @@ getFragalysisViewData <- function(configuration, target_list){
     return(output)
 }
 
-#' Update datatable proxy.
+#' Create a metadata data.frame
 #'
-#' @param configuration a
-#' @param target a
-#' @return Updates proxy with new data...
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @param target The target to generate the metadata for.
+#' @return data.frame consisting of the targets metadata.
 createUniqueMetaData <- function(configuration, target){
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
@@ -336,18 +352,19 @@ createUniqueMetaData <- function(configuration, target){
 }
 
 
-#' Update datatable proxy.
+#' Update or Crate a row in the metadata XCDB table
 #'
-#' @param ligand_name_id a
-#' @param fragalysis_name a
-#' @param original_name a
-#' @param site_label a
-#' @param new_smiles a
-#' @param alternate_name a
-#' @param pdb_id a
-#' @param status a
-#' @param configuration a
-#' @return Updates proxy with new data...
+#' @param ligand_name_id Fragalysis Ligand ID
+#' @param fragalysis_name Name of the Fragalysis Ligand to be rendered in fragalysis
+#' @param original_name Name of the crystal from which the ligand was generated from
+#' @param site_label Name of the site
+#' @param new_smiles New smiles string to fix things downstream if needed.
+#' @param alternate_name Additional name to render in fragalysis
+#' @param pdb_id 4 Digit PDB code
+#' @param status Currently an unused field to dictate how data should be replace in fragalysis... 
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @return Either updates an exsiting row OR creates a new row in the metadata table in XCDB
 updateOrCreateRow <- function(
     ligand_name_id, 
     fragalysis_name, 
@@ -383,20 +400,20 @@ updateOrCreateRow <- function(
     }
 }
 
-#' Update datatable proxy.
+#' Debug Message Wrapper
 #'
-#' @param sID a
-#' @param text a
-#' @return Updates proxy with new data...
+#' @param sID ID for the user who is active in the active session.
+#' @param text The message to output to std::out
+#' @return Prints a message to std::out
 debugMessage <- function(sID, text){
     message(sprintf('sid: %s | %s | %s', sID, text, Sys.time()))
 }
 
-#' Update datatable proxy.
+#' Open the control panel model
 #'
-#' @param values a
-#' @param title a
-#' @return Updates proxy with new data...
+#' @param values List of values to update the inputs.
+#' @param title Title to be described at the top of the modal.
+#' @return Generates the modal UI element to control some behaviour.
 controlPanelModal <- function(values, title){
     # Function that opens up a modal dialog to contain accessory ngl controls that are not needed to be accessed immediately.
     customDraggableModalDialog(
@@ -413,23 +430,17 @@ controlPanelModal <- function(values, title){
     )
 }
 
-#' Update datatable proxy.
+#' Change the colour of a specific rank in a raster object.
 #'
-#' @param raster a
-#' @param rank a
-#' @param colour a
-#' @return Updates proxy with new data...
+#' @param raster A raster object
+#' @param rank The percntile rank to change the colour of
+#' @param colour The colour to change
+#' @return Updated Raster object.
 changeRasterRank <- function(raster, rank, colour){
     raster[floor(rank*100)] <-  colour
     return(raster)
 }
 
-#' Update datatable proxy.
-#'
-#' @param data a
-#' @param title a
-#' @param target_name a
-#' @return Updates proxy with new data...
 hmapbar <- function(data, title, target_name){
 
     colfunc <- colorRampPalette(c("red", "white", "blue"))
@@ -487,14 +498,15 @@ hmapbar <- function(data, title, target_name){
 }
 
 
-#' Update datatable proxy.
+#' Create and Populate a folder of data on dls disk to be uploaded to Fragalysis
 #'
-#' @param meta a
-#' @param target a
-#' @param copymaps a
-#' @param mtz a
-#' @param configuration a
-#' @return Updates proxy with new data...
+#' @param meta data.frame of metadata contraining the manifest to upload
+#' @param target The Name of the Target/Protein to upload
+#' @param copymaps Logical, Copy map files from staging file or root crystal directories (mtz files)
+#' @param mtz Matrix of mtz files.
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @return Returns nothing, but there should be a folder in configuration$prep_path
 createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configuration){
     progress <- shiny::Progress$new()
     on.exit(progress$close())
@@ -603,14 +615,15 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
 }
 
 
-#' Update datatable proxy.
+#' Upload Frag Folder to fragalysis using external script
 #'
-#' @param filepath a
-#' @param target a
-#' @param proposal a
-#' @param email a
-#' @param configuration a
-#' @return Updates proxy with new data...
+#' @param filepath The file path of the zip file to upload
+#' @param target Name of the Target
+#' @param proposal The proposal number or OPEN
+#' @param email Email eddress for whom to email when process finishes
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @return This function should upload stuff to fragalysis.diamond.ac.uk
 uploadFragFolder <-  function(filepath, target, proposal, email, configuration){
     progress <- shiny::Progress$new()
     on.exit(progress$close())
@@ -621,25 +634,15 @@ uploadFragFolder <-  function(filepath, target, proposal, email, configuration){
     return(task)
 }
 
-#' Update datatable proxy.
+#' Convert values to percentile ranks
 #'
-#' @param x a
-#' @return Updates proxy with new data...
+#' @param x Values to rank
+#' @return Percentile Ranks
 perc.rank <- function(x) trunc(rank(x))/length(x)
 
-#' Update datatable proxy.
-#'
-#' @param x a
-#' @param xo a
-#' @return Updates proxy with new data...
+#' Not sure what does this does now...
 perc.rank2 <- function(x, xo=NULL)  length(x[x <= xo])/length(x)
 
-#' Update datatable proxy.
-#'
-#' @param x a
-#' @param alldata a
-#' @param extradata a
-#' @return Updates proxy with new data...   
 xformplot <- function(x, alldata, extradata){
     y <- x
     if(x=='rcryst') y <- 'r_cryst'
@@ -652,33 +655,32 @@ xformplot <- function(x, alldata, extradata){
             perc.rank2(x=as.numeric(alldata[,x]), xo=currentvalue),
             currentvalue
         )
-        )
-    }
+    )
+}
 
-
-#' Update datatable proxy.
+#' Update the boxsize of a window object in nglShiny
 #'
-#' @param name a
-#' @param boxsize a
-#' @param session a
-#' @return Updates proxy with new data...   
+#' @param name Name of the window object to configure
+#' @param boxsize Size of the box,
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Updates the boxsize of the desired object   
 updateDensityBoxSize <- function(name, boxsize, session) session$sendCustomMessage('updateVolumeDensityBoxSize', list(name, boxsize))
 
-#' Update datatable proxy.
+#' Update the isolevel of a window object in nglShiny
 #'
-#' @param name a
-#' @param isolevel a
-#' @param session a
-#' @return Updates proxy with new data...      
+#' @param name Name of the window object to configure
+#' @param isolevel The isolevel to set to.
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Updates the iso level of the desired object    
 updateDensityISO <- function(name, isolevel, session) session$sendCustomMessage('updateVolumeDensityISO', list(name, isolevel))
         
 
-#' Update datatable proxy.
+#' Update the visibilty of a window object in nglShiny
 #'
-#' @param name a
-#' @param bool a
-#' @param session a
-#' @return Updates proxy with new data...        
+#' @param name Name of the window object to configure
+#' @param bool Logical value indicating visibility
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Updates the visibility of the window object    
 updateVisability <- function(name, bool, session){
     session$sendCustomMessage(
         type = 'updateVolumeDensityVisability',
@@ -689,18 +691,19 @@ updateVisability <- function(name, bool, session){
     )
 }
 
-#' Update datatable proxy.
+#' Upload a volume density
 #'
-#' @param filepath a
-#' @param color a
-#' @param negateiso a
-#' @param boxsize a
-#' @param visable a
-#' @param windowname a
-#' @param isotype a
-#' @param session a
-#' @return Updates proxy with new data...
-uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype='sigma', session){
+#' @param filepath File path for the map file (.ccp4) or (.map)
+#' @param color Colour of the map
+#' @param negateiso Whether or not to invert the negative ISO (only useful to do red fofc map)
+#' @param boxsize Initial Size of the box
+#' @param visable Logical, Whether or not to see the density 
+#' @param windowname Name of the window object in js to add the density to
+#' @param isotype Either (sigma or value)
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Read a volume density file, converts it to base64 and then it get transferred for NGL to be rendered.
+uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype=c('sigma', 'value'), session){
+    isotype <- match.arg(isotype)
     volume_bin <- readBin(filepath, what='raw', file.info(filepath)$size)
     volume_b64 <- base64encode(volume_bin, size=NA, endian=.Platform$endian)
     session$sendCustomMessage(
@@ -719,17 +722,17 @@ uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, iso
     )
 }
 
-#' Update datatable proxy.
+#' Get file Extension
 #'
-#' @param x Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param x The file name
+#' @return the extension of the file.
 getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 
-#' Update datatable proxy.
+#' upload a mol file without zooming in on it.
 #'
-#' @param filepath Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data...
+#' @param filepath File path of mol file to upload
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Uploads a mol file to the ngl stage.
 uploadUnfocussedMol <- function(filepath, session){
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
@@ -738,13 +741,13 @@ uploadUnfocussedMol <- function(filepath, session){
     )
 }
 
-#' Update datatable proxy.
+#' Upload a mol file, and zoom in on it!
 #'
-#' @param filepath Proxy of datatable.
-#' @param ext Proxy of datatable.
-#' @param focus Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data...
+#' @param filepath File path of mol file to upload
+#' @param ext File Extension
+#' @param focus Logical, indicate whether or not to focus on the mol file when it is loaded
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Uploads a mol file to the ngl stage.
 uploadMolAndFocus <- function(filepath, ext, focus, session){
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
@@ -753,12 +756,12 @@ uploadMolAndFocus <- function(filepath, ext, focus, session){
     )
 }
 
-#' Update datatable proxy.
+#' Upload bfactors to NGL Stage
 #'
-#' @param filepath Proxy of datatable.
-#' @param clear Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data...
+#' @param filepath File of pdb file containing bfactors.
+#' @param clear Logical, if true, removes existing bfactor render
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Adds Bfactors to NGL stage
 uploadBFactors <- function(filepath, clear=TRUE, session){
     if(clear) clearWindowField(id='bfactor', session=session)
     choice <- readTxtToOneLine(file=filepath)
@@ -770,12 +773,11 @@ uploadBFactors <- function(filepath, clear=TRUE, session){
     )
 }
 
-
-#' Update datatable proxy.
+#' Upload contact map to NGL Stage
 #'
-#' @param filepath Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param filepath File of pdb file containing contacts to render
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Adds contact information from a pdb file to NGL Stage
 addContacts <- function(filepath, session){
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
@@ -786,13 +788,14 @@ addContacts <- function(filepath, session){
     )
 }
 
-#' Update datatable proxy.
+#' Read Mol File plus bad atom quality and render in a particular fashion in NGL stage
 #'
-#' @param filepath Proxy of datatable.
-#' @param ext Proxy of datatable.
-#' @param focus of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param filepath File of mol file to upload
+#' @param ext Extension of the file
+#' @param focus Logical, indicate whether or not uploaded mol is focussed on
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return This will take a particular type of mol file with BADATOM comments mentioned and use that information
+#' to render spikyballs and stripy bonds!
 uploadMolAndFocus3 <- function(filepath, ext, focus, session){
     choice <- readTxtToOneLine(file=filepath)
     ml <- readLines(filepath)
