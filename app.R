@@ -62,9 +62,8 @@ read_toml <- function(file, x = xfun::read_utf8(file)){
 configuration <- read_toml(tail(commandArgs(),1))
 
 # Reinstall the latest version of nglShiny to propagate new functionality
-unlink(file.path(configuration$xcr_r_lib, '00LOCK-nglShiny'))
-install.packages(configuration$nglshiny_lib, repos=NULL, type='source', lib=configuration$xcr_r_lib)
-library(nglShiny, lib.loc=configuration$xcr_r_lib)
+#install.packages(configuration$nglshiny_lib, repos=NULL, type='source', lib=configuration$xcr_r_lib)
+library('nglShiny', lib.loc=configuration$xcr_r_lib)
 
 # Source components of XCR application:
 # ./config.R contains key decryption function in addition to email lists...

@@ -734,11 +734,14 @@ getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 #' @param session A shiny session object - which is generated when a user connects to XCR.
 #' @return Uploads a mol file to the ngl stage.
 uploadUnfocussedMol <- function(filepath, session){
+    if(file.exists(filepath)){
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
         type='addMol',
         list(choice)
-    )
+    )} else {
+    message(filepath, 'Not a File')
+    }
 }
 
 #' Upload a mol file, and zoom in on it!
