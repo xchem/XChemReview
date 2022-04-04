@@ -14,6 +14,7 @@ server <- function(input, output, session){
     query <- parseQueryString(isolate(session$clientData$url_search))
     if(!is.null(query[['key']])){
         target_list2 <- query[['key']]#sort(c(decrypt(query[['key']])))
+        target_list <- target_list2
         fragfolders <- c('', target_list2)
     }
 
@@ -255,8 +256,8 @@ server <- function(input, output, session){
 
             site_name = as.character(isolate(fragview_table_data()[input$goto, 'site_Label']))
             if(blankNAorNull(x=site_name)){
-                site_name = as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7]
-                print(site_name)
+                site_name = try(as.character(read.csv(gsub('.mol', '_meta.csv', mol_file), header=F, stringsAsFactors=F))[7], silent=T)
+                if(inherits(site_name, 'try-error')) site_name = ''
             }
             updateSelectizeInput(session, 'site_name', selected = site_name, choices=c(site_name,choices))
 
