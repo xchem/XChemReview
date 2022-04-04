@@ -731,11 +731,14 @@ getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 #' @param session of datatable.
 #' @return Updates proxy with new data...
 uploadUnfocussedMol <- function(filepath, session){
+    if(file.exists(filepath)){
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
         type='addMol',
         list(choice)
-    )
+    )} else {
+    message(filepath, 'Not a File')
+    }
 }
 
 #' Update datatable proxy.
