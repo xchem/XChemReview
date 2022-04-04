@@ -310,6 +310,7 @@ getFragalysisViewData <- function(configuration, target_list){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
+    # Test for file existence and filter table???
     return(output)
 }
 
