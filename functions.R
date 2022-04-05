@@ -1244,7 +1244,9 @@ updateMainTable <- function(r1, pl=100, input){
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            extensions = "Buttons",
             options = list(
+                dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
                 stateSave = TRUE, 
                 pageLength=pl, 
                 columnDefs=list(list(orderable=TRUE))
@@ -1279,7 +1281,7 @@ updateMainTable <- function(r1, pl=100, input){
                 c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
             )
         ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-    }, server=FALSE, extensions = c("Buttons"), options = list(dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))
+    }, server=FALSE
     )
 }
 
