@@ -1219,14 +1219,6 @@ updateMainTable2 <- function(r1, pl=100, input){
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
             options = list(
-                buttons = list(
-                    list(
-                        extend = 'csv', 
-                        text = 'Get CSV', 
-                        exportOptions = list(modifier = list(order = 'original', page = 'all')),
-                        customize = DT::JS('function customize(csv) { return "search values :\\r\\n" + csv; }')
-                    )
-                ),
                 stateSave = TRUE,
                 order = isolate(input$therow_state$order),
                 paging = TRUE,
@@ -1287,7 +1279,14 @@ updateMainTable <- function(r1, pl=100, input){
                 c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
             )
         ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-    }, server=FALSE)
+    }, server=FALSE, options = list(buttons = list(
+                    list(
+                        extend = 'csv', 
+                        text = 'Get CSV', 
+                        exportOptions = list(modifier = list(order = 'original', page = 'all')),
+                        customize = DT::JS('function customize(csv) { return "search values :\\r\\n" + csv; }')
+                    )))
+    )
 }
 
 #' Update datatable proxy.
