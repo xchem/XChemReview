@@ -1250,7 +1250,7 @@ updateMainTable <- function(r1, pl=100, input){
                 stateSave = TRUE, 
                 pageLength=pl, 
                 pageLength = isolate(input$reviewtable_state$length),
-                lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All') 
+                lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All')),
                 columnDefs=list(list(orderable=TRUE))
             )
         )
@@ -1266,7 +1266,7 @@ updateMainTable <- function(r1, pl=100, input){
                 order = isolate(input$reviewtable_state$order),
                 paging = TRUE,
                 pageLength = isolate(input$reviewtable_state$length),
-                lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All') 
+                lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All')),
                 columnDefs=list(list(orderable=TRUE))
             )   
         )
