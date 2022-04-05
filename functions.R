@@ -27,7 +27,7 @@ xcdbConnect <- function(configuration){
     return(con)
 }
 
-fetchPipelineOptions(configuration, target){
+fetchPipelineOptions <- function(configuration, target){
     con <- xcdbConnect(configuration=configuration)
     on.exit(con)
     res <- dbGetQuery(con, sprintf('SELECT * FROM target WHERE target_name = "%s"', target))
