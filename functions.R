@@ -1246,7 +1246,7 @@ updateMainTable <- function(r1, pl=100, input){
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
             extensions = "Buttons",
             options = list(
-                dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
                 stateSave = TRUE, 
                 pageLength=pl, 
                 columnDefs=list(list(orderable=TRUE))
@@ -1257,7 +1257,9 @@ updateMainTable <- function(r1, pl=100, input){
             r1(),
             selection = 'single',
             callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+            extensions = "Buttons",
             options = list(
+                dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
                 stateSave = TRUE,
                 order = isolate(input$reviewtable_state$order),
                 paging = TRUE,
