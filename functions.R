@@ -1279,13 +1279,7 @@ updateMainTable <- function(r1, pl=100, input){
                 c('true', TRUE, 'TRUE'), c('#FFFFFF', '#FFFFFF', '#FFFFFF')
             )
         ) %>% DT::formatStyle(columns = 1:ncol(r1()),"white-space"="nowrap")
-    }, server=FALSE, options = list(buttons = list(
-                    list(
-                        extend = 'csv', 
-                        text = 'Get CSV', 
-                        exportOptions = list(modifier = list(order = 'original', page = 'all')),
-                        customize = DT::JS('function customize(csv) { return "search values :\\r\\n" + csv; }')
-                    )))
+    }, server=FALSE, extensions = c("Buttons"), options = list(dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))
     )
 }
 
