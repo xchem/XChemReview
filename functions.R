@@ -1340,11 +1340,11 @@ updateAQPTable <- function(r, pl=100, input=input){
 #' @param input R6 Object, specifying the state of UI elements.
 #' @return A reactive data obtain, that responds to user interactions.
 reactiviseData <- function(inputData, input){
-    reactive({
+    try(reactive({
         if(input$tab == 'review'){
-            #rowidx <- rep(FALSE, nrow(inputData())) # This broken?
+            rowidx <- rep(FALSE, nrow(inputData())) # This broken?
             outcome <- as.numeric(as.character(inputData()$outcome))
-            rowidx <- rep(FALSE, length(outcome))
+            #rowidx <- rep(FALSE, length(outcome))
             current_state <- as.character(inputData()[['Current State']])
             review <- inputData()$decision_str
             if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
@@ -1367,7 +1367,7 @@ reactiviseData <- function(inputData, input){
                 inputData()[grepl(input$aq_protein, as.character(inputData()$target_name)),]
             }
         }
-    })
+    }), silent=T)
 }
 
 #' Fetch review data to 'update' the application
