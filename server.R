@@ -80,7 +80,11 @@ server <- function(input, output, session){
 
     output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
-
+    observeEvent(input$aq_protein, {
+        r1 <- reactiviseData(inputData=inputData, input=input)
+        output$aqp <- updateAQPTable(r=r1, pl=100, input)
+        prebuffer_proxy(proxy=aqpproxy, input=input)
+    })
     
     observeEvent(input$protein, {
         r1 <- reactiviseData(inputData=inputData, input=input)
