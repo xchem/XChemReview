@@ -1340,7 +1340,7 @@ updateAQPTable <- function(r, pl=100, input=input){
 #' @param input R6 Object, specifying the state of UI elements.
 #' @return A reactive data obtain, that responds to user interactions.
 reactiviseData <- function(inputData, input){
-    try(reactive({
+    output <- try(reactive({
         if(input$tab == 'review'){
             rowidx <- rep(FALSE, nrow(inputData())) # This broken?
             outcome <- as.numeric(as.character(inputData()$outcome))
@@ -1368,6 +1368,8 @@ reactiviseData <- function(inputData, input){
             }
         }
     }), silent=T)
+    if(inherits(output, 'try-error')) output <- reactive({inputData()})
+    return(output)
 }
 
 #' Fetch review data to 'update' the application
