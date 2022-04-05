@@ -393,7 +393,7 @@ server <- function(input, output, session){
                 if(debug) debugMessage(sID=sID, sprintf('Saving Response...'))
                 saveData(fData, xtaln, email_list=emailListperStructure, configuration=configuration)
                 if(debug) debugMessage(sID=sID, sprintf('Response Saved!'))
-                inputData <- resetForm(configuration=configuration, session=session, r1=r1, possDec=possDec)
+                inputData <- resetForm(configuration=configuration, session=session, r1=r1, possDec=possDec, target_list=target_list)
                 r1 <- reactiviseData(inputData=inputData, input=input)
                 output$reviewtable <- updateMainTable(r1=r1, pl=100, input=input)
                 prebuffer_proxy(proxy=reviewtableproxy, input=input)
