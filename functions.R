@@ -27,6 +27,13 @@ xcdbConnect <- function(configuration){
     return(con)
 }
 
+fetchPipelineOptions(configuration, target){
+    con <- xcdbConnect(configuration=configuration)
+    on.exit(con)
+    res <- dbGetQuery(con, sprintf('SELECT * FROM target WHERE target_name = "%s"', target))
+    return(res)
+}
+
 #' Fetch targets an authenticated fedid is able to see on ISPyB and XCDB.
 #'
 #' @param fedid String, corresponding to a fedid provided by shinyproxy/active directory when you log in.

@@ -110,9 +110,10 @@ server <- function(input, output, session){
 
     # Selector Stuff:
     review_data <- trygetReviewData(configuration=configuration, target_list=target_list)
-     mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
-      updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
-      updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
+    mtzzz <- review_data[,c('crystal_name', 'mtz_latest')]
+    updateSelectInput(session, 'protein', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
+    updateSelectInput(session, 'fpe_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
+    updateSelectInput(session, 'config_target', selected = '', choices=c('', sort(unique(as.character(review_data$target_name)))))
     if(debug) debugMessage(sID=sID, sprintf('Fetch Review Table Data'))
     inputData <- restartSessionKeepOptions(configuration=configuration, target_list=target_list)
     r1 <- reactiviseData(inputData=inputData, input=input)
@@ -1342,6 +1343,19 @@ server <- function(input, output, session){
             file.copy(sessionlist$fullpath_frag, file)
         }
     )
+
+    observeEvent(input$config_target, ignoreNULL = TRUE,{
+        # Fetch the params from XCDB
+        resp <- fetchPipelineOptions(configuration=configuration, target = isolate(input$config_target))
+        updateCheckboxInput(session, 'monomeric', value = as.logical(resp$pl_monomeric))
+        updateCheckboxInput(session, 'reduce', value =  as.logical(resp$pl_reduce_reference_frame))
+        updateCheckboxInput(session, 'covalent', value = as.logical(resp$pl_reduce_reference_frame))
+        updateCheckboxInput(session, 'active', value = as.logical(resp$pl_active))
+    })
+
+    observeEvent(input$config_change, ignoreNULL = TRUE,{
+        message('.')
+    })
 
     # Stop Timeout.
     autoInvalidate <- reactiveTimer(10000)
