@@ -1340,7 +1340,7 @@ updateAQPTable <- function(r, pl=100, input=input){
 #' @param input R6 Object, specifying the state of UI elements.
 #' @return A reactive data obtain, that responds to user interactions.
 reactiviseData <- function(inputData, input){
-    output <- try(reactive({
+    reactive({
         if(input$tab == 'review'){
             rowidx <- rep(FALSE, nrow(inputData())) # This broken?
             outcome <- as.numeric(as.character(inputData()$outcome))
@@ -1367,9 +1367,7 @@ reactiviseData <- function(inputData, input){
                 inputData()[grepl(input$aq_protein, as.character(inputData()$target_name)),]
             }
         }
-    }), silent=T)
-    if(inherits(output, 'try-error')) output <- reactive({inputData()})
-    return(output)
+    })
 }
 
 #' Fetch review data to 'update' the application
@@ -1389,12 +1387,12 @@ restartSessionKeepOptions <- function(configuration, target_list){
 #' @param r1 Previous data... oh no...
 #' @param possDec List of possible decisions...
 #' @return Resets the review form to accept new responses.
-resetForm <- function(configuration, session, r1, possDec){
+resetForm <- function(configuration, session, r1, possDec, target_list){
     updateSelectizeInput(session, "ligand", selected = '', choices = sort(rownames( r1() )))
     updateSelectInput(session, 'decision', selected ='', choices = possDec)
     updateSelectInput(session, 'reason', selected='', choices='')
     updateTextInput(session, 'comments', value = "")
-    return(restartSessionKeepOptions(configuration=configuration))
+    return(restartSessionKeepOptions(configuration=configuration, target_list=target_list))
 }
 
 
