@@ -1274,8 +1274,11 @@ server <- function(input, output, session){
         output$lp_meta <- DT::renderDataTable({
             DT::datatable(
                 sessionlist$fumeta, callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+                extensions = "Buttons"
                 options = list(
-                    pageLength = 500
+                    dom = 'Bfrtip', buttons = c('pageLength', 'copy', 'csv', 'excel'),
+                    pageLength = -1
+                    lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All'))
                 )
             )
         }, server=FALSE)
