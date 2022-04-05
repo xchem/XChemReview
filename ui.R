@@ -41,7 +41,7 @@ sidebar <- dashboardSidebar(
         menuItem('Review', tabName = 'review', icon = icon('dashboard'), badgeLabel = 'Stage 3'),
         menuItem('LaunchPad', tabName = 'launchpad', icon = icon('th'), badgeLabel = 'Stage 4'),
         menuItem('Help', tabName = 'help', icon = icon('th')),
-        menuItem('Pipeline Config', tabName='config', icon=icon('th'))
+        menuItem('Pipeline Config', tabName='config', icon=icon('th')),
         hr(),
         # This is the flexible UI element. Referenced in server.R using the input$tab variable incase elements
         # need to be changed later.
