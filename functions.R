@@ -1342,8 +1342,9 @@ updateAQPTable <- function(r, pl=100, input=input){
 reactiviseData <- function(inputData, input){
     reactive({
         if(input$tab == 'review'){
-            rowidx <- rep(FALSE, nrow(inputData()))
+            #rowidx <- rep(FALSE, nrow(inputData())) # This broken?
             outcome <- as.numeric(as.character(inputData()$outcome))
+            rowidx <- rep(FALSE, length(outcome))
             current_state <- as.character(inputData()[['Current State']])
             review <- inputData()$decision_str
             if(any(c(is.null(input$protein), is.null(input$out4), is.null(input$out5), is.null(input$out6)))){
