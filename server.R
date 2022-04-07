@@ -1541,7 +1541,7 @@ server <- function(input, output, session){
 
     observeEvent(input$config_change, ignoreNULL = TRUE,{
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Updating pipeline parameters...'))
-        if(!is.NULL(input$config_target)){
+        if(!is.null(input$config_target)){
             if(!input$config_target == ''){
                 updatePipelineOptions(configuration=configuration, input=input)
                 if(sessionlist$pisa == input$monomeric){
