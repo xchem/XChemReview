@@ -1543,17 +1543,14 @@ server <- function(input, output, session){
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Updating pipeline parameters...'))
                 debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Attempting to update...'))
                 updatePipelineOptions(configuration=configuration, input=input)
-                if(sessionlist$pisa == input$monomeric){
-                    showModal(modalDialog(title = "It appears you have changed the assmebly of your target",
-                    'Please go through the data in your visit and update the files to trigger the data to be reprocessed...
-                    
-                    Run: /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
-                    easyClose=TRUE))
-                } else {
-                    external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
-                    command <- sprintf('%s %s', external_script, input$config_target)
-                    task <- tail(system(command, intern=T),1)
-                }
+                external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
+                command <- sprintf('%s %s', external_script, input$config_target)
+                task <- tail(system(command, intern=T),1)
+                showModal(modalDialog(title = "If you have changed the assmebly of your target",
+                'XChemReview requires your data to be updated to trigger reprocessing - if you would like to give XCR a nudge please run:    
+                /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
+                easyClose=TRUE))
+
     })
 
     # Stop Timeout.
