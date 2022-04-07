@@ -1541,8 +1541,7 @@ server <- function(input, output, session){
 
     observeEvent(input$config_change, ignoreNULL = TRUE,{
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Updating pipeline parameters...'))
-        if(!is.null(input$config_target)){
-            if(!input$config_target == ''){
+                debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Attempting to update...'))
                 updatePipelineOptions(configuration=configuration, input=input)
                 if(sessionlist$pisa == input$monomeric){
                     showModal(modalDialog(title = "It appears you have changed the assmebly of your target",
@@ -1555,8 +1554,6 @@ server <- function(input, output, session){
                     command <- sprintf('%s %s', external_script, input$config_target)
                     task <- tail(system(command, intern=T),1)
                 }
-            }
-        }
     })
 
     # Stop Timeout.
