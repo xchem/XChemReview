@@ -1,12 +1,14 @@
 # List of Functions used in XCR...
 # Many of the functions that involve uploading an element to the NGL stage
-# These will use session$sendCustomMessage, all of which can be greatly optimised, alas I have run out of time.
+# These will use session$sendCustomMessage, all of which could be greatly optimised, alas I have run out of time.
+# All sendCustomMessages are described in: https://github.com/xchem/nglShiny/blob/master/inst/htmlwidgets/nglShiny.js
 
 #' Read a text file and return it as a single line separated by `\n` characters
 #'
 #' @param file A string corresponding to a filepath. 
 #' @return Returns the contents of a file as a single string. 
 readTxtToOneLine <- function(file){
+    message('(readTxtToOneLine) Reading: ', file)
     return(paste0(readLines(file), collapse='\n'))
 }
 
@@ -16,6 +18,7 @@ readTxtToOneLine <- function(file){
 #' Described in configuration.toml
 #' @return Returns a connection object that can be used to make queries. 
 xcdbConnect <- function(configuration){
+    message('(xcdbConnect): Connecting to xcdb...')
     con <- dbConnect(
         RMariaDB::MariaDB(), 
         dbname = configuration$db, 
@@ -27,9 +30,18 @@ xcdbConnect <- function(configuration){
     return(con)
 }
 
+#' Fetch pipeline parameters for a specific target
+#'
+#' pipeline parameters are stored in the target table and prefixed with pl_
+#'
+#' @param configuration List containing various config options including xcdb credentials.
+#' Described in configuration.toml
+#' @param target Name of the target to pull from xcdb
+#' @return A single row data.frame that contains the contents of the below query.
 fetchPipelineOptions <- function(configuration, target){
     con <- xcdbConnect(configuration=configuration)
     on.exit(con)
+    message('(fetchPipelineOptions): Fetching Target info')
     res <- dbGetQuery(con, sprintf('SELECT * FROM target WHERE target_name = "%s"', target))
     return(res)
 }
@@ -43,6 +55,7 @@ fetchPipelineOptions <- function(configuration, target){
 fetchTargets <- function(fedid, configuration){
     con <- xcdbConnect(configuration=configuration)
     on.exit(con)
+    message('(fetchTargets): Fetching Targets for ', fedid)
     # Sort this out with INNER joins?
     pid <- dbGetQuery(con, sprintf('SELECT personId from ispyb.Person WHERE login = "%s"', fedid))
     sessions <- dbGetQuery(con, sprintf('SELECT sessionId from ispyb.Session_has_Person WHERE personId = "%s"', pid))
@@ -68,6 +81,7 @@ fetchTargets <- function(fedid, configuration){
 #' 
 #' @return Updates proxy with new data...
 getAtomIDs <- function(pdb, lignum, chain){
+    message('(getAtomIDs) reading pdb...', pdb)
     pdb <- bio3d::read.pdb(pdb)
 	ligtable <- pdb$atom[pdb$atom$resid == 'LIG',]
 	if(chain == ''){
@@ -88,6 +102,7 @@ getAtomIDs <- function(pdb, lignum, chain){
 #' @param pdb A string corresponding to file path of a pdb file
 #' @return Returns a string of pdb atoms in a `@ 1,2,3,4,` format aparently...
 getResNum <- function(pdb){
+    message('(getResNum): reading pdb...', pdb)
     pdb <- bio3d::read.pdb(pdb)
     return(sprintf('@%s',paste(rownames(pdb$atom), collapse=',')))
 }
@@ -100,6 +115,7 @@ getResNum <- function(pdb){
 #' @param name_str A string to add to the file, usually a ATOM names e.g. [LYS]124.C1 seperated by semicolons
 #' @return Writes the _str arguments to the mol_file.
 write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
+    message('(write_to_mol_file) reading file...', mol_file)
     lines <- readLines(mol_file)
     # Check if the fields exist... 
     # Add the necessary lines IF needed.
@@ -121,7 +137,7 @@ write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
     } else {
         lines <- c(lines, '> <BADATOMNAMES>', name_str)
     }
-    # Overwrite the file.
+    message('(write_to_mol_file) write to file...', mol_file)
     cat(paste(lines, collapse='\n'), file = mol_file)
 }
 
@@ -138,6 +154,7 @@ write_to_mol_file <- function(mol_file, id_str, comment_str, name_str){
 rewriteMols <- function(target, configuration){ # This need refactoring later......
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
+    message('(rewriteMols) Fetching mol file list...')
     fligands <- dbGetQuery(con, 'SELECT * from fragalysis_ligand')
     fligand_id <- as.character(fligands$id)
     rownames(fligands) <- as.character(fligand_id)
@@ -149,6 +166,7 @@ rewriteMols <- function(target, configuration){ # This need refactoring later...
     rownames(atoms) <- as.character(atoms$ligand_id)
     ats <- na.omit(atoms[rownames(ligands),])
     towrite <- ats[!ats$atomid == '',]
+    message('(rewriteMols) Adding atoms to files...')
     for(j in 1:nrow(towrite)){
         atomstowrite <- towrite[j,]
         lig <- as.character(atomstowrite[, 'ligand_id'])
@@ -181,6 +199,7 @@ rsplit <- function(string, split_by, n=1){
 #' @param pdb_file String corresponding to a file-path to a pdb file.
 #' @return Vector of RES Numbers for all residues in a pdb file RES_1, RES_2 etc.
 get_residues <- function(pdb_file){
+    message('(get_residues): reading pdb...', pdb_file)
     struc <- try(bio3d::read.pdb(pdb_file), silent=T)
     if(inherits(struc, 'try-error')) return('')
     return(c('', unique(paste(struc$atom$resid, struc$atom$resno, sep='_'))))
@@ -206,6 +225,7 @@ trygetReviewData <- function(configuration, target_list){
 #' @param target_list List of Targets to get
 #' @return data.frame of review data.
 getReviewData <- function(configuration, target_list){ 
+    message('(getReviewData): getting Review Data')
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
 
@@ -286,6 +306,7 @@ getReviewData <- function(configuration, target_list){
         'bad_atom_comment' = atom_target_data[as.character(ligand_data$id), 'comment']
     )
     rownames(output) <- make.names(as.character(output$ligand_name), unique=TRUE)
+    message('(getReviewData): ... completed...')
     return(output)
 }
 
@@ -296,7 +317,7 @@ getReviewData <- function(configuration, target_list){
 #' @param target_list List of Targets
 #' @return data.frame of Fragalysis View data from XCDB
 getFragalysisViewData <- function(configuration, target_list){
-
+    message('(getFragalysisViewData): getting Fragview Data')
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
 
@@ -317,6 +338,7 @@ getFragalysisViewData <- function(configuration, target_list){
     numbers <- grepl('^[0-9]', output$ligand_name)
     rns[numbers] <-  gsub('^X{1}', '', rns[numbers])
     rownames(output) <- rns
+    message('(getFragalysisViewData): ...completed...')
     # Test for file existence and filter table???
     return(output)
 }
@@ -328,6 +350,7 @@ getFragalysisViewData <- function(configuration, target_list){
 #' @param target The target to generate the metadata for.
 #' @return data.frame consisting of the targets metadata.
 createUniqueMetaData <- function(configuration, target){
+    message('(createUniqueMetaData): Creating Metadata')
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
 
@@ -340,7 +363,7 @@ createUniqueMetaData <- function(configuration, target){
     md <- dbGetQuery(con, sprintf("SELECT * FROM meta_data WHERE ligand_name_id in (%s)", md_ids))
     prot <- target
     md <- md[!(md$site_Label == 'IGNORE' | is.na(md$site_Label)),] # Might be a problem for later...
-    meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)]
+    meta <- md[grep(paste0(prot, '-'), md$fragalysis_name),c(6,7,3,3,4,2,5)] #Ensure valid targets get included.
     colnames(meta) <- c('crystal_name', 'RealCrystalName', 'smiles', 'new_smiles', 'alternate_name', 'site_name', 'pdb_entry')
 
     # Dodgy Hack for DLS
@@ -356,6 +379,7 @@ createUniqueMetaData <- function(configuration, target){
             meta$smiles[id] <- readLines(smifi)[1]
         }
     }
+    message('(createUniqueMetaData): ...Completed')
     return(meta)
 }
 
@@ -397,8 +421,10 @@ updateOrCreateRow <- function(
     id = dbGetQuery(con, sprintf("SELECT id from meta_data WHERE ligand_name_id=%s", ligand_name_id))[1,1]
     dbDisconnect(con)
     if(is.na(id)){ # Append 
+        message('(updateOrCreateRow): Creating Row')
         dbAppendWrapper(configuration = configuration, table_name = 'meta_data', data = df)
     } else { # Update
+        message('(updateOrCreateRow): Updating Row')
         con <- xcdbConnect(configuration=configuration)
         dbExecute(con, sprintf("UPDATE meta_data SET %s WHERE ligand_name_id=%s",
             sprintf("site_Label=\'%s\', new_smiles=\'%s\', alternate_name=\'%s\', pdb_id=\'%s\', fragalysis_name=\'%s\', original_name=\'%s\', status=\'%s\'", site_label, new_smiles, alternate_name, pdb_id, fragalysis_name, original_name, status),
@@ -519,6 +545,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Creating Fragalysis Folder", value = 0)
+    message('(createFragUploadFolder): Creating Folder')
     prot = target
     protsuffix <- paste(prot, format(Sys.time(), "%Y%m%d_%H%M"), sep='_')
     base_root <- sprintf('%s/%s/',configuration$staging, prot)
@@ -528,6 +555,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
     align_dir <- sprintf('%s/%s/%s/aligned',configuration$prep_path, protsuffix, prot)
     crys_dir <- sprintf('%s/%s/%s/crystallographic',configuration$prep_path, protsuffix, prot)
 
+    message('(createFragUploadFolder): Making Directories')
     dir.create(rootf)
     dir.create(basef)
     dir.create(align_dir)
@@ -540,7 +568,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
     # aligned data copy
     progress$set(message = "Copying aligned Files", value = 0)
     increment = (1/nrow(meta))/2.2
-    print(meta)
+    message('(createFragUploadFolder): Copying Files')
     for(frag in meta$crystal_name){
         progress$inc(increment, detail=frag)
         cf <- sprintf('%saligned/%s', base_root, frag)
@@ -598,7 +626,7 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
 		    }
 	    }
     }
-    
+    message('(createFragUploadFolder): Copied!')
     # Write and copy stuff
     file.copy(sprintf('%sreference.pdb', base_root), sprintf("%s/reference.pdb", basef))
     write.csv(meta, sprintf("%s/metadata.csv", basef), quote = FALSE)
@@ -606,19 +634,22 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
 
     progress$set(message = "Zipping File!", value = .9)
 
-    # Zip File
+    # Zip File 
     zipf <- sprintf('%s.zip', prot)
     #zipcommand <- sprintf("(cd %s && zip -r %s . && touch done.log)", rootf, prot)
     #system(zipcommand, wait=FALSE)
     currentwd <- getwd()
     setwd(rootf)
+    message('(createFragUploadFolder): Zipping folder')
     zip(zipfile=zipf, files=prot)
+    message('(createFragUploadFolder): Zipped!')
     cat('', file='done.log')
     setwd(currentwd)
     system(sprintf('chmod 775 %s', rootf))
     system(sprintf('chmod 775 %s/%s', rootf, prot))
     system(sprintf('chmod 775 %s/%s', rootf, zipf))
     full_path_zipf <- sprintf('%s/%s', rootf, zipf)
+    message('(createFragUploadFolder): finished without error')
     return(full_path_zipf)
 }
 
@@ -633,11 +664,14 @@ createFragUploadFolder <- function(meta, target, copymaps=FALSE, mtz, configurat
 #' Described in configuration.toml
 #' @return This function should upload stuff to fragalysis.diamond.ac.uk
 uploadFragFolder <-  function(filepath, target, proposal, email, configuration){
+    message('(uploadFragFolder): Uploading FragFolder')
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Uploading Fragalysis Folder", value = 0)
     external_script <- file.path(configuration$script_path, 'upload_2_fragalysis.sh')
+    message('(uploadFragFolder): Running External Command')
     command <- sprintf('%s %s %s %s %s %s', external_script, basename(filepath), target, proposal, email, filepath)
+    message('(uploadFragFolder) :', command)
     task <- tail(system(command, intern=T),1)
     return(task)
 }
@@ -712,8 +746,10 @@ updateVisability <- function(name, bool, session){
 #' @return Read a volume density file, converts it to base64 and then it get transferred for NGL to be rendered.
 uploadVolumeDensity <- function(filepath, color, negateiso = FALSE, boxsize, isolevel, visable, windowname, isotype=c('sigma', 'value'), session){
     isotype <- match.arg(isotype)
+    message('(uploadVolumeDensity): Reading map file')
     volume_bin <- readBin(filepath, what='raw', file.info(filepath)$size)
     volume_b64 <- base64encode(volume_bin, size=NA, endian=.Platform$endian)
+    message('(uploadVolumeDensity): Uploading map file')
     session$sendCustomMessage(
         type = 'addVolumeDensity',
         message = list(
@@ -742,13 +778,15 @@ getExt <- function(x) sapply(strsplit(x, '[.]'), tail, 1)
 #' @param session A shiny session object - which is generated when a user connects to XCR.
 #' @return Uploads a mol file to the ngl stage.
 uploadUnfocussedMol <- function(filepath, session){
+    message('(uploadUnfocussedMol) Uploading ...', filepath)
     if(file.exists(filepath)){
-    choice <- readTxtToOneLine(file=filepath)
-    session$sendCustomMessage(
-        type='addMol',
-        list(choice)
-    )} else {
-    message(filepath, 'Not a File')
+        choice <- readTxtToOneLine(file=filepath)
+        session$sendCustomMessage(
+            type='addMol',
+            list(choice)
+        )
+    } else {
+        message('(uploadUnfocussedMol) ',filepath, 'Not a File')
     }
 }
 
@@ -760,6 +798,7 @@ uploadUnfocussedMol <- function(filepath, session){
 #' @param session A shiny session object - which is generated when a user connects to XCR.
 #' @return Uploads a mol file to the ngl stage.
 uploadMolAndFocus <- function(filepath, ext, focus, session){
+    message('(uploadMolAndFocus) Uploading ...', filepath)
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
         type = 'addMolandfocus',
@@ -776,6 +815,7 @@ uploadMolAndFocus <- function(filepath, ext, focus, session){
 uploadBFactors <- function(filepath, clear=TRUE, session){
     if(clear) clearWindowField(id='bfactor', session=session)
     choice <- readTxtToOneLine(file=filepath)
+    message('(uploadBFactors) Uploading bfactor')
     session$sendCustomMessage(
         type = 'setBFactor',
         message = list(
@@ -791,6 +831,7 @@ uploadBFactors <- function(filepath, clear=TRUE, session){
 #' @return Adds contact information from a pdb file to NGL Stage
 addContacts <- function(filepath, session){
     choice <- readTxtToOneLine(file=filepath)
+    message('(addContacts) Uploading contacts')
     session$sendCustomMessage(
         type = 'addContacts',
         message = list(
@@ -824,20 +865,22 @@ uploadMolAndFocus3 <- function(filepath, ext, focus, session){
         mid <- ''
         mic <- ''
     }
+    message('(uploadMolAndFocus3) Uploading mol file with bad atoms')
     session$sendCustomMessage(
         type = 'setBadMolandfocus',
         list(choice,ext, tcl(focus), paste(mid, collapse=';'), paste(mic,collapse=';'))
     )
 }
 
-#' Update datatable proxy.
+#' Read pdb and mol file containing bad atoms and render then in a particular style in ngl.
 #'
-#' @param filepath Proxy of datatable.
-#' @param repr Proxy of datatable.
-#' @param focus of datatable.
-#' @param molfile of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param filepath Filepath of pdb file
+#' @param repr ngl structure representation to use
+#' @param focus Logical to indicicate whether or not to focus on uploaded component
+#' @param molfile filepath to mol file containing bad atoms
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return This will take a particular type of mol file with BADATOM comments mentioned and use that information
+#' to render a pdb file with spikyballs and stripy bonds!
 uploadApoPDB3 <- function(filepath, repr, focus, molfile, session){
     choice <- readTxtToOneLine(file=filepath)
     # Read mol-file for badatomids and comments...
@@ -856,6 +899,7 @@ uploadApoPDB3 <- function(filepath, repr, focus, molfile, session){
         pid <- ''
         pic <- ''
     }
+    message('(uploadApoPDB3) Uploading pdb file with bad atoms')
     session$sendCustomMessage(
         type = 'setBadAtomsPDB',
         message = list(
@@ -868,21 +912,22 @@ uploadApoPDB3 <- function(filepath, repr, focus, molfile, session){
     )
 }
 
-#' Update datatable proxy.
+#' convert TRUE/FALSE to "true"/"false"
 #'
-#' @param x Proxy of datatable.
-#' @return Updates proxy with new data.
-tcl <- function(x) tolower(as.character(as.logical(x)))
+#' @param x Logical Value
+#' @return returns the logical value into "true" or "false"
+tcl <- function(x) tolower(as.character(as.logical(x))) # or you can do: ifelse(as.logical(x), 'true', 'false')
 
-#' Update datatable proxy.
+#' Upload a pdb file with a particular flavour
 #'
-#' @param filepath Proxy of datatable.
-#' @param repr Proxy of datatable.
-#' @param focus of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param filepath filepath to pdb file
+#' @param repr nglshiny repr to render pdb file in
+#' @param focus boolean to indicate whether or not to focus on newly uploaded object
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Uploads a pdb file to the ngl stage
 uploadApoPDB <- function(filepath, repr, focus, session){
     choice <- readTxtToOneLine(file=filepath)
+    message('(uploadApoPDB) Uploading pdb file')
     session$sendCustomMessage(
         type = 'setapoPDB',
         message = list(
@@ -893,24 +938,25 @@ uploadApoPDB <- function(filepath, repr, focus, session){
     )
 }
 
-#' Update datatable proxy.
+#' Remove a component that is stored inside the javascript window object
 #'
-#' @param objectname Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param objectname Window object name to remove
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Removes component from ngl stage
 removeNamedComponent <- function(objectname, session) session$sendCustomMessage(type='removeNamedComponent', list(objectname))
 
-#' Update datatable proxy.
+#' Upload a pdb file for the nth time...
 #'
-#' @param filepath Proxy of datatable.
-#' @param input Proxy of datatable.
-#' @param focus_point of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param filepath Filepath to pdb file
+#' @param input Shiny input R6 object contains various information about user input
+#' @param focus_point NGL selection language to specify where to focus
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Upload a pdb file...
 uploadPDB <- function(filepath, input, focus_point = 'LIG', session){
     choice <- readTxtToOneLine(file=filepath)
+    message('(uploadPDB) Uploading pdb file')
     session$sendCustomMessage(
-        type = 'setPDB2', # See TJGorrie/NGLShiny for details on setPDB2
+        type = 'setPDB2', # See xchem/NGLShiny for details on setPDB2
         message = list(
             choice,
             isolate(input$clipDist),
@@ -923,17 +969,17 @@ uploadPDB <- function(filepath, input, focus_point = 'LIG', session){
     )
 }
 
-#' Update datatable proxy.
+#' Update a parameter in ngl
 #'
-#' @param which Proxy of datatable.
-#' @param what Proxy of datatable.
-#' @param session of datatable.
-#' @return Updates proxy with new data..
+#' @param which The option to change 
+#' @param what The value to change the option to
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Updates the parameter in ngl
 updateParam <- function(which, what, session) session$sendCustomMessage('updateaparam', list(which, what))
 
-#' Update datatable proxy.
+#' Pull current parameters from users input
 #'
-#' @return Updates proxy with new data..
+#' @return Returns a list of the users input.
 getCurrentParams <- function(input){
     list(
         fogging = input$fogging,
@@ -946,9 +992,9 @@ getCurrentParams <- function(input){
     )
 }
 
-#' Update datatable proxy.
+#' Create a list with some default parameters
 #'
-#' @return Updates proxy with new data..
+#' @return Returns a list with the following values
 loadDefaultParams <- function(){
     list(
         fogging = c(50,62),
@@ -961,12 +1007,13 @@ loadDefaultParams <- function(){
     )
 }
 
-#' Update datatable proxy.
+#' write bad atoms to xcdb
 #'
-#' @param id Proxy of datatable.
-#' @param configuration Proxy of datatable.
-#' @param atomstoquery Proxy of datatable.
-#' @return Updates proxy with new data..
+#' @param ligand_id Pthe ligand id from the in the bad_atoms table
+#' @param configuration The aforementioned configuration file generated from configuration.toml
+#' @param atomstoquery bad atoms data.frame produced by XCR
+#' @param sessionlist XCR session information (reactiveValues object)
+#' @return appends or updates bad atoms to xcdb
 writeAtoms <- function(ligand_id, configuration, atomstoquery, sessionlist){
     newdat <- data.frame(
         ligand_id=ligand_id,
@@ -978,8 +1025,10 @@ writeAtoms <- function(ligand_id, configuration, atomstoquery, sessionlist){
     id = dbGetQuery(con, sprintf("SELECT id from bad_atoms WHERE ligand_id=%s", ligand_id))[1,1]
     dbDisconnect(con)
     if(is.na(id)){
+        message('(writeAtoms) Appending bad atoms')
         dbAppendWrapper(configuration = configuration, table_name = 'bad_atoms', data = newdat)
     } else {
+        message('(writeAtoms) Updating ligand with atom qualities')
         con <- xcdbConnect(configuration=configuration)
         dbExecute(con, sprintf(
             "UPDATE bad_atoms SET %s WHERE ligand_id=%s",
@@ -989,6 +1038,7 @@ writeAtoms <- function(ligand_id, configuration, atomstoquery, sessionlist){
         dbDisconnect(con)        
     }
     # Write atom data to .mol file???
+    message('(writeAtoms) Updating ligand with atom qualities')
     badnamestr = paste(atomstoquery$data[,'name'], collapse=';')
     badidsstr = paste(atomstoquery$data[,'index'], collapse=';')
     badcommentstr = paste(atomstoquery$data[,'comment'], collapse=';')
@@ -1013,15 +1063,17 @@ writeAtoms <- function(ligand_id, configuration, atomstoquery, sessionlist){
             lines <- c(lines, '> <BADATOMNAMES>', badnamestr)
         }
         cat(paste(lines, collapse='\n'), file = isolate(sessionlist$mol_file))
+        message('(writeAtoms) ...Finished')
     }
 }
 
-#' Update datatable proxy.
+#' Check XCDB and then create a modal if someone has reviewed a ligand before you
 #'
-#' @param id Proxy of datatable.
-#' @param configuration Proxy of datatable.
-#' @return Updates proxy with new data..
+#' @param id ID of ligand
+#' @param configuration The aforementioned configuration file generated from configuration.toml
+#' @return Makes a modal for the user to interact with.
 displayModalWhoUpdated <- function(id, configuration){
+    message('(displayModalWhoUpdated)')
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
@@ -1030,20 +1082,21 @@ displayModalWhoUpdated <- function(id, configuration){
     user <- mostrecent[as.character(id), 'fedid'][[1]]
     showModal(
         modalDialog(
-            title = "Someone has recently reviewed this crystal",
+            title = "Someone has recently reviewed this ligand!",
             sprintf("A User (%s) has recently reviewed this structure. Restarting the session to update their response. If you disagree with the current response, please submit another response or select another crystal.", user),
             footer = tagList(actionButton("ok", "Okay"))
         )
     )
 }
 
-#' Update datatable proxy.
+#' Check if users session is later than db entry for a specific ligand
 #'
-#' @param id Proxy of datatable.
-#' @param sessionTime Proxy of datatable.
-#' @param configuration Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param id id of the ligand
+#' @param sessionTime Time when session was last refreshed
+#' @param configuration The aforementioned configuration file generated from configuration.toml
+#' @return Returns a TRUE or FALSE depending if sessionTime is greater than a timestamp in db.
 sessionGreaterThanMostRecentResponse <- function(id, sessionTime, configuration){
+    message('(sessionGreaterThanMostRecentResponse)')
     con <- xcdbConnect(configuration=configuration)
     on.exit(dbDisconnect(con))
     response_data <- dbGetQuery(con, sprintf("SELECT * FROM review_responses"))
@@ -1055,17 +1108,18 @@ sessionGreaterThanMostRecentResponse <- function(id, sessionTime, configuration)
     } else {
         output <- TRUE
     }
-    return(TRUE) # Just force it... The app updates fairly rapidly now...
+    return(TRUE) # LOL. Why does this function exist anymore.
 }
 
 
-#' Update datatable proxy.
+#' Upload mol file but dont focus on it
 #'
-#' @param filepath Proxy of datatable.
-#' @param color Proxy of datatable.
-#' @param session Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param filepath file path to mol file
+#' @param color color of ligand
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Adds molecule to ngl
 uploadMolNoFocus <- function(filepath, color, session){
+    message('(uploadMolNoFocus)')
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
         type = 'fv_addMolandfocus_withcolor',
@@ -1073,12 +1127,13 @@ uploadMolNoFocus <- function(filepath, color, session){
     )
 }
 
-#' Update datatable proxy.
+#' Clears window.id from javascript
 #'
-#' @param id Proxy of datatable.
-#' @param session Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param id Window object id to clear
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Returns nothing, clears up stuff.
 clearWindowField <- function(id, session){
+    message('(clearWindowField)')
     session$sendCustomMessage(
         type = 'clear_window_field',
         list(id)
@@ -1093,13 +1148,13 @@ blankNAorNull <- function(x){
     ifelse(is.null(x), TRUE, is.na(x) | x == '')
 }
 
-#' Update datatable proxy.
+#' UUpload mol file but do focus on it
 #'
-#' @param filepath Proxy of datatable.
-#' @param session Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param filepath Filepath of mol file
+#' @param session A shiny session object - which is generated when a user connects to XCR.
+#' @return Uploads mol file to nfl
 uploadMolAndFocus2 <- function(filepath, session){
-    # Used once...
+    message('(uploadMolNoFocus2)')
     choice <- readTxtToOneLine(file=filepath)
     session$sendCustomMessage(
         type = 'fv_addMolandfocus',
@@ -1107,21 +1162,23 @@ uploadMolAndFocus2 <- function(filepath, session){
     )
 }
 
-#' Update datatable proxy.
+#' Get fragalysis annotation data from xcdb and make it reactive
 #'
-#' @param configuration Proxy of datatable.
-#' @param target_list Proxy of datatable.
+#' @param configuration The aforementioned configuration file generated from configuration.toml
+#' @param target_list Vector of Targets to fetch
 #' @return Updates proxy with new data...
 reactivegetFragalysisViewData <- function(configuration, target_list){
+    message('(reactivegetFragalysisViewData)')
     reactive({getFragalysisViewData(configuration=configuration, target_list=target_list)})
 }
 
-#' Update datatable proxy.
+#' Get fragalysis annotation data from xcdb and make it reactive with a slight variation
 #'
-#' @param flexdata Proxy of datatable.
-#' @param input Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param data ReactiveData object ideally from reactivegetFragalysisViewData
+#' @param input users shiny input object
+#' @return Creates a version of the reactive datsa that may or may not be subsetted.
 react_fv_data2 <- function(data, input){
+    message('(react_fv_data2)')
     reactive({
         if(!is.null(input$fragSelect)){
             if(!input$fragSelect == '' | input$fragSelect == 'Select'){
@@ -1137,12 +1194,13 @@ react_fv_data2 <- function(data, input){
     })
 }
 
-#' Update datatable proxy.
+#' Get fragalysis annotation data from xcdb and make it reactive with a slight variation
 #'
-#' @param flexdata Proxy of datatable.
-#' @param input Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param data ReactiveData object ideally from reactivegetFragalysisViewData
+#' @param input users shiny input object
+#' @return Creates a version of the reactive data that may or may not be subsetted. But with specific column names!
 react_fv_data <- function(data, input){
+    message('(react_fv_data2)')
     reactive({
         if(!is.null(input$fragSelect)){
             if(!input$fragSelect == '' | input$fragSelect == 'Select'){
@@ -1158,22 +1216,24 @@ react_fv_data <- function(data, input){
     })
 }
 
-#' Update datatable proxy.
+#' Hopefull wont break...
 #'
-#' @param flexdata Proxy of datatable.
-#' @return Updates proxy with new data...
+#' @param flexdata Don't worry about this...
+#' @return Dont worry about it
 updateFlexPlot <- function(flexdata){
+    message('(updateFlexPlot)')
     renderPlotly({
         plot_ly(flexdata()$data, x=~x, y=~y, text=~ligand_name, color=~status, customdata = ~ligand_name, size=20) %>% config(scrollZoom = TRUE)
     })
 }
 
-#' Update datatable proxy.
+#' Converts data into a plotly format
 #'
-#' @param r1 Proxy of datatable.
-#' @param input input R6 object
-#' @return Updates proxy with new data...
+#' @param r1 ...
+#' @param input ....
+#' @return Technically makes the data for a plotly plot
 flexPlotDataFun <- function(r1, input){
+    message('(flexPlotDataFun)')
     reactive({
         rowidx = as.character(r1()$target_name) == input$fpe_target
         ligand_name = rownames(r1())[rowidx]
@@ -1202,13 +1262,14 @@ flexPlotDataFun <- function(r1, input){
     })
 }
 
-#' Update datatable proxy.
+#' Update the main table function v2
 #'
-#' @param r1 Proxy of datatable.
-#' @param pl Proxy of datatable.
+#' @param r1 Reactive Data
+#' @param pl Pagelength
 #' @param input input R6 object
-#' @return Updates proxy with new data...
+#' @return Returns a datatable with particular formatting
 updateMainTable2 <- function(r1, pl=100, input){
+    message('(updateMainTable2)')
     if (is.null(isolate(input$therow_state))) {
         dtt <- DT::datatable(
             r1(),
@@ -1239,13 +1300,14 @@ updateMainTable2 <- function(r1, pl=100, input){
     }, server=FALSE)
 }
 
-#' Update datatable proxy.
+#' updateMainTable version 1
 #'
-#' @param r1 Proxy of datatable.
-#' @param pl Proxy of datatable.
+#' @param r1 Reactive data
+#' @param pl pagelength
 #' @param input input R6 object
-#' @return Updates proxy with new data...
+#' @return Returns a datatable with slightly different styling compared to updateMainTable2
 updateMainTable <- function(r1, pl=100, input){
+    message('(updateMainTable)')
     if (is.null(isolate(input$reviewtable_state))) {
         dtt <- DT::datatable(
             r1(),
@@ -1297,23 +1359,25 @@ updateMainTable <- function(r1, pl=100, input){
     )
 }
 
-#' Update datatable proxy.
+#' Prebuffer a data table proxy
 #'
 #' @param proxy Proxy of datatable.
 #' @param input input R6 object
-#' @return Updates proxy with new data...
+#' @return Takes users state of data-table, refreshes the data and returns the state.
 prebuffer_proxy <- function(proxy, input) { 
+    message('(prebuffer_proxy)')
     updateSearch(proxy, keywords = list(global = input$aqp_state$search$search, columns = NULL)) # see input$therow_state$columns if needed
     selectPage(proxy, page = input$aqp_state$start/input$aqp_state$length+1)
 }
 
-#' Create view of data based on inputs selected...
+#' Similar to updateMainTable functions but for the atom table!
 #'
 #' @param r Reactive data.frame of Ligand table.
 #' @param pl Initial Pagelength
 #' @param input input R6 object
-#' @return A reactive data obtain, that responds to user interactions.
+#' @return data-table to be rendered
 updateAQPTable <- function(r, pl=100, input=input){
+    message('(updateAQPTable)')
     if(is.null(isolate(input$aqp_state))){
         dtt <- DT::datatable(
             r()[,c(1,39,40,41)],
@@ -1355,6 +1419,7 @@ updateAQPTable <- function(r, pl=100, input=input){
 #' @param input R6 Object, specifying the state of UI elements.
 #' @return A reactive data obtain, that responds to user interactions.
 reactiviseData <- function(inputData, input){
+    message('(ReactiviseData)')
     reactive({
         if(input$tab == 'review'){
             rowidx <- rep(FALSE, nrow(inputData())) # This broken?
@@ -1385,11 +1450,13 @@ reactiviseData <- function(inputData, input){
     })
 }
 
-#' Fetch review data to 'update' the application
+#' Restart R Session but keep users settings
 #'
 #' @param configuration List containing various config options including credentials.
-#' @return Returns a data.frame for the data to be reviewed.
+#' @param target_list List targets they should see
+#' @return reactive data of review table
 restartSessionKeepOptions <- function(configuration, target_list){
+    message('(restartSessionKeepOptions)')
     dbdat <- trygetReviewData(configuration = configuration, target_list=target_list)
     inputData <- reactive({dbdat})
     return(inputData)
@@ -1398,11 +1465,13 @@ restartSessionKeepOptions <- function(configuration, target_list){
 #' Reset Review Form
 #'
 #' @param configuration List containing various config options including credentials.
-#' @param session Session R6 object. Probably not needed but included anyway... Can be obtained from higher scope...
+#' @param session A shiny session object - which is generated when a user connects to XCR.
 #' @param r1 Previous data... oh no...
 #' @param possDec List of possible decisions...
+#' @param target_list List targets they should see
 #' @return Resets the review form to accept new responses.
 resetForm <- function(configuration, session, r1, possDec, target_list){
+    message('(resetForm)')
     updateSelectizeInput(session, "ligand", selected = '', choices = sort(rownames( r1() )))
     updateSelectInput(session, 'decision', selected ='', choices = possDec)
     updateSelectInput(session, 'reason', selected='', choices='')
@@ -1421,6 +1490,7 @@ resetForm <- function(configuration, session, r1, possDec, target_list){
 #' @param email_list List object, containing email addresses as described in ./config.R
 #' @return Does not return anything, will send an email to whoever is listed in email_list for the target the structure belongs to.
 sendEmail <- function(structure, user, decision, reason, comments, email_list){
+    message('(sendEmail)')
     target <- gsub('-[a-zA-Z]*[0-9]+_[0-9]*[A-Z]*', '', structure)
 
     # If a email list has not been specified for the target, use the defaults.
@@ -1467,6 +1537,7 @@ If you believe you have been sent this message in error, please email tyler.gorr
 #' @param data single row dataframe to append to the table.
 #' @return Does not return anything.
 dbAppendWrapper <- function(configuration, table_name, data){
+    message('(dbAppendWrapper)')
     con <- dbConnect(RMariaDB::MariaDB(), dbname = configuration$db, host=configuration$host, 
         port=configuration$port, user=configuration$user, password=configuration$password)
     on.exit(dbDisconnect(con))
@@ -1481,6 +1552,7 @@ dbAppendWrapper <- function(configuration, table_name, data){
 #' @param configuration List containing various config options
 #' @return Does not return anything. Will append response to review table for the ligand and then send an email to whoever is listed in email_list for the target the structure belongs to.
 saveData <- function(data, xtaln, email_list, configuration) {
+    message('(saveData)')
     dbAppendWrapper(configuration = configuration, table_name = 'review_responses', data = data)
     sendEmail(xtaln, data[,'fedid'], data[,'decision_str'], data[,'reason'], data[,'comment'], email_list)
 }
@@ -1495,7 +1567,7 @@ epochTime <- function() as.integer(Sys.time())
 #' @return A string with the time YYYY-MM-DD-HH-MM-SS
 humanTime <- function() format(Sys.time(), "%Y%m%d%H%M%OS")
 
-# This should be functions.R but I am not sure that the code will behave correctly if I 
+# Don't ask about this kthx. It's yanked from SO
 customDraggableModalDialog <- function(..., title = NULL,
                                  footer = shiny::modalButton("Dismiss"),
                                  size = c("m", "s", "l"),
