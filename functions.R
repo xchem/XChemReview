@@ -51,7 +51,7 @@ updatePipelineOptions <- function(configuration, input){
     message('(updatePipelineOptions): Updating Target info')
     dbExecute(con, sprintf('UPDATE target SET %s WHERE target_name="%s"',
         sprintf("pl_monomeric=\'%s\', pl_reduce_reference_frame=\'%s\', pl_covalent_attachments=\'%s\', pl_active=\'%s\'", 
-                input$monomeric, input$reduce, input$covalent, input$active), 
+                as.numeric(input$monomeric), as.numeric(input$reduce), as.numeric(input$covalent), as.numeric(input$active), 
         input$config_target)
     )
     dbDisconnect(con) 
