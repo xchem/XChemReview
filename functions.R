@@ -49,8 +49,9 @@ fetchPipelineOptions <- function(configuration, target){
 updatePipelineOptions <- function(configuration, input){
     con <- xcdbConnect(configuration=configuration)
     message('(updatePipelineOptions): Updating Target info')
-    dbExecute(con, sprintf("UPDATE target SET %s WHERE target_name=%s",
-        sprintf("pl_monomeric=\'%s\', pl_reduce_reference_frame=\'%s\', pl_covalent_attachments=\'%s\', pl_active=\'%s\'", input$monomeric, input$reduce, input$covalent, input$active), 
+    dbExecute(con, sprintf('UPDATE target SET %s WHERE target_name="%s"',
+        sprintf("pl_monomeric=\'%s\', pl_reduce_reference_frame=\'%s\', pl_covalent_attachments=\'%s\', pl_active=\'%s\'", 
+                input$monomeric, input$reduce, input$covalent, input$active), 
         input$config_target)
     )
     dbDisconnect(con) 
