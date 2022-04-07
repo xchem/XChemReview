@@ -72,6 +72,7 @@ server <- function(input, output, session){
     sessionlist$fv_warn <- ''
     sessionlist$busterReport <- ''
     sessionlist$isotype <- 'value'
+    sessionlist$pisa <- FALSE
 
     output$fv_warn <- renderPrint({sessionlist$fv_warn})
 
@@ -1531,14 +1532,31 @@ server <- function(input, output, session){
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_target', 'Fetching pipeline params'))
         # Fetch the params from XCDB
         resp <- fetchPipelineOptions(configuration=configuration, target = isolate(input$config_target))
+        sessionlist$pisa <- resp$pl_monomeric
         updateCheckboxInput(session, 'monomeric', value = as.logical(resp$pl_monomeric))
         updateCheckboxInput(session, 'reduce', value =  as.logical(resp$pl_reduce_reference_frame))
-        updateCheckboxInput(session, 'covalent', value = as.logical(resp$pl_reduce_reference_frame))
+        updateCheckboxInput(session, 'covalent', value = as.logical(resp$pl_covalent_attachments))
         updateCheckboxInput(session, 'active', value = as.logical(resp$pl_active))
     })
 
     observeEvent(input$config_change, ignoreNULL = TRUE,{
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Updating pipeline parameters...'))
+        if(!is.NULL(input$config_target)){
+            if(!input$config_target == ''){
+                updatePipelineOptions(configuration=configuration, input=input)
+                if(sessionlist$pisa == input$monomeric){
+                    showModal(modalDialog(title = "It appears you have changed the assmebly of your target",
+                    'Please go through the data in your visit and update the files to trigger the data to be reprocessed...
+                    
+                    Run: /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
+                    easyClose=TRUE))
+                } else {
+                    external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
+                    command <- sprintf('%s %s', external_script, input$config_target)
+                    task <- tail(system(command, intern=T),1)
+                }
+            }
+        }
     })
 
     # Stop Timeout.

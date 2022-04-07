@@ -46,6 +46,15 @@ fetchPipelineOptions <- function(configuration, target){
     return(res)
 }
 
+updatePipelineOptions <- function(configuration, input){
+    con <- xcdbConnect(configuration=configuration)
+    dbExecute(con, sprintf("UPDATE target SET %s WHERE target_name=%s",
+        sprintf("pl_monomeric=\'%s\', pl_reduce_reference_frame=\'%s\', pl_covalent_attachments=\'%s\', pl_active=\'%s\'", input$monomeric, input$reduce, input$covalent, input$active), 
+        input$target)
+    )
+    dbDisconnect(con) 
+}
+
 #' Fetch targets an authenticated fedid is able to see on ISPyB and XCDB.
 #'
 #' @param fedid String, corresponding to a fedid provided by shinyproxy/active directory when you log in.
