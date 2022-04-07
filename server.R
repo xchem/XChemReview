@@ -497,8 +497,8 @@ server <- function(input, output, session){
         } else {
             debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'Attempting to Write Atoms'))
             writeAtoms(ligand_id=as.character(sessionlist$ligand_id), configuration=configuration, atomstoquery=atomstoquery, sessionlist=sessionlist)
-            debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'Success!')
-            debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'calling restartSessionKeepOptions')))
+            debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'Success!'))
+            debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'calling restartSessionKeepOptions'))
             inputData <- restartSessionKeepOptions(configuration=configuration, target_list=target_list)
             debugMessage(sID=sID, sprintf('(input$%s) %s', 'submit_atoms', 'calling reactiviseData'))
             r1 <- reactiviseData(inputData=inputData, input=input)
