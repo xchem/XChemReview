@@ -78,7 +78,7 @@ body <- dashboardBody(
                 nglShinyOutput('nglShiny', height = '500px'), # output$nglShiny
                 jqui_draggable(
                     tabBox(
-                        tabPanel(
+                        tabPanel( 
                             title = 'NGL Controls',
                             fluidRow(
                                 column(6, actionButton(
@@ -208,8 +208,8 @@ body <- dashboardBody(
             tabName = 'config',
             h2('N.B. Fiddling with this will trigger changes to how data will look in XCR - please give 24 hours after changing parameters'),
             selectInput('config_target', 'Target', choices=c('')),
-            checkboxInput('monomeric', 'Do not run PISA/Gemmi convert on target?', value = FALSE),
-            checkboxInput('reduce', 'Reduce Reference Frame to single Chain (usually Chain A)', value = TRUE),
+            checkboxInput('monomeric', 'Do not expand/reduce assembly using PISA/Gemmi', value = FALSE),
+            checkboxInput('reduce', 'Reduce Reference Frame to single Chain. (e.g. B chains will align to A chains) disable if Chain B is different to Chain A.', value = TRUE),
             checkboxInput('covalent', 'Convert covalently attached mol files', value = TRUE),
             checkboxInput('active', 'Actively keep data up to date', value = TRUE),
             actionButton('config_change', 'Submit')
