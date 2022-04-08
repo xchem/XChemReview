@@ -1538,8 +1538,8 @@ server <- function(input, output, session){
         updatePipelineOptions(configuration=configuration, input=input)
         external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
         command <- sprintf('%s %s', external_script, input$config_target)
-        message(command)
-        system(command)
+        # Prompt XCR to update everything in pipeline - get permission errors?, so probably safer to ask USERS to do it.
+        # system(command)
         showModal(modalDialog(title = "If you have changed the assmebly of your target",
                 'XChemReview requires your data to be updated to trigger reprocessing - if you would like to give XCR a nudge please run:    
                 /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
