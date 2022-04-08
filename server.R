@@ -11,13 +11,6 @@ server <- function(input, output, session){
         debugMessage(sID=sID, 'Disconnected')
     }
     session$onSessionEnded(sessionDisconnect)
-    query <- parseQueryString(isolate(session$clientData$url_search))
-    if(!is.null(query[['key']])){
-        debugMessage(sID=sID, sprintf('Decoding Key: %s', query[['key']]))
-        target_list2 <- sort(c(decrypt(query[['key']])))
-        target_list <- target_list2
-        fragfolders <- c('', target_list2)
-    }
     sessionTime <- reactive({epochTime()})
     possDec <- c("", "Release", "More Refinement", "More Experiments", "Reject")
     possAns <- possAns2 <- c('Select Decision')
