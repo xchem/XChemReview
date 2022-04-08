@@ -1534,16 +1534,16 @@ server <- function(input, output, session){
 
     observeEvent(input$config_change, ignoreNULL = TRUE,{
         debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Updating pipeline parameters...'))
-                debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Attempting to update...'))
-                updatePipelineOptions(configuration=configuration, input=input)
-                external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
-                command <- sprintf('%s %s', external_script, input$config_target)
-                task <- tail(system(command, intern=T),1)
-                showModal(modalDialog(title = "If you have changed the assmebly of your target",
+        debugMessage(sID=sID, sprintf('(input$%s) %s', 'config_change', 'Attempting to update...'))
+        updatePipelineOptions(configuration=configuration, input=input)
+        external_script <- file.path(configuration$script_path, 'prompt_reanalysis.sh')
+        command <- sprintf('%s %s', external_script, input$config_target)
+        message(command)
+        system(command)
+        showModal(modalDialog(title = "If you have changed the assmebly of your target",
                 'XChemReview requires your data to be updated to trigger reprocessing - if you would like to give XCR a nudge please run:    
                 /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
                 easyClose=TRUE))
-
     })
 
     # Stop Timeout.
