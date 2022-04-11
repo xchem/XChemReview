@@ -1542,8 +1542,12 @@ server <- function(input, output, session){
         # system(command)
         showModal(modalDialog(title = "If you have changed the assmebly of your target",
                 'XChemReview requires your data to be updated to trigger reprocessing - if you would like to give XCR a nudge please run:    
-                /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
+                find /dls/labxchem/data/{proposal/year}/{visit}/processing/analysis/model_building/ -type f -name "*.pdb" -exec touch {} +',
                 easyClose=TRUE))
+    })
+
+    output$doc_to_display <- renderUI({
+        includeMarkdown(file.path(configuration$xcr_path, "Pages/help.md"))
     })
 
     # Stop Timeout.

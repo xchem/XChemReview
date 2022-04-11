@@ -202,7 +202,7 @@ body <- dashboardBody(
         ),
         tabItem(
             tabName = 'help',
-            h2('Help documentation Goes Here')
+            uiOutput("doc_to_display")
         ),
         tabItem(
             tabName = 'config',
