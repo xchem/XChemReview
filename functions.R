@@ -1319,7 +1319,7 @@ updateMainTable2 <- function(r1, pl=100, input){
 #' @return Returns a datatable with slightly different styling compared to updateMainTable2
 updateMainTable <- function(r1, pl=100, input){
     message('(updateMainTable)')
-    print(dim(r1())
+    print(dim(r1()))
     if (is.null(isolate(input$reviewtable_state))) {
         dtt <- DT::datatable(
             r1(),
