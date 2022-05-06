@@ -1319,6 +1319,7 @@ updateMainTable2 <- function(r1, pl=100, input){
 #' @return Returns a datatable with slightly different styling compared to updateMainTable2
 updateMainTable <- function(r1, pl=100, input){
     message('(updateMainTable)')
+    print(dim(r1())
     if (is.null(isolate(input$reviewtable_state))) {
         dtt <- DT::datatable(
             r1(),
@@ -1331,7 +1332,7 @@ updateMainTable <- function(r1, pl=100, input){
                 pageLength=pl, 
                 pageLength = isolate(input$reviewtable_state$length),
                 lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All')),
-                columnDefs=list(list(orderable=TRUE))
+                columnDefs=list(list(orderable=TRUE, targets = 0:ncol(r1) ))
             )
         )
     } else {
@@ -1347,7 +1348,7 @@ updateMainTable <- function(r1, pl=100, input){
                 paging = TRUE,
                 pageLength = isolate(input$reviewtable_state$length),
                 lengthMenu = list(c(10, 25, 100, -1), c('10', '25', '100','All')),
-                columnDefs=list(list(orderable=TRUE))
+                columnDefs=list(list(orderable=TRUE, targets = 0:ncol(r1) ))
             )   
         )
     }
